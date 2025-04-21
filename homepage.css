@@ -81,7 +81,7 @@ section {
 /* Header Styles */
 header {
     background-color: var(--white);
-    padding: 20px 0;
+    padding: 15px 0;
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
@@ -94,8 +94,20 @@ header .container {
     align-items: center;
 }
 
+.logo {
+    display: flex;
+    align-items: center;
+}
+
 .logo img {
     height: 40px;
+}
+
+.website-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-left: 10px;
+    color: #333; /* Adjust color as needed */
 }
 
 nav ul {
@@ -273,17 +285,6 @@ nav ul li a:hover {
     border-radius: 50%;
 }
 
-.movies-icon {
-    background-color: #ffe8e8;
-}
-
-.music-icon {
-    background-color: #e8f5e9;
-}
-
-.books-icon {
-    background-color: #e3f2fd;
-}
 
 /* How It Works Section */
 .how-it-works .container {
@@ -319,7 +320,6 @@ nav ul li a:hover {
     color: var(--primary);
 }
 
-/* Stats and Testimonials Combined Section */
 .stats-testimonials {
     background-color: var(--secondary);
     padding: 60px 0;
@@ -356,15 +356,37 @@ nav ul li a:hover {
 
 .stats-row:last-child {
     margin-bottom: 0;
+    justify-content: center; /* Center the last row with single stat */
 }
 
 .stat {
     display: flex;
     align-items: center;
+    width: 45%; /* Control the width of each stat block */
+}
+
+.icon {
+    flex: 0 0 50px; /* Fixed width that doesn't grow or shrink */
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* For positioning the image */
+}
+
+.icon img {
+    max-width: 100%;
+    max-height: 100%;
+    position: absolute; /* Take the image out of flow */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center perfectly */
+    object-fit: contain; /* Maintain aspect ratio */
 }
 
 .stat-details {
     margin-left: 15px;
+    flex: 1; /* Allow text to take remaining space */
 }
 
 .stat-details h3 {
@@ -377,20 +399,8 @@ nav ul li a:hover {
     font-size: 14px;
 }
 
-.users-icon, .ratings-icon, .songs-icon, .movies-rev-icon, .books-icon {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background-color: rgba(108, 99, 255, 0.1);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .books-featured-stat {
-    margin: 0 auto;
-    display: flex;
-    justify-content: center;
+    width: auto; /* Override the 45% width for the centered stat */
 }
 
 .testimonials-section {
