@@ -2,11 +2,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --primary: #6c63ff;
+    --primary: #8F94FB;
     --primary-dark: #5a52e0;
     --secondary: #f8f9fe;
     --text-dark: #333;
-    --text-light: #666;
     --white: #fff;
     --gray-light: #f5f5f5;
     --gray: #ddd;
@@ -97,17 +96,55 @@ header .container {
 .logo {
     display: flex;
     align-items: center;
+    position: relative;
+}
+
+.logo a {
+    display: flex;
+    align-items: center;
 }
 
 .logo img {
     height: 40px;
+    object-fit: contain;
+    vertical-align: middle;
+    transition: transform 0.3s ease;
+}
+
+.logo:hover img {
+    transform: scale(1.05);
 }
 
 .website-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin-left: 10px;
-    color: #333; /* Adjust color as needed */
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-left: 12px;
+    color: var(--primary, #333);
+    letter-spacing: 0.5px;
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    transition: color 0.3s ease;
+}
+
+.logo:hover .website-name {
+    color: var(--accent, #555);
+}
+
+/* Optional: Add a subtle animation when hovering */
+.website-name:after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--accent, #555);
+    transition: width 0.3s ease;
+}
+
+.logo:hover .website-name:after {
+    width: 100%;
 }
 
 nav ul {
@@ -135,6 +172,32 @@ nav ul li a:hover {
 .auth-buttons a {
     margin-left: 20px;
     font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.auth-buttons .login {
+    color: var(--primary);
+    position: relative;
+    padding: 8px 0;
+}
+
+.auth-buttons .login:after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 2px;
+    bottom: 0;
+    left: 0;
+    background-color: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.auth-buttons .login:hover {
+    color: var(--primary-dark);
+}
+
+.auth-buttons .login:hover:after {
+    width: 100%;
 }
 
 .auth-buttons .signup {
@@ -142,11 +205,13 @@ nav ul li a:hover {
     color: var(--white);
     padding: 10px 20px;
     border-radius: var(--border-radius);
-    transition: background-color 0.3s;
+    transition: all 0.3s ease;
 }
 
 .auth-buttons .signup:hover {
     background-color: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Hero Section */
@@ -485,8 +550,76 @@ nav ul li a:hover {
 /* FAQ Section */
 .faq {
     background-color: var(--secondary);
-    text-align: center;
+    padding: 60px 0;
 }
+
+.faq h2 {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.faq-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background-color: var(--white);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    text-align: left;
+    overflow: hidden;
+}
+
+.faq-question {
+    padding: 18px 24px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.faq-question:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.faq-answer {
+    padding: 0 24px 18px;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+
+.faq-question::after {
+    content: "+";
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    transition: all 0.3s ease;
+}
+
+.faq-item.active .faq-question::after {
+    content: "-";
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+}
+
+.faq-item.active .faq-answer {
+    max-height: 200px;
+    padding: 0 24px 18px;
+}
+
 
 .faq-content {
     max-width: 800px;
@@ -497,91 +630,156 @@ nav ul li a:hover {
 footer {
     background-color: var(--primary);
     color: var(--white);
-    padding: 60px 0 40px;
+    padding: 20px 0 0;
+    position: relative;
+    overflow: hidden;
 }
 
-.footer-top {
+.footer-content {
     display: flex;
     justify-content: space-between;
-    flex-wrap: wrap;
+    align-items: flex-start;
+    padding-bottom: 30px;
+    position: relative;
+    z-index: 2;
 }
 
-.footer-col {
+.footer-main {
     flex: 1;
-    min-width: 200px;
-    margin-bottom: 30px;
+    position: relative;
+}
+
+.footer-branding {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.footer-branding:after {
+    content: "";
+    position: absolute;
+    bottom: -12px;
+    left: 0;
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.8), transparent);
+    border-radius: 8px;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    position: relative;
+}
+
+.footer-logo:before {
+    content: "";
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 50%;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: all 0.3s ease;
+}
+
+.footer-logo:hover:before {
+    opacity: 1;
+    transform: scale(1);
 }
 
 .footer-logo img {
-    height: 40px;
-    margin-bottom: 20px;
+    height: 48px;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    transition: all 0.3s ease;
+    position: relative;
 }
 
-.social-icons {
-    display: flex;
-    margin-top: 20px;
+.footer-logo:hover img {
+    transform: scale(1.05);
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)) brightness(1.1);
 }
 
-.social-icons a {
+.footer-name {
+    margin-left: 16px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.footer-branding:hover .footer-name {
+    text-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.copyright {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+    margin-top: 16px;
+    max-width: 80%;
+}
+
+.footer-nav {
+    padding-top: 12px;
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: 36px;
-    height: 36px;
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    margin-right: 10px;
-    transition: background-color 0.3s;
+    height: 100%;
+    margin-top: 50px;
 }
 
-.social-icons a:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-}
-
-.social-icons i {
-    color: var(--white);
-    font-size: 16px;
-}
-
-footer h4 {
-    margin-bottom: 20px;
-    font-size: 18px;
-}
-
-footer ul li {
-    margin-bottom: 10px;
-}
-
-footer ul li a {
-    color: rgba(255, 255, 255, 0.8);
-    transition: color 0.3s;
-}
-
-footer ul li a:hover {
-    color: var(--white);
-}
-
-.subscribe {
+.footer-nav ul {
     display: flex;
+    gap: 30px;
+    align-items: center;
+}
+
+.footer-nav ul li {
+    margin-bottom: 0;
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    position: relative;
+    padding: 6px 2px;
+    transition: all 0.3s ease;
+}
+
+.footer-link:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background-color: var(--accent, #ffffff);
+    transition: width 0.3s ease;
+}
+
+.footer-link:hover {
+    color: var(--white);
+}
+
+.footer-link:hover:after {
+    width: 100%;
+}
+
+.footer-bottom {
+    position: relative;
     margin-top: 20px;
 }
 
-.subscribe input {
-    flex: 1;
-    padding: 12px;
-    border: none;
-    border-radius: var(--border-radius) 0 0 var(--border-radius);
-    outline: none;
-}
-
-.subscribe button {
-    background-color: var(--white);
-    color: var(--primary);
-    border: none;
-    padding: 0 15px;
-    border-radius: 0 var(--border-radius) var(--border-radius) 0;
-    cursor: pointer;
-}
 
 /* Responsive */
 @media (max-width: 992px) {
@@ -628,5 +826,25 @@ footer ul li a:hover {
     
     .picks-grid {
         flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .footer-content {
+        flex-direction: column;
+    }
+    
+    .footer-nav {
+        margin-top: 25px;
+        align-self: flex-start;
+    }
+
+    .faq-question {
+        font-size: 16px;
+        padding: 16px 20px;
+    }
+    
+    .faq-answer {
+        padding: 0 20px 16px;
     }
 }

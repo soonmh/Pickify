@@ -11,9 +11,8 @@
     <header>
         <div class="container">
             <div class="logo">
-                <!-- Replace with your actual logo -->
                 <a href="/"><img src="./assests/Logopic.png" alt="Pickify Logo"></a>
-                <span class="website-name">Pickify</span> <!-- Add website name here -->
+                <span class="website-name">Pickify</span> 
             </div>
             <nav>
                 <ul>
@@ -39,7 +38,6 @@
                 <a href="#" class="btn-primary">Register</a>
             </div>
             <div class="hero-image">
-                <!-- Replace with your actual hero image -->
                 <img src="./assests/Homepagepic1 - Copy.png" alt="Pickify Platform Illustration">
             </div>
         </div>
@@ -89,7 +87,6 @@
     <section id= "product" class="how-it-works">
         <div class="container">
             <div class="how-image">
-                <!-- Replace with your actual image -->
                 <img src="./assests/Homepagepic2 - Copy.png" alt="How Pickify Works">
             </div>
             <div class="how-content">
@@ -230,59 +227,53 @@
         </div>
     </section>
 
+    <script src="homepage.js"></script>
     <section id="faq" class="faq">
         <div class="container">
             <h2>Frequently Asked Questions</h2>
             <div class="faq-content">
-                <!-- Add your FAQ content here -->
-                <p>FAQ section content will go here.</p>
+                <div class="faq-item">
+                    <h3 class="faq-question">Is Pickify free to use?</h3>
+                    <div class="faq-answer">Yes! Creating an account and exploring recommendations is completely free.</div>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">Can I save entertainment I like?</h3>
+                    <div class="faq-answer">Yes! You can add items to your Favourites, Watch Later list, or organize them into custom collections.</div>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">Do I need to log in to access features like watchlist or reviews?</h3>
+                    <div class="faq-answer">Yes, you need to log in to access personalized features like your watchlist, saved collections, and review submissions.</div>
+                </div>
             </div>
         </div>
     </section>
 
     <footer>
         <div class="container">
-            <div class="footer-top">
-                <div class="footer-col">
-                    <div class="footer-logo">
-                        <img src="./assests/Logopic.png" alt="Pickify Logo">
+            <div class="footer-content">
+                <div class="footer-main">
+                    <div class="footer-branding">
+                        <div class="footer-logo">
+                            <img src="./assests/whiteLogopic.png" alt="Pickify Logo">
+                        </div>
+                        <h3 class="footer-name">Pickify</h3>
                     </div>
-                    <p>Copyright © 2025 Pickify Inc.<br>All rights reserved.</p>
-                    
+                    <p class="copyright">Copyright © 2025 Pickify Inc.<br>All rights reserved.</p>
                 </div>
-                <div class="footer-col">
-                    <h4>Company</h4>
+                <div class="footer-nav">
                     <ul>
-                        <li><a href="#">About us</a></li>
-                        <li><a href="#">Blog</a></li>
-                        <li><a href="#">Contact us</a></li>
-                        <li><a href="#">Pricing</a></li>
-                        <li><a href="#">Testimonials</a></li>
+                        <li><a href="aboutus.html" class="footer-link">About us</a></li>
+                        <li><a href="contactus.html" class="footer-link">Contact us</a></li>
                     </ul>
                 </div>
-                <div class="footer-col">
-                    <h4>Support</h4>
-                    <ul>
-                        <li><a href="#">Help center</a></li>
-                        <li><a href="#">Terms of service</a></li>
-                        <li><a href="#">Legal</a></li>
-                        <li><a href="#">Privacy policy</a></li>
-                        <li><a href="#">Status</a></li>
-                    </ul>
-                </div>
-                <div class="footer-col">
-                    <h4>Stay up to date</h4>
-                    <div class="subscribe">
-                        <input type="email" placeholder="Your email address">
-                        <button type="submit"><i class="fas fa-paper-plane"></i></button>
-                    </div>
-                </div>
+            </div>
+            <div class="footer-bottom">
+                <div class="wave-decoration"></div>
             </div>
         </div>
     </footer>
 
     <script>
-        // Smooth scrolling for navigation links
         document.querySelectorAll('header nav a').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -292,7 +283,7 @@
                 
                 if (targetElement) {
                     window.scrollTo({
-                        top: targetElement.offsetTop - 80, // Offset for header height
+                        top: targetElement.offsetTop - 80,
                         behavior: 'smooth'
                     });
                 }
