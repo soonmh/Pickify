@@ -1,14 +1,35 @@
+// shared-components.js
 function loadComponent(elementId, componentPath) {
     fetch(componentPath)
       .then(response => response.text())
-      .then(data => document.getElementById(elementId).innerHTML = data);
+      .then(data => {
+        const placeholder = document.getElementById(elementId);
+        
+        // Simply insert the HTML content
+        placeholder.innerHTML = data;
+        
+        // For header placeholders, transfer needed attributes to the placeholder
+        if (elementId === 'header-placeholder') {
+          const headerElement = placeholder.querySelector('header');
+          if (headerElement) {
+            // Get computed styles from the inner header
+            const styles = window.getComputedStyle(headerElement);
+            
+            // Apply shadow to the placeholder instead of inner header
+            placeholder.style.boxShadow = styles.boxShadow;
+            headerElement.style.boxShadow = 'none';
+            headerElement.style.position = 'static'; // Remove sticky from inner header
+            
+            // Ensure padding is properly applied
+            placeholder.style.padding = '0';
+          }
+        }
+      });   
   }
   
   document.addEventListener('DOMContentLoaded', function() {
-    // Check which page type we're on using data attribute
     const pageType = document.body.dataset.pageType || 'main';
     
-    // Load the appropriate header and footer based on page type
     if (pageType === 'homepage') {
       loadComponent('header-placeholder', 'homepageheader.html');
       loadComponent('footer-placeholder', 'homepagefooter.html');
