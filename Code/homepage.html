@@ -8,29 +8,9 @@
     <link rel="stylesheet" href="homepage.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 </head>
-<body>
-    <header>
-        <div class="container">
-            <div class="logo">
-                <a href="/"><img src="./assests/Logopic.png" alt="Pickify Logo"></a>
-                <span class="website-name">Pickify</span> 
-            </div>
-            <nav>
-                <ul>
-                    <li><a href="#top">Home</a></li>
-                    <li><a href="#features">Feature</a></li>
-                    <li><a href="#product">Product</a></li>
-                    <li><a href="#testimonials">Testimonial</a></li>
-                    <li><a href="#faq">FAQ</a></li>
-                </ul>
-            </nav>
-            <div class="auth-buttons">
-                <a href="#" class="login">Login</a>
-                <a href="#" class="signup">Sign up</a>
-            </div>
-        </div>
-    </header>
-
+<body data-page-type="homepage">
+    <div id="header-placeholder"></div>
+    
     <section class="hero">
         <div id="top" class="container">
             <div class="hero-content">
@@ -249,30 +229,8 @@
         </div>
     </section>
 
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-main">
-                    <div class="footer-branding">
-                        <div class="footer-logo">
-                            <img src="./assests/whiteLogopic.png" alt="Pickify Logo">
-                        </div>
-                        <h3 class="footer-name">Pickify</h3>
-                    </div>
-                    <p class="copyright">Copyright © 2025 Pickify Inc.<br>All rights reserved.</p>
-                </div>
-                <div class="footer-nav">
-                    <ul>
-                        <li><a href="aboutus.html" class="footer-link">About us</a></li>
-                        <li><a href="contactus.html" class="footer-link">Contact us</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <div class="wave-decoration"></div>
-            </div>
-        </div>
-    </footer>
+    <div id="footer-placeholder"></div>
+    <script src="header-footer.js"></script>
 
     <script>
         document.querySelectorAll('header nav a').forEach(anchor => {
