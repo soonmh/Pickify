@@ -31,10 +31,10 @@ function loadComponent(elementId, componentPath) {
     const pageType = document.body.dataset.pageType || 'main';
     
     if (pageType === 'homepage') {
-      loadComponent('header-placeholder', 'homepageheader.html');
-      loadComponent('footer-placeholder', 'homepagefooter.html');
+      loadComponent('header-placeholder', 'header-footer/homepageheader.html');
+      loadComponent('footer-placeholder', 'header-footer/homepagefooter.html');
     } else {
-      loadComponent('header-placeholder', 'header.html');
-      loadComponent('footer-placeholder', 'footer.html');
+      loadComponent('header-placeholder', 'header-footer/header.html');
+      loadComponent('footer-placeholder', 'header-footer/footer.html');
     }
   });
