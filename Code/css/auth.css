@@ -1,0 +1,306 @@
+/* Enhanced Authentication Styles */
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8f0 100%);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    margin: 0;
+    color: #333;
+}
+
+.auth-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+    padding: 40px 20px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    padding: 40px;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.auth-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+}
+
+.auth-card h1 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    text-align: center;
+    color: #2d3748;
+    position: relative;
+}
+
+.auth-card h1:after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 3px;
+    background: linear-gradient(90deg, #8F94FB, #4e54c8);
+    border-radius: 3px;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #4a5568;
+}
+
+input {
+    padding: 14px 16px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    background-color: #f8fafc;
+}
+
+input:focus {
+    border-color: #8F94FB;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(143, 148, 251, 0.2);
+    background-color: #fff;
+}
+
+input::placeholder {
+    color: #a0aec0;
+}
+
+.forgot-password {
+    font-size: 13px;
+    color: #8F94FB;
+    text-align: right;
+    margin-bottom: 24px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.forgot-password:hover {
+    color: #5a52e0;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: linear-gradient(90deg, #8F94FB, #4e54c8);
+    color: #fff;
+    padding: 14px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(79, 94, 230, 0.3);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(90deg, #7a7ff8, #4348b8);
+    box-shadow: 0 6px 14px rgba(79, 94, 230, 0.4);
+    transform: translateY(-2px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 30px 0;
+    font-size: 14px;
+    color: #a0aec0;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.auth-divider::before {
+    margin-right: 15px;
+}
+
+.auth-divider::after {
+    margin-left: 15px;
+}
+
+/* Password visibility toggle - Fixed positioning */
+.password-field {
+    position: relative;
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+/* Password input styling */
+.password-field input {
+    width: 100%;
+    padding-right: 40px;
+    box-sizing: border-box;
+}
+
+/* Password toggle button - Fixed vertical alignment */
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 9px; /* Fixed position instead of percentage */
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #a0aec0;
+    display: block !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    width: 30px;
+    height: 30px;
+    z-index: 1000;
+}
+
+.password-toggle:hover {
+    color: #8F94FB;
+}
+
+.password-toggle:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(143, 148, 251, 0.2);
+}
+/* Social login icon buttons */
+.social-login {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 25px;
+}
+
+.social-login button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    padding: 12px;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.btn-google {
+    background-color: #db4437;
+    color: white;
+}
+
+.btn-google:hover {
+    background-color: #c33d2f;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.btn-facebook {
+    background-color: #4267B2;
+    color: white;
+}
+
+.btn-facebook:hover {
+    background-color: #365899;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* Ensure a proper size for social login icons */
+.social-login button i {
+    font-size: 20px;
+}
+
+.auth-card p {
+    font-size: 14px;
+    text-align: center;
+    color: #4a5568;
+    margin-top: 20px;
+    margin-bottom: 0;
+}
+
+p a {
+    color: #8F94FB;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+p a:hover {
+    color: #5a52e0;
+    text-decoration: underline;
+}
+
+/* Responsive adjustments */
+@media (max-width: 500px) {
+    .auth-card {
+        padding: 30px 20px;
+    }
+    
+    input, .btn-primary, .social-login button {
+        padding: 12px;
+    }
+}
+
+/* Animation for form elements */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.auth-card h1,
+form label,
+form input,
+.forgot-password,
+.btn-primary,
+.auth-divider,
+.social-login button,
+.auth-card p {
+    animation: fadeIn 0.5s ease forwards;
+    opacity: 0;
+}
+
+.auth-card h1 { animation-delay: 0.1s; }
+form label:nth-of-type(1), form input:nth-of-type(1) { animation-delay: 0.2s; }
+form label:nth-of-type(2), form input:nth-of-type(2) { animation-delay: 0.3s; }
+form label:nth-of-type(3), form input:nth-of-type(3) { animation-delay: 0.4s; }
+form label:nth-of-type(4), form input:nth-of-type(4) { animation-delay: 0.5s; }
+.forgot-password { animation-delay: 0.6s; }
+.btn-primary { animation-delay: 0.7s; }
+.auth-divider { animation-delay: 0.8s; }
+.social-login button:nth-of-type(1) { animation-delay: 0.9s; }
+.social-login button:nth-of-type(2) { animation-delay: 1s; }
+.auth-card p { animation-delay: 1.1s; }
