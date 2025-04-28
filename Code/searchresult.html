@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Results - Pickify</title>
+    <link rel="icon" href="./assests/favicon.ico">
+    <link rel="stylesheet" href="./css/mainpage.css">
+    <link rel="stylesheet" href="./css/header-footer.css">
+    <link rel="stylesheet" href="./css/searchresult.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    
+</head>
+<body data-page-type="search">
+    <div id="header-placeholder"></div>
+
+    <div class="container search-container">
+        <!-- Search Bar -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8">
+                <div class="search-input-container">
+                    <input type="text" class="search-input" id="search-input" placeholder="Search for books, movies, music...">
+                    <button class="search-button" id="search-button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Sorting -->
+        <div class="row">
+            <div class="col-12">
+                <div class="filter-card">
+                    <div class="row">
+                        <!-- Type Filter -->
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <label for="type-filter" class="filter-label">Type:</label>
+                            <select id="type-filter" class="filter-select">
+                                <option value="all">All Types</option>
+                                <option value="book">Books</option>
+                                <option value="movie">Movies</option>
+                                <option value="music">Music</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Genre Filter -->
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <label for="genre-filter" class="filter-label">Genre:</label>
+                            <select id="genre-filter" class="filter-select">
+                                <option value="all">All Genres</option>
+                                <option value="action">Action</option>
+                                <option value="comedy">Comedy</option>
+                                <option value="drama">Drama</option>
+                                <option value="fantasy">Fantasy</option>
+                                <option value="romance">Romance</option>
+                                <option value="thriller">Thriller</option>
+                                <option value="sci-fi">Sci-Fi</option>
+                                <option value="horror">Horror</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Sort Options -->
+                        <div class="col-md-4">
+                            <div class="d-flex flex-column">
+                                <label class="filter-label">Sort By:</label>
+                                <div class="d-flex sort-buttons">
+                                    <button type="button" class="sort-btn active me-2" data-sort="rating">
+                                        <i class="fas fa-star"></i> Top Rated
+                                    </button>
+                                    <button type="button" class="sort-btn" data-sort="views">
+                                        <i class="fas fa-eye"></i> Most Viewed
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Count -->
+        <div class="row">
+            <div class="col-12">
+                <p class="results-count">Showing <span id="results-number" class="results-number">24</span> results</p>
+            </div>
+        </div>
+
+        <!-- Results Grid -->
+        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="results-container">
+            <!-- Book Example -->
+            <div class="col" data-id="1">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="The Midnight Library">
+                    <div class="result-body">
+                        <span class="result-type book">Book</span>
+                        <h5 class="result-title">The Midnight Library</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.8
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 12.4k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Movie Example -->
+            <div class="col" data-id="2">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Inception">
+                    <div class="result-body">
+                        <span class="result-type movie">Movie</span>
+                        <h5 class="result-title">Inception</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.7
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 48.7k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Music Example -->
+            <div class="col" data-id="3">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Taylor Swift - Folklore">
+                    <div class="result-body">
+                        <span class="result-type music">Music</span>
+                        <h5 class="result-title">Taylor Swift - Folklore</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.9
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 38.2k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Book Example -->
+            <div class="col" data-id="4">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Dune">
+                    <div class="result-body">
+                        <span class="result-type book">Book</span>
+                        <h5 class="result-title">Dune</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.6
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 15.8k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Movie Example -->
+            <div class="col" data-id="5">
+                <div class="result-card">
+                    <img src="./assests/movieposter.png" class="result-img" alt="The Shawshank Redemption">
+                    <div class="result-body">
+                        <span class="result-type movie">Movie</span>
+                        <h5 class="result-title">The Shawshank Redemption</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.9
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 52.3k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Music Example -->
+            <div class="col" data-id="6">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Kendrick Lamar - To Pimp a Butterfly">
+                    <div class="result-body">
+                        <span class="result-type music">Music</span>
+                        <h5 class="result-title">Kendrick Lamar - To Pimp a Butterfly</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.8
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 27.5k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Book Example -->
+            <div class="col" data-id="7">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Project Hail Mary">
+                    <div class="result-body">
+                        <span class="result-type book">Book</span>
+                        <h5 class="result-title">Project Hail Mary</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.7
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 9.3k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Movie Example -->
+            <div class="col" data-id="8">
+                <div class="result-card">
+                    <img src="/api/placeholder/300/200" class="result-img" alt="Everything Everywhere All at Once">
+                    <div class="result-body">
+                        <span class="result-type movie">Movie</span>
+                        <h5 class="result-title">Everything Everywhere All at Once</h5>
+                        <div class="result-meta">
+                            <div class="result-rating">
+                                <i class="fas fa-star"></i> 4.8
+                            </div>
+                            <div class="result-views">
+                                <i class="fas fa-eye"></i> 31.7k
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <nav aria-label="Search results pages">
+                    <ul class="pagination justify-content-center">
+                        <li class="page-item disabled">
+                            <a class="page-link" href="#" tabindex="-1" aria-disabled="true">Previous</a>
+                        </li>
+                        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                        <li class="page-item"><a class="page-link" href="#">2</a></li>
+                        <li class="page-item"><a class="page-link" href="#">3</a></li>
+                        <li class="page-item">
+                            <a class="page-link" href="#">Next</a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-placeholder"></div>
+
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="./js/header-footer.js"></script>
+    <script src="./js/searchresult.js"></script>
+</body>
+</html>
