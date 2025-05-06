@@ -179,64 +179,53 @@ document.addEventListener('DOMContentLoaded', function () {
     const top10MusicContainer = document.getElementById('top10-music');
     const top10BooksContainer = document.getElementById('top10-books');
 
-    const moviesPrev = document.getElementById('movies-prev');
-    const moviesNext = document.getElementById('movies-next');
-    const musicPrev = document.getElementById('music-prev');
-    const musicNext = document.getElementById('music-next');
-    const booksPrev = document.getElementById('books-prev');
-    const booksNext = document.getElementById('books-next');
-
-    // Variables for pagination
-    let currentPageMovies = 0;
-    let currentPageMusic = 0;
-    let currentPageBooks = 0;
-
     // Dummy Data for Top 10 Movies
     const top10Movies = [
-        { id: 3, title: "The Dark Knight", image: "./assests/movieposter.png", rating: 4.9, views: "1.5M" },
-        { id: 4, title: "Interstellar", image: "./assests/movieposter.png", rating: 4.7, views: "1.1M" },
-        { id: 2, title: "Inception", image: "./assests/movieposter.png", rating: 4.7, views: "48.7K" },
-        { id: 5, title: "Fight Club", image: "./assests/movieposter.png", rating: 4.8, views: "800K" },
-        { id: 6, title: "Pulp Fiction", image: "./assests/movieposter.png", rating: 4.6, views: "900K" },
-        { id: 14, title: "The Matrix", image: "./assests/movieposter.png", rating: 4.8, views: "1.0M" },
-        { id: 15, title: "Forrest Gump", image: "./assests/movieposter.png", rating: 4.9, views: "1.3M" },
-        { id: 16, title: "The Shawshank Redemption", image: "./assests/movieposter.png", rating: 4.9, views: "1.6M" },
-        { id: 17, title: "The Godfather", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M" },
-        { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M" },
+        { id: 3, title: "The Dark Knight", image: "./assests/movieposter.png", rating: 4.9, views: "1.5M", type: "movie" },
+        { id: 4, title: "Interstellar", image: "./assests/movieposter.png", rating: 4.7, views: "1.1M", type: "movie" },
+        { id: 2, title: "Inception", image: "./assests/movieposter.png", rating: 4.7, views: "48.7K", type: "movie" },
+        { id: 5, title: "Fight Club", image: "./assests/movieposter.png", rating: 4.8, views: "800K", type: "movie" },
+        { id: 6, title: "Pulp Fiction", image: "./assests/movieposter.png", rating: 4.6, views: "900K", type: "movie" },
+        { id: 14, title: "The Matrix", image: "./assests/movieposter.png", rating: 4.8, views: "1.0M", type: "movie" },
+        { id: 15, title: "Forrest Gump", image: "./assests/movieposter.png", rating: 4.9, views: "1.3M", type: "movie" },
+        { id: 16, title: "The Shawshank Redemption", image: "./assests/movieposter.png", rating: 4.9, views: "1.6M", type: "movie" },
+        { id: 17, title: "The Godfather", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M", type: "movie" },
+        { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
     ];
 
     // Dummy Data for Top 10 Music
     const top10Music = [
-        { id: 7, title: "Blinding Lights", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M" },
-        { id: 8, title: "Shape of You", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M" },
-        { id: 9, title: "Rolling in the Deep", image: "./assests/movieposter.png", rating: 4.7, views: "1.5M" },
-        { id: 10, title: "Bohemian Rhapsody", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M" },
-        { id: 19, title: "Someone Like You", image: "./assests/movieposter.png", rating: 4.8, views: "1.6M" },
-        { id: 20, title: "Let It Be", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M" },
-        { id: 21, title: "Bad Guy", image: "./assests/movieposter.png", rating: 4.6, views: "1.4M" },
-        { id: 22, title: "Hotel California", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M" },
-        { id: 23, title: "Hey Jude", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M" },
-        { id: 24, title: "Stairway to Heaven", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M" },
+        { id: 7, title: "Blinding Lights", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M", type: "music" },
+        { id: 8, title: "Shape of You", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M", type: "music" },
+        { id: 9, title: "Rolling in the Deep", image: "./assests/movieposter.png", rating: 4.7, views: "1.5M", type: "music" },
+        { id: 10, title: "Bohemian Rhapsody", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M", type: "music" },
+        { id: 19, title: "Someone Like You", image: "./assests/movieposter.png", rating: 4.8, views: "1.6M", type: "music" },
+        { id: 20, title: "Let It Be", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M", type: "music" },
+        { id: 21, title: "Bad Guy", image: "./assests/movieposter.png", rating: 4.6, views: "1.4M", type: "music" },
+        { id: 22, title: "Hotel California", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M", type: "music" },
+        { id: 23, title: "Hey Jude", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M", type: "music" },
+        { id: 24, title: "Stairway to Heaven", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M", type: "music" },
     ];
 
     // Dummy Data for Top 10 Books
     const top10Books = [
-        { id: 1, title: "The Midnight Library", image: "./assests/movieposter.png", rating: 4.8, views: "12.4K" },
-        { id: 11, title: "Atomic Habits", image: "./assests/movieposter.png", rating: 4.8, views: "600K" },
-        { id: 12, title: "The Alchemist", image: "./assests/movieposter.png", rating: 4.9, views: "700K" },
-        { id: 13, title: "1984", image: "./assests/movieposter.png", rating: 4.8, views: "650K" },
-        { id: 25, title: "To Kill a Mockingbird", image: "./assests/movieposter.png", rating: 4.9, views: "800K" },
-        { id: 26, title: "The Great Gatsby", image: "./assests/movieposter.png", rating: 4.6, views: "550K" },
-        { id: 27, title: "The Catcher in the Rye", image: "./assests/movieposter.png", rating: 4.7, views: "500K" },
-        { id: 28, title: "Sapiens", image: "./assests/movieposter.png", rating: 4.8, views: "700K" },
-        { id: 29, title: "Harry Potter and the Sorcerer's Stone", image: "./assests/movieposter.png", rating: 4.9, views: "1.0M" },
-        { id: 30, title: "Pride and Prejudice", image: "./assests/movieposter.png", rating: 4.8, views: "750K" },
+        { id: 1, title: "The Midnight Library", image: "./assests/movieposter.png", rating: 4.8, views: "12.4K", type: "book" },
+        { id: 11, title: "Atomic Habits", image: "./assests/movieposter.png", rating: 4.8, views: "600K", type: "book" },
+        { id: 12, title: "The Alchemist", image: "./assests/movieposter.png", rating: 4.9, views: "700K", type: "book" },
+        { id: 13, title: "1984", image: "./assests/movieposter.png", rating: 4.8, views: "650K", type: "book" },
+        { id: 25, title: "To Kill a Mockingbird", image: "./assests/movieposter.png", rating: 4.9, views: "800K", type: "book" },
+        { id: 26, title: "The Great Gatsby", image: "./assests/movieposter.png", rating: 4.6, views: "550K", type: "book" },
+        { id: 27, title: "The Catcher in the Rye", image: "./assests/movieposter.png", rating: 4.7, views: "500K", type: "book" },
+        { id: 28, title: "Sapiens", image: "./assests/movieposter.png", rating: 4.8, views: "700K", type: "book" },
+        { id: 29, title: "Harry Potter and the Sorcerer's Stone", image: "./assests/movieposter.png", rating: 4.9, views: "1.0M", type: "book" },
+        { id: 30, title: "Pride and Prejudice", image: "./assests/movieposter.png", rating: 4.8, views: "750K", type: "book" },
     ];
 
     // Initialize the page
-    renderPage(top10MoviesContainer, top10Movies, currentPageMovies);
-    renderPage(top10MusicContainer, top10Music, currentPageMusic);
-    renderPage(top10BooksContainer, top10Books, currentPageBooks);
+    renderScrollingList(top10MoviesContainer, top10Movies, 'movie');
+    renderScrollingList(top10MusicContainer, top10Music, 'music');
+    renderScrollingList(top10BooksContainer, top10Books, 'book');
+    setupCustomScrollbars();
     renderSearchHistory(); // Initialize search history
     renderRecommendations(); // Initialize recommendations
 
@@ -248,28 +237,206 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    handleNavigation(moviesPrev, moviesNext, () => currentPageMovies, (newPage) => currentPageMovies = newPage, top10Movies, top10MoviesContainer);
-    handleNavigation(musicPrev, musicNext, () => currentPageMusic, (newPage) => currentPageMusic = newPage, top10Music, top10MusicContainer);
-    handleNavigation(booksPrev, booksNext, () => currentPageBooks, (newPage) => currentPageBooks = newPage, top10Books, top10BooksContainer);
-
-    function renderPage(container, data, page) {
-        container.innerHTML = '';
-        const start = page * 4;
-        const end = start + 4;
-        const itemsToRender = data.slice(start, end);
+    /**
+     * Find all horizontal lists and add custom scrollbars
+     */
+    function setupCustomScrollbars() {
+        // Get all horizontal list containers
+        const containers = document.querySelectorAll('.horizontal-list-container');
         
-        itemsToRender.forEach((item, index) => {
+        containers.forEach(container => {
+            const list = container.querySelector('.horizontal-list');
+            if (!list) return;
+            
+            // Create a wrapper for the list and scrollbar
+            const wrapper = document.createElement('div');
+            wrapper.className = 'horizontal-list-wrapper';
+            
+            // Insert wrapper before container
+            container.parentNode.insertBefore(wrapper, container);
+            
+            // Move container into wrapper
+            wrapper.appendChild(container);
+            
+            // Create custom scrollbar
+            const scrollbar = document.createElement('div');
+            scrollbar.className = 'custom-scrollbar';
+            
+            const scrollThumb = document.createElement('div');
+            scrollThumb.className = 'scrollbar-thumb';
+            
+            scrollbar.appendChild(scrollThumb);
+            wrapper.appendChild(scrollbar);
+            
+            // Initialize scrollbar functionality
+            initScrollbar(list, scrollbar, scrollThumb);
+        });
+    }
+    
+    /**
+     * Initialize scrollbar functionality for a list
+     * @param {HTMLElement} list - The horizontal list element
+     * @param {HTMLElement} scrollbar - The scrollbar track element
+     * @param {HTMLElement} thumb - The scrollbar thumb element
+     */
+    function initScrollbar(list, scrollbar, thumb) {
+        // Update thumb size and position based on list content
+        function updateThumb() {
+            // Calculate ratio of visible width to total width
+            const ratio = list.clientWidth / list.scrollWidth;
+            
+            // Set thumb width based on this ratio
+            const thumbWidth = Math.max(ratio * 100, 10); // Minimum 10% width
+            thumb.style.width = thumbWidth + '%';
+            
+            // Calculate position percentage
+            const scrollLeftMax = list.scrollWidth - list.clientWidth;
+            const scrollRatio = scrollLeftMax > 0 ? list.scrollLeft / scrollLeftMax : 0;
+            const thumbPosition = scrollRatio * (100 - thumbWidth);
+            
+            // Set thumb position using left property for simplicity
+            thumb.style.left = thumbPosition + '%';
+            
+            // Hide scrollbar if content fits without scrolling
+            scrollbar.style.display = ratio >= 1 ? 'none' : 'block';
+        }
+        
+        // Initialize thumb size and position
+        updateThumb();
+        
+        // Update when list scrolls
+        list.addEventListener('scroll', updateThumb);
+        
+        // Update on window resize
+        window.addEventListener('resize', updateThumb);
+        
+        // Enable direct list scrolling with mouse
+        let isListDragging = false;
+        let startX = 0;
+        let scrollLeft = 0;
+        
+        // Mouse down on list - start dragging
+        list.addEventListener('mousedown', function(e) {
+            isListDragging = true;
+            startX = e.pageX - list.offsetLeft;
+            scrollLeft = list.scrollLeft;
+            list.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        
+        // Mouse leave/up on document - stop dragging
+        document.addEventListener('mouseup', function() {
+            isListDragging = false;
+            list.style.cursor = 'grab';
+        });
+        
+        document.addEventListener('mouseleave', function() {
+            isListDragging = false;
+            list.style.cursor = 'grab';
+        });
+        
+        // Mouse move - scroll the list if dragging
+        document.addEventListener('mousemove', function(e) {
+            if(!isListDragging) return;
+            e.preventDefault();
+            const x = e.pageX - list.offsetLeft;
+            const walk = (x - startX) * -1; // Reverse direction
+            list.scrollLeft = scrollLeft + walk;
+        });
+        
+        // Enable thumb dragging
+        let isThumbDragging = false;
+        let thumbStartX = 0;
+        let thumbScrollLeft = 0;
+        
+        thumb.addEventListener('mousedown', function(e) {
+            isThumbDragging = true;
+            thumbStartX = e.pageX;
+            thumbScrollLeft = list.scrollLeft;
+            document.body.style.userSelect = 'none'; // Prevent text selection during drag
+            e.preventDefault();
+        });
+        
+        document.addEventListener('mousemove', function(e) {
+            if(!isThumbDragging) return;
+            
+            const deltaX = e.pageX - thumbStartX;
+            const scrollRatio = (list.scrollWidth - list.clientWidth) / (scrollbar.clientWidth - thumb.clientWidth);
+            list.scrollLeft = thumbScrollLeft + (deltaX * scrollRatio);
+        });
+        
+        document.addEventListener('mouseup', function() {
+            isThumbDragging = false;
+            document.body.style.userSelect = '';
+        });
+        
+        // Click on track to jump
+        scrollbar.addEventListener('click', function(e) {
+            // Ignore if clicked on thumb
+            if(e.target === thumb) return;
+            
+            const clickPosition = e.offsetX;
+            const thumbCenter = thumb.clientWidth / 2;
+            const availableTrack = scrollbar.clientWidth - thumbCenter * 2;
+            const targetRatio = Math.max(0, Math.min(1, (clickPosition - thumbCenter) / availableTrack));
+            
+            // Calculate target scroll position
+            const scrollTarget = targetRatio * (list.scrollWidth - list.clientWidth);
+            
+            // Smooth scroll to target
+            list.scrollTo({
+                left: scrollTarget,
+                behavior: 'smooth'
+            });
+        });
+        
+        // Add keyboard controls when list is focused
+        list.tabIndex = 0; // Make list focusable
+        list.addEventListener('keydown', function(e) {
+            // Left/right arrows to scroll
+            if(e.key === 'ArrowLeft') {
+                e.preventDefault();
+                list.scrollBy({left: -100, behavior: 'smooth'});
+            }
+            if(e.key === 'ArrowRight') {
+                e.preventDefault();
+                list.scrollBy({left: 100, behavior: 'smooth'});
+            }
+        });
+        
+        // Add wheel support for horizontal scrolling
+        list.addEventListener('wheel', function(e) {
+            if(e.deltaY !== 0) {
+                e.preventDefault();
+                list.scrollBy({
+                    left: e.deltaY,
+                    behavior: 'smooth'
+                });
+            }
+        });
+    }
+
+    /**
+     * Render a horizontally scrolling list with numbered badges
+     * @param {HTMLElement} container - Container element 
+     * @param {Array} data - Data array
+     * @param {string} mediaType - Type of media (movie, music, book)
+     */
+    function renderScrollingList(container, data, mediaType) {
+        // Clear the container first
+        container.innerHTML = '';
+        
+        // Render each item in the data array
+        data.forEach((item, index) => {
             const card = document.createElement('div');
             card.className = 'recommendation-card';
             
-            // Calculate the actual position number based on the page and index
-            const positionNumber = start + index + 1;
-            
-            // Create the badge class based on position
+            // Create badge class based on position (special for top 3)
+            const positionNumber = index + 1;
             const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
             
-            // Add the badge HTML
-            const badgeHTML = `<div class="numbered-badge ${badgeClass}">No ${positionNumber}</div>`;
+            // Add the badge HTML with position number and media type
+            const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
             
             card.innerHTML = `
                 ${badgeHTML}
@@ -282,25 +449,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                 </div>
             `;
+            
+            // Add click handler for the card
+            card.addEventListener('click', () => {
+                // You can add navigation to detail page or other functionality here
+                console.log(`Clicked on ${mediaType} item: ${item.title}`);
+            });
+            
             container.appendChild(card);
-        });
-    }
-
-    function handleNavigation(buttonPrev, buttonNext, getPage, setPage, data, container) {
-        buttonPrev.addEventListener('click', () => {
-            const page = getPage();
-            if (page > 0) {
-                setPage(page - 1);
-                renderPage(container, data, page - 1);
-            }
-        });
-
-        buttonNext.addEventListener('click', () => {
-            const page = getPage();
-            if ((page + 1) * 4 < data.length) {
-                setPage(page + 1);
-                renderPage(container, data, page + 1);
-            }
         });
     }
 

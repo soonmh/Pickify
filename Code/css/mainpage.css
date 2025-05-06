@@ -379,8 +379,10 @@ body {
 }
 
 /* =====================================================
-   TOP 10 LISTS & HORIZONTAL SCROLLING
+   TOP 10 LISTS & HORIZONTAL SCROLLING - UPDATED VERSION
    ===================================================== */
+
+/* Keep your existing header styles unchanged */
 .recommendations-header {
     padding: 0 15px;
     margin-bottom: 10px;
@@ -409,7 +411,7 @@ body {
     font-style: italic;
 }
 
-/* Horizontal List */
+/* Updated Horizontal List for scrolling */
 .horizontal-list-container {
     display: flex;
     align-items: center;
@@ -419,16 +421,35 @@ body {
     overflow: visible;
 }
 
+/* Changed from grid to flex for horizontal scrolling */
 .horizontal-list {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
     gap: 15px;
-    overflow: visible !important;
+    overflow-x: auto;
+    overflow-y: hidden;
     width: 100%;
-    padding-top: 5px;
-    padding-bottom: 5px;
+    padding: 5px 0;
+    scroll-behavior: smooth; /* Enable smooth scrolling */
+    -ms-overflow-style: none; /* Hide scrollbar in IE and Edge */
+    scrollbar-width: none; /* Hide scrollbar in Firefox */
+    /* Prevent vertical scrolling */
+    overscroll-behavior-y: contain;
 }
 
+/* Hide scrollbar for Chrome, Safari and Opera */
+.horizontal-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* Fixed width for cards in horizontal scroll */
+.horizontal-list .recommendation-card {
+    flex: 0 0 auto; /* Don't grow or shrink */
+    width: calc(25% - 12px); /* 4 items per view, accounting for gap */
+    min-width: 220px; /* Minimum width for small screens */
+    margin: 5px 0;
+}
+
+/* Updated navigation buttons */
 .list-nav-button {
     background-color: var(--primary);
     color: var(--white);
@@ -441,13 +462,15 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease;
-    z-index: 2;
+    transition: all 0.3s ease;
+    z-index: 5; /* Increased z-index to ensure visibility */
     margin: 0 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .list-nav-button:hover {
     background-color: var(--primary-dark);
+    transform: scale(1.1); /* Added scale effect on hover */
 }
 
 .list-nav-button:focus {
@@ -455,7 +478,13 @@ body {
     outline-offset: 1px;
 }
 
-/* Fixed size for recommendation cards */
+.list-nav-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Keep your existing recommendation container styles */
 #recommendations-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -469,7 +498,58 @@ body {
     margin-bottom: 0;
 }
 
-/* Results count */
+/* Numbered badge styles */
+.numbered-badge {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: var(--white);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+    z-index: 2;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Special styling for top 3 positions */
+.numbered-badge.no1 {
+    background-color: #FFD700; /* Gold */
+    color: #000;
+}
+
+.numbered-badge.no2 {
+    background-color: #C0C0C0; /* Silver */
+    color: #000;
+}
+
+.numbered-badge.no3 {
+    background-color: #CD7F32; /* Bronze */
+    color: #000;
+}
+
+/* Add a slight difference for different media types */
+.book .numbered-badge {
+    border-left: 3px solid var(--book-color, #5a52e0);
+}
+
+.movie .numbered-badge {
+    border-left: 3px solid var(--movie-color, #34BFA3);
+}
+
+.music .numbered-badge {
+    border-left: 3px solid var(--music-color, #FF5B5C);
+}
+
+/* Ensure hover effect doesn't mess up badge positioning */
+.recommendation-card:hover .numbered-badge {
+    transform: translateY(0); /* Keep badge in place when card moves */
+}
+
+/* Results count - keep unchanged */
 .results-count {
     font-size: 14px;
     color: var(--text-dark);
@@ -481,8 +561,183 @@ body {
     color: var(--primary);
 }
 
+/* Responsive adjustments for scrolling lists */
+@media (max-width: 992px) {
+    .horizontal-list .recommendation-card {
+        width: calc(33.333% - 10px); /* 3 items per view */
+    }
+}
+
+@media (max-width: 768px) {
+    .horizontal-list .recommendation-card {
+        width: calc(50% - 8px); /* 2 items per view */
+    }
+}
+
+@media (max-width: 480px) {
+    .horizontal-list .recommendation-card {
+        width: calc(100% - 10px); /* 1 item per view */
+        min-width: 200px;
+    }
+    
+    .horizontal-list-container {
+        padding: 5px 0;
+    }
+    
+    .list-nav-button {
+        min-width: 36px;
+        min-height: 36px;
+        font-size: 16px;
+    }
+}
+
+
 /* =====================================================
-   NUMBERED BADGES FOR TOP 10/20 ITEMS
+   HORIZONTAL SCROLLBAR FOR TOP 10 LISTS
+   ===================================================== */
+
+/* Container for horizontal list with scrollbar */
+.horizontal-list-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+/* List container with proper padding for scrollbar */
+.horizontal-list-container {
+    overflow: visible;
+    position: relative;
+    padding: 10px 0 0 0;
+}
+
+/* Custom scrollbar container */
+.custom-scrollbar {
+    height: 8px;
+    width: calc(100% - 10px);
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    margin: 8px auto 15px;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Scrollbar thumb (the part that moves) */
+.scrollbar-thumb {
+    position: absolute;
+    height: 100%;
+    width: 25%; /* Will be calculated dynamically */
+    background: var(--primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    top: 0;
+    left: 0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+.scrollbar-thumb:active {
+    background: var(--primary-dark);
+    height: 10px;
+    top: -1px;
+}
+
+/* Ensure scrollbar remains visible when list is empty */
+.custom-scrollbar:empty::after {
+    content: '';
+    position: absolute;
+    width: 25%;
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 4px;
+}
+
+/* Remove default scrollbar for Chrome, Safari, and Opera */
+.horizontal-list::-webkit-scrollbar {
+    display: none;
+}
+
+/* Remove navigation buttons when using scrollbar */
+.horizontal-list-wrapper .list-nav-button {
+    display: none;
+}
+
+/* Responsive adjustments for scrollbar */
+@media (max-width: 992px) {
+    .scrollbar-thumb {
+        width: 33.3%; /* Match the 3 items per view width ratio */
+    }
+}
+
+@media (max-width: 768px) {
+    .scrollbar-thumb {
+        width: 50%; /* Match the 2 items per view width ratio */
+    }
+    .custom-scrollbar {
+        height: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .scrollbar-thumb {
+        width: 75%; /* Match the 1 item per view width ratio */
+    }
+    .custom-scrollbar {
+        height: 4px;
+    }
+}
+
+/* Enhanced scrollbar styling for smoother appearance */
+.custom-scrollbar {
+    height: 6px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+    margin: 10px 5px 5px 5px;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Scrollbar thumb with improved visuals */
+.scrollbar-thumb {
+    position: absolute;
+    height: 100%;
+    width: 25%;
+    background: var(--primary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.05s ease;
+    top: 0;
+    left: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    will-change: transform; /* Optimize for animations */
+    
+    /* Use transform instead of left for smoother animation */
+    transform: translateX(0);
+}
+
+.scrollbar-thumb:hover {
+    background: var(--primary-dark);
+    transform: translateY(-1px) scaleY(1.1) translateX(var(--position, 0));
+}
+
+.scrollbar-thumb:active {
+    background: var(--primary-dark);
+    transform: translateY(0) scaleY(1.2) translateX(var(--position, 0));
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+/* Enable smooth scrolling on the list */
+.horizontal-list {
+    scroll-behavior: auto; /*auto for default scrolling effect*/
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+/* =====================================================
+   NUMBERED BADGES FOR TOP 10 ITEMS
    ===================================================== */
 
 /* Base numbered badge style */
