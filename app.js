@@ -4,7 +4,7 @@ const { connectToDb, getDb } = require('./db')
 const app = express()
 
 let db
-
+//Testing
 app.use(cors());
 app.use(express.json())
 
