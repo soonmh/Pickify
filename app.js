@@ -1,4 +1,3 @@
-//mongodb+srv://lauduanhang:xREprhdvlcWR8f0I@cluster0.dadg8gh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0
 const express = require('express')
 const cors = require('cors');
 const { connectToDb, getDb } = require('./db')
