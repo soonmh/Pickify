@@ -1,0 +1,24 @@
+{
+  "name": "pickify",
+  "version": "1.0.0",
+  "description": "WIF2003 Web Programming",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soonmh/Pickify.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/soonmh/Pickify/issues"
+  },
+  "homepage": "https://github.com/soonmh/Pickify#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongodb": "^6.16.0"
+  }
+}

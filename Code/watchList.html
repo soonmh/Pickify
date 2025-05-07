@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickify - WatchList</title>
+    <link rel="icon" href="./assests/favicon.ico">
+    <link rel="stylesheet" href="./css/mainpage.css">
+    <link rel="stylesheet" href="./css/header-footer.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <link rel="stylesheet" href="./css/watchlist.css">
+</head>
+<body data-page-type="main">
+    <div id="header-placeholder"></div>
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">Watchlist</h1>
+            </div>
+        
+            <nav class="nav-links">
+                <a href="mainpage.html">
+                    <span class="icon">🏠</span> Home
+                </a>
+                <a href="#">
+                    <span class="icon">⭐</span> Favourite
+                </a>
+                <a href="#">
+                    <span class="icon">⏰</span> Watch Later
+                </a>
+                <a href="#" class="create-btn">
+                    <span class="icon">+</span> Create watchlist
+                </a>
+            </nav>
+        
+            <hr>
+        
+            <div class="my-lists-title">My Lists</div>
+            <nav class="my-lists-nav">
+                <a href="#">
+                    <span class="icon icon-movies-letter">M</span> Movies
+                </a>
+                <a href="#">
+                    <span class="icon"></span> Series
+                </a>
+                <a href="#">
+                    <span class="icon"></span> Anime
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-inner">
+                <div class="welcome-card">
+                    <h2>Welcome to <span>Watchlist</span></h2>
+                    <p>Browse movies, add them to Watchlist and share them with friends.<br>
+                    Just click the ➕ to add a movie.</p>
+                </div>
+
+                <h3>Popular movies right now</h3>
+
+                <div class="movie-grid">
+                    <div class="movie-card">
+                        <img src="assests/topgun.jpeg" alt="Top Gun">
+                        <div class="info">
+                            <div class="rating">83/100</div>
+                            <div class="title">Top Gun: Maverick (2022)</div>
+                        </div>
+                    </div>
+
+                    <div class="movie-card">
+                        <img src="assests/secretDumbledore.jpg" alt="Dumbledore">
+                        <div class="info">
+                            <div class="rating">68/100</div>
+                            <div class="title">Fantastic Beasts (2022)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+    </div>
+    <div id="footer-placeholder"></div>
+
+    <script src="./js/header-footer.js"></script>
+</body>
+</html>
