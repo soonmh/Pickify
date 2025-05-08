@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickify - Discover Entertainment You'll Love</title>
+    <link rel="icon" href="./assests/favicon.ico">
+    <link rel="stylesheet" href="./css/header-footer.css">
+    <link rel="stylesheet" href="./css/profile.css">
+    <link rel="stylesheet" href="./css/profile-delete.css">
+    <link rel="stylesheet" href="./css/profile-edit.css">
+    <link rel="stylesheet" href="./css/profile-change-password.css">
+    <link rel="stylesheet" href="./css/profile-edit.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body data-page-type="profile">
+    <div id="header-placeholder"></div>
+    
+    <div class="profile-background">
+      <div class="profile-section">
+        <img class="header-img" src="assests/foster-lake.jpg">
+        <img class="profile-pic" src="assests/blank-profile-picture.webp" alt="Avatar">
+        <div class="profile-info">
+          <div class="name">Username</div>
+          <div class="user-id">ID: 8888</div>
+        </div>
+        <div class="edit-profile-button">
+          <button><i class="fa-solid fa-pen-to-square"></i> Edit Profile</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-cards">
+      <div class="feature-card">
+        <i class="fa fa-star"></i>
+        <h3>Favourite</h3>
+        <p>Trending films and personalized suggestions based on your taste</p>
+      </div>
+      <div class="feature-card">
+        <i class="fa fa-star"></i>
+        <h3>Favourite</h3>
+        <p>Trending films and personalized suggestions based on your taste</p>
+      </div>
+      <div class="feature-card">
+        <i class="fa fa-clock"></i>
+        <h3>Watch Later</h3>
+        <p>Trending films and personalized suggestions based on your taste</p>
+      </div>
+    </div>
+
+
+    <div class="change-password-button">
+      <button><i class="fa-solid fa-key"></i> Change Password</button>
+    </div>
+
+    <div class="delete-button">
+      <button><i class="fa fa-trash"></i> Delete Account</button>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div id="changePasswordModal" class="change-password-modal-overlay">
+      <div class="change-password-modal-content">
+          <span class="change-password-modal-close-btn">&times;</span>
+          <h2>Change Password</h2>
+          <form id="changePasswordForm">
+              <div class="form-group">
+                  <label for="currentPassword">Current Password:</label>
+                  <input type="password" id="currentPassword" name="currentPassword" required>
+                  <div class="error-message" id="currentPasswordError"></div>
+              </div>
+              <div class="form-group">
+                  <label for="newPassword">New Password:</label>
+                  <input type="password" id="newPassword" name="newPassword" required>
+                  <div class="error-message" id="newPasswordError"></div>
+              </div>
+              <div class="form-group">
+                  <label for="confirmNewPassword">Confirm New Password:</label>
+                  <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+                  <div class="error-message" id="confirmNewPasswordError"></div>
+              </div>
+              <div class="forgot-password-link-container">
+                <a href="userforgotpasswordpage.html" id="forgotPasswordLink">Forgot Password?</a>
+              </div>
+              <div class="change-password-modal-actions">
+                  <button type="submit" id="savePasswordBtn" class="btn-primary">Save</button>
+                  <button type="button" id="cancelChangePasswordBtn" class="btn-secondary">Cancel</button>
+              </div>
+          </form>
+      </div>
+  </div>
+    
+    <!-- Delete Account Modal -->
+    <div id="deleteAccountModal" class="delete-account-modal-overlay">
+        <div class="delete-account-modal-content">
+            <span class="delete-account-modal-close-btn">&times;</span>
+            <h2>Confirm Deletion</h2>
+            <p>Are you sure you want to delete your account? This action cannot be undone.</p>
+            <div class="delete-account-modal-actions">
+                <button id="confirmDeleteBtn" class="btn-danger">Yes, Delete</button>
+                <button id="cancelDeleteBtn" class="btn-secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Options Modal -->
+    <div id="editProfileOptionsModal" class="edit-profile-options-modal-overlay">
+        <div class="edit-profile-options-modal-content">
+            <span class="edit-profile-options-modal-close-btn">&times;</span>
+            <h2>Edit Profile Options</h2>
+            <div class="edit-profile-options-modal-actions">
+                <div class="edit-profile-pic">
+                  <div>
+                    <label for="modalProfilePicInput">Profile Picture</label>
+                    <button id="editModalProfilePicBtn" class="btn-modal-option">Edit</button>
+                  </div>
+                  <div class="profile-pic-container">
+                    <img id="modalProfilePicPreview" src="assests/blank-profile-picture.webp" alt="Profile Picture Preview">
+                  </div>
+                </div>
+                <div class="edit-background-pic">
+                  <div>
+                    <label for="modalBackgroundInput">Background Picture</label>
+                    <button id="editModalBackgroundBtn" class="btn-modal-option">Edit</button>
+                  </div>
+                  <div class="background-pic-container">
+                    <img id="modalBackgroundPreview" src="assests/foster-lake.jpg" alt="Background Picture Preview">
+                  </div>
+                </div>
+                <div class="edit-username">
+                  <label for="modalUsernameInput" class="username">Username</label>
+                  <input type="text" id="modalUsernameInput" placeholder="Username">
+                </div>
+                <div class="buttons">
+                  <button type="button" id="saveProfileEditsBtn" class="btn-primary">Save</button>
+                  <button type="button" id="cancelProfileEditsBtn" class="btn-secondary">Cancel</button>
+              </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Message Modal -->
+    <div id="successMessageModal" class="success-modal-overlay">
+        <div class="success-modal-content">
+            <!-- <span class="success-modal-close-btn">&times;</span> --> <!-- Optional: if you want an X close button -->
+            <i class="fas fa-check-circle success-icon"></i>
+            <h2>Success!</h2>
+            <p id="successMessageText">Your password has been changed successfully.</p>
+            <div class="success-modal-actions">
+                <button id="successModalOkBtn" class="btn-primary">OK</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="footer-placeholder"></div>
+
+    <!-- Font Awesome for icons -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <script src="./js/header-footer.js"></script>
+    <script src="./js/profile-delete.js"></script>
+    <script src="./js/profile-edit.js"></script>
+    <script src="./js/profile-change-password.js"></script>
+</body>
+</html>

@@ -4,7 +4,7 @@
     box-sizing: border-box;
 }
 
-html, body {
+.watchlist.html, .watchlist.body {
     height: 100%;
     overflow: hidden;
     font-family: sans-serif;
