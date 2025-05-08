@@ -1,6 +1,6 @@
 const currentUser = {
     name: "User testing",
-    profilePic: "profilepic3.png"
+    profilePic: "./assests/profilepic3.png"
 };
 
 window.addEventListener("DOMContentLoaded", () => {
