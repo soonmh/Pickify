@@ -17,20 +17,20 @@
 
         <aside class="sidebar">
             <div class="sidebar-header">
-                <h1 class="sidebar-title">Watchlist</h1>
+                <a class="sidebar-title" href="watchList.html">Watchlist</a>
             </div>
         
             <nav class="nav-links">
                 <a href="mainpage.html">
-                    <span class="icon">🏠</span> Home
+                    Home
                 </a>
-                <a href="#">
-                    <span class="icon">⭐</span> Favourite
+                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                    Favourite
                 </a>
-                <a href="#">
-                    <span class="icon">⏰</span> Watch Later
+                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                    Watch Later
                 </a>
-                <a href="#" class="create-btn">
+                <a href="javascript:void(0);" onclick="addListPage()" class="create-btn">
                     <span class="icon">+</span> Create watchlist
                 </a>
             </nav>
@@ -39,15 +39,15 @@
         
             <div class="my-lists-title">My Lists</div>
             <nav class="my-lists-nav">
-                <a href="#">
-                    <span class="icon icon-movies-letter">M</span> Movies
+                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                    Movies
                 </a>
-                <a href="#">
+                <!-- <a href="#">
                     <span class="icon"></span> Series
                 </a>
                 <a href="#">
                     <span class="icon"></span> Anime
-                </a>
+                </a> -->
             </nav>
         </aside>
 
@@ -79,10 +79,80 @@
                     </div>
                 </div>
             </div>
+            <div class="add-collection-container">
+                <h2 id="add-list-title">Create a New Watchlist</h2>
+                
+                <label for="collection-name">Name:</label>
+                <input type="text" id="collection-name" placeholder="Enter collection name" />
+              
+                <label for="collection-description">Description:</label>
+                <textarea id="collection-description" rows="5" placeholder="Write a brief description..."></textarea>
+              
+                <button id="create-list-button" onclick="saveCollection()">Create Watchlist</button>
+            </div>
+            <div class="collectionPage">
+                <h2 id="collection-title">Movies</h2>
+                <div class="collection-subtitle">About this watchlist</div>
+                <p class="collection-desc">Very Nice :)</p>
+
+                <div class="analysis">
+                    <div class="analysis-card">
+                        <h4>ITEMS ON LIST</h4>
+                        <h2>2</h2>
+                    </div>
+                    <div class="analysis-card">
+                        <h4>AVERAGE SCORE</h4>
+                        <h2>75.5</h2>
+                    </div>
+                </div>
+                <div class="collection-list">
+                    <div class="movie-grid">
+                        <div class="movie-card">
+                            <img src="assests/topgun.jpeg" alt="Top Gun">
+                            <div class="info">
+                                <div class="rating">83/100</div>
+                                <div class="title">Top Gun: Maverick (2022)</div>
+                            </div>
+                        </div>
+    
+                        <div class="movie-card">
+                            <img src="assests/secretDumbledore.jpg" alt="Dumbledore">
+                            <div class="info">
+                                <div class="rating">68/100</div>
+                                <div class="title">Fantastic Beasts (2022)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
-        
     </div>
 
     <script src="./js/header-footer.js"></script>
+    <script>
+        function addListPage(){
+            const watchlistPage = document.querySelector(".content-inner")
+            const addListPage = document.querySelector(".add-collection-container")
+            const collectionPage = document.querySelector(".collectionPage")
+            watchlistPage.style.display="none";
+            collectionPage.style.display="none";
+            addListPage.style.display="flex";
+        }
+        function CollectionPage(linkElement){
+            const watchlistPage = document.querySelector(".content-inner")
+            const addListPage = document.querySelector(".add-collection-container")
+            const collectionPage = document.querySelector(".collectionPage")
+            watchlistPage.style.display="none";
+            addListPage.style.display="none";
+            collectionPage.style.display="flex";
+
+            const clickedText = linkElement.textContent.trim();
+            const title=document.getElementById("collection-title");
+            title.textContent=clickedText;
+        }
+        function saveCollection(){
+            window.location.href="watchList.html"
+        }
+    </script>
 </body>
 </html>
