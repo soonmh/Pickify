@@ -7,10 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Get references to the option buttons if you want to add specific actions later
-    // const editDetailsBtn = document.getElementById('editProfileDetailsBtn');
-    // const changeBackgroundBtn = document.getElementById('changeBackgroundBtn');
-    // const changeUsernameBtn = document.getElementById('changeUsernameBtn');
+    
     // Modal elements
     const closeModalBtn = editOptionsModalOverlay.querySelector('.edit-profile-options-modal-close-btn');
     const editModalProfilePicBtn = document.getElementById('editModalProfilePicBtn');

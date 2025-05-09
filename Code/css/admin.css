@@ -1,0 +1,215 @@
+/* .layout {
+    display: flex;
+    height: 100vh;
+} */
+
+.sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    background-color: #F8F7FC; /* Very light purple/off-white, similar to target image */
+    overflow-y: auto;
+    padding: 20px;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Consistent font */
+}
+
+.sidebar-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.sidebar-title {
+    font-size: 1.8rem;
+    font-weight: 700; /* Bold */
+    color: var(--primary);
+    margin-top: 10px;
+    margin-bottom: 0;
+}
+
+.nav-links {
+    margin-bottom: 0; /* Margins will be on items themselves */
+    margin-top: 5px; /* Small space between title and first nav block */
+}
+
+.nav-links a {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    margin-bottom: 9px;
+    color: #3D3D3D; /* Dark grey text */
+    text-decoration: none;
+    border-radius: 0.5rem; /* Slightly less rounded corners */
+    background-color: #EDEDF0; /* Light grey-bluish background for links */
+    transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 14.5px;
+    font-weight: 500; /* Medium weight */
+}
+
+.nav-links a .icon {
+    margin-right: 12px; /* Space between icon and text */
+    font-size: 17px;    /* Adjust based on your chosen icons */
+    width: 20px;        /* Fixed width for alignment */
+    text-align: center;
+    color: #505050;     /* Icon color, can match text or be distinct */
+    font-weight: normal;/* Default icon weight */
+    line-height: 1;     /* Helps with vertical alignment of text icons */
+}
+
+.nav-links a:hover {
+    background-color: #E0E1E6; /* Slightly darker on hover */
+    color: #2C2C2C;
+}
+
+
+/* Sidebar active link styling */
+.sidebar .nav-links a.active {
+    background-color: var(--primary);
+    color: white;
+}
+
+.sidebar .nav-links a.active .icon {
+    color: white;
+}
+
+
+.main-content {
+    margin-left: 18rem;
+    margin-right: 3rem;
+    display: flex;
+    flex-direction: column;
+    /* height: 100vh; */
+}
+
+.welcome-card,
+.user-list-container {
+    margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    border-radius: 1rem;
+    background-color: #F8F7FC;
+    box-shadow: 0 0 1rem 0.2rem rgba(0, 0, 0, 0.08);
+    padding: 1rem 2rem;
+}
+
+.welcome-card {
+    align-items: center;
+}
+
+.user-list-container {
+    flex-direction: column;
+}
+
+.user-list-header {
+    margin-left: 1rem;
+}
+
+.total-users {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.total-users p {
+    margin: 0;
+    padding: 0;
+}
+
+.welcome-card span {
+    color: var(--primary-dark); 
+    background-color: #8f94fb46;
+    padding: 1.5rem;
+    border-radius: 50%;
+}
+
+.welcome-card span i{
+    font-size: 2rem;
+}
+
+.total-users .total-users-title {
+    margin-top: 0.5rem;
+    color: gray;
+    font-size: 0.9rem;
+}
+
+.total-users-number {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1rem;
+}
+
+.user-table th, .user-table td {
+    border-bottom: 1px solid #ddd;
+    padding: 0.5rem 1.2rem;
+    text-align: left;
+}
+
+.user-table td {
+    border-top: 1px solid #ddd;
+    padding: 1.2rem 1.2rem;
+}
+
+.user-table th {
+    font-weight: 600;
+    color: gray;
+}
+
+.user-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+.action-btn {
+    width: 7rem;
+    height: 2.2rem;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.activate-btn {
+    background-color: #28a745; /* Green */
+}
+
+.activate-btn:hover {
+    background-color: #218838;
+}
+
+.deactivate-btn {
+    background-color: #dc3545; /* Red */
+}
+
+.deactivate-btn:hover {
+    background-color: #c82333;
+}
+
+.status-active {
+    color: green;
+    font-weight: 600;
+}
+
+.status-inactive {
+    color: red;
+    font-weight: 600;
+}
+
+.status-active,
+.status-inactive {
+    width: 9rem;
+}
+
+

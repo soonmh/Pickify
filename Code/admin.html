@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pickify - WatchList</title>
+    <link rel="icon" href="./assests/favicon.ico">
+    <link rel="stylesheet" href="./css/header-footer.css">
+    <link rel="stylesheet" href="./css/admin.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+</head>
+<body data-page-type="main">
+    <div id="header-placeholder"></div>
+
+    <div class="layout">
+
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1 class="sidebar-title">Admin Panel</h1>
+            </div>
+        
+            <nav class="nav-links">
+                <a href="#user-section" class="admin-nav-link active">
+                    <span class="icon"><i class="fas fa-users"></i></span> Users
+                </a>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="content-inner">
+                <div class="welcome-card">
+                    <div class="total-users">
+                        <span class="icon"><i class="fas fa-users"></i></span>
+                        <div>
+                            <p class="total-users-title">Total Users</p>
+                            <p class="total-users-number">3</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="user-list-container">
+                    <div class="user-list-header">
+                        <h3>User List</h3>
+                    </div>
+                    
+                    <table class="user-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Username</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Example User Row 1 -->
+                            <tr>
+                                <td>001</td>
+                                <td>JohnDoe</td>
+                                <td>john.doe@example.com</td>
+                                <td class="status-active">Active</td>
+                                <td><button class="action-btn deactivate-btn">Deactivate</button></td>
+                            </tr>
+                            <!-- Example User Row 2 -->
+                            <tr>
+                                <td>002</td>
+                                <td>JaneSmith</td>
+                                <td>jane.smith@example.com</td>
+                                <td class="status-inactive">Inactive</td>
+                                <td><button class="action-btn activate-btn">Activate</button></td>
+                            </tr>
+                            <!-- Example User Row 3 -->
+                            <tr>
+                                <td>003</td>
+                                <td>AliceWonder</td>
+                                <td>alice.wonder@example.com</td>
+                                <td class="status-active">Active</td>
+                                <td><button class="action-btn deactivate-btn">Deactivate</button></td>
+                            </tr>
+                            <!-- More user rows will be added here, likely dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+                
+            </div>
+        </main>
+        
+    </div>
+
+    <!-- <div id="footer-placeholder"></div> -->
+
+    <script src="./js/header-footer.js"></script>
+    <script src="./js/admin.js"></script>"
+</body>
+</html>
