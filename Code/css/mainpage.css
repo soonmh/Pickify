@@ -1,1120 +1,841 @@
-/* =====================================================
-   BASE VARIABLES AND SETTINGS
-   ===================================================== */
-   :root {
-    /* Colors */
-    --primary: #8F94FB;
-    --primary-dark: #5a52e0;
-    --secondary: #f8f9fe;
-    --text-dark: #333;
-    --white: #fff;
-    --gray-light: #f5f5f5;
-    --gray: #ddd;
-    --star-color: #FFC107;
-    
-    /* Type colors */
-    --book-color: var(--primary-dark);
-    --book-bg: rgba(143, 148, 251, 0.15);
-    --movie-color: #34BFA3;
-    --movie-bg: rgba(52, 191, 163, 0.15);
-    --music-color: #FF5B5C;
-    --music-bg: rgba(255, 91, 92, 0.15);
-    
-    /* UI */
-    --border-radius: 6px;
-    --border-radius-lg: 10px;
-    --shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-    --hover-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-    
-    /* Layout */
-    --container-max-width: 1200px;
-    --content-padding: 15px;
-}
-
-/* =====================================================
-   RESET & GLOBAL STYLES
-   ===================================================== */
-body {
-    font-family: 'Inter', sans-serif;
-    color: var(--text-dark);
-    line-height: 1.5;
-    background-color: var(--secondary);
-    margin: 0;
-    padding: 0;
-}
-
-/* =====================================================
-   LAYOUT & CONTAINERS
-   ===================================================== */
-.search-container {
-    padding-top: 30px;
-    padding-bottom: 30px;
-}
-
-.recommendations-row {
-    margin-top: 15px;
-    padding: 15px 0;
-    background-color: rgba(143, 148, 251, 0.05);
-    border-radius: var(--border-radius);
-    position: relative;
-    overflow: visible;
-}
-
-/* =====================================================
-   SEARCH COMPONENTS
-   ===================================================== */
-/* Search Input */
-.search-input-container {
-    position: relative;
-    margin-bottom: 20px;
-    margin-top: 10px;
-}
-
-.search-input {
-    width: 100%;
-    padding: 10px 40px 10px 15px;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--gray);
-    font-size: 14px;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow);
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: var(--primary);
-    box-shadow: 0 3px 8px rgba(143, 148, 251, 0.15);
-}
-
-.search-button {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    background-color: var(--primary);
-    color: var(--white);
-    border: none;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    z-index: 2;
-}
-
-.search-button:hover {
-    background-color: var(--primary-dark);
-    transform: translateY(-50%) scale(1.05);
-}
-
-.search-button:focus,
-.search-input:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 1px;
-}
-
-/* Search History */
-.search-history-container {
-    background-color: var(--gray-light);
-    border-radius: var(--border-radius);
-    padding: 15px;
-    box-shadow: var(--shadow);
-}
-
-.search-history-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    color: var(--text-dark);
-}
-
-.search-history-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.search-history-item {
-    padding: 8px 12px;
-    background-color: var(--white);
-    margin-bottom: 5px;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-dark);
-    transition: background-color 0.3s ease, color 0.3s ease;
-    box-shadow: var(--shadow);
-}
-
-.search-history-item:hover {
-    background-color: var(--primary);
-    color: var(--white);
-    box-shadow: 0 4px 12px rgba(143, 148, 251, 0.2);
-}
-
-.no-history {
-    font-size: 14px;
-    color: #777;
-    text-align: center;
-}
-
-/* Autocomplete */
-.autocomplete-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    background: var(--white);
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    z-index: 100;
-    max-height: 300px;
-    overflow-y: auto;
-    display: none;
-    border: 1px solid var(--gray);
-    border-top: none;
-    margin-top: -2px;
-}
-
-.autocomplete-item {
-    padding: 10px 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    transition: background-color 0.2s ease;
-    border-bottom: 1px solid var(--gray-light);
-}
-
-.autocomplete-item:last-child {
-    border-bottom: none;
-}
-
-.autocomplete-item:hover {
-    background-color: rgba(143, 148, 251, 0.05);
-}
-
-.autocomplete-icon {
-    margin-right: 12px;
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.autocomplete-icon.book {
-    background-color: var(--book-bg);
-    color: var(--book-color);
-}
-
-.autocomplete-icon.movie {
-    background-color: var(--movie-bg);
-    color: var(--movie-color);
-}
-
-.autocomplete-icon.music {
-    background-color: var(--music-bg);
-    color: var(--music-color);
-}
-
-.autocomplete-title {
-    flex-grow: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: 14px;
-}
-
-.autocomplete-type {
-    margin-left: 10px;
-    font-size: 12px;
-    color: #777;
-    flex-shrink: 0;
-}
-
-.highlight {
-    font-weight: 700;
-    background-color: rgba(255, 235, 59, 0.3);
-    padding: 0 2px;
-}
-
-/* Search Input with Dropdown */
-.search-input {
-    border-bottom-right-radius: 0;
-    border-bottom-left-radius: 0;
-}
-
-.search-input:focus + .autocomplete-dropdown {
-    border-color: var(--primary);
-}
-
-/* =====================================================
-   CARDS & CONTENT STYLES
-   ===================================================== */
-/* Result Cards - Base Styles */
-.result-card {
-    background-color: var(--white);
-    border-radius: var(--border-radius);
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: all 0.3s ease;
-    height: 100%;
-    cursor: pointer;
-    display: flex;
-    flex-direction: column;
-    will-change: transform;
-}
-
-.result-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--hover-shadow);
-}
-
-.result-img {
-    width: 100%;
-    height: 120px;
-    object-fit: cover;
-}
-
-.result-body {
-    padding: 10px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-}
-
-.result-type {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-
-.result-type.book {
-    background-color: var(--book-bg);
-    color: var(--book-color);
-}
-
-.result-type.movie {
-    background-color: var(--movie-bg);
-    color: var(--movie-color);
-}
-
-.result-type.music {
-    background-color: var(--music-bg);
-    color: var(--music-color);
-}
-
-.result-title {
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: 6px;
-    height: 36px;
-    overflow: hidden;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    text-overflow: ellipsis;
-    white-space: normal;
-    color: var(--text-dark);
-    line-height: 1.3;
-}
-
-.result-meta {
-    display: flex;
-    justify-content: space-between;
-    color: var(--text-dark);
-    font-size: 11px;
-    opacity: 0.8;
-    margin-top: auto;
-}
-
-.result-rating i {
-    color: var(--star-color);
-    margin-right: 3px;
-}
-
-/* Recommendation Cards */
-.recommendation-card {
-    position: relative;
-    z-index: 1;
-    margin: 5px 0;
-    transform: translateY(0);
-    transition: all 0.3s ease;
-    border: 1px solid transparent;
-    height: calc(100% - 10px);
-}
-
-.recommendation-card:hover {
-    transform: translateY(-5px);
-    border-color: var(--primary);
-    z-index: 3;
-}
-
-.recommendation-badge {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background-color: var(--primary);
-    color: var(--white);
-    font-size: 10px;
-    font-weight: 500;
-    padding: 2px 6px;
-    border-radius: 10px;
-    z-index: 2;
-}
-
-.recommendation-card img {
-    width: 100%;
-    height: 180px;
-    object-fit: cover;
-    display: block;
-}
-
-/* =====================================================
-   TOP 10 LISTS & HORIZONTAL SCROLLING - UPDATED VERSION
-   ===================================================== */
-
-/* Keep your existing header styles unchanged */
-.recommendations-header {
-    padding: 0 15px;
-    margin-bottom: 10px;
-}
-
-.recommendations-title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text-dark);
-    line-height: 1.3;
-}
-
-.recommendations-title a {
-    text-decoration: none;
-    color: var(--primary);
-    transition: color 0.3s ease;
-}
-
-.recommendations-title a:hover {
-    color: var(--primary-dark);
-}
-
-.recommendations-info {
-    font-size: 12px;
-    color: #777;
-    font-style: italic;
-}
-
-/* Updated Horizontal List for scrolling */
-.horizontal-list-container {
-    display: flex;
-    align-items: center;
-    position: relative;
-    margin-top: 15px;
-    padding: 10px 0;
-    overflow: visible;
-}
-
-/* Changed from grid to flex for horizontal scrolling */
-.horizontal-list {
-    display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    width: 100%;
-    padding: 5px 0;
-    scroll-behavior: smooth; /* Enable smooth scrolling */
-    -ms-overflow-style: none; /* Hide scrollbar in IE and Edge */
-    scrollbar-width: none; /* Hide scrollbar in Firefox */
-    /* Prevent vertical scrolling */
-    overscroll-behavior-y: contain;
-}
-
-/* Hide scrollbar for Chrome, Safari and Opera */
-.horizontal-list::-webkit-scrollbar {
-    display: none;
-}
-
-/* Fixed width for cards in horizontal scroll */
-.horizontal-list .recommendation-card {
-    flex: 0 0 auto; /* Don't grow or shrink */
-    width: calc(25% - 12px); /* 4 items per view, accounting for gap */
-    min-width: 220px; /* Minimum width for small screens */
-    margin: 5px 0;
-}
-
-/* Updated navigation buttons */
-.list-nav-button {
-    background-color: var(--primary);
-    color: var(--white);
-    border: none;
-    border-radius: 50%;
-    min-width: 40px;
-    min-height: 40px;
-    cursor: pointer;
-    font-size: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.3s ease;
-    z-index: 5; /* Increased z-index to ensure visibility */
-    margin: 0 5px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-}
-
-.list-nav-button:hover {
-    background-color: var(--primary-dark);
-    transform: scale(1.1); /* Added scale effect on hover */
-}
-
-.list-nav-button:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: 1px;
-}
-
-.list-nav-button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-    opacity: 0.5;
-}
-
-/* Keep your existing recommendation container styles */
-#recommendations-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-}
-
-#recommendations-container .col {
-    width: 100%;
-    height: auto;
-    padding: 0 8px;
-    margin-bottom: 0;
-}
-
-/* Numbered badge styles */
-.numbered-badge {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: var(--white);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 6px;
-    z-index: 2;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* Special styling for top 3 positions */
-.numbered-badge.no1 {
-    background-color: #FFD700; /* Gold */
-    color: #000;
-}
-
-.numbered-badge.no2 {
-    background-color: #C0C0C0; /* Silver */
-    color: #000;
-}
-
-.numbered-badge.no3 {
-    background-color: #CD7F32; /* Bronze */
-    color: #000;
-}
-
-/* Add a slight difference for different media types */
-.book .numbered-badge {
-    border-left: 3px solid var(--book-color, #5a52e0);
-}
-
-.movie .numbered-badge {
-    border-left: 3px solid var(--movie-color, #34BFA3);
-}
-
-.music .numbered-badge {
-    border-left: 3px solid var(--music-color, #FF5B5C);
-}
-
-/* Ensure hover effect doesn't mess up badge positioning */
-.recommendation-card:hover .numbered-badge {
-    transform: translateY(0); /* Keep badge in place when card moves */
-}
-
-/* Results count - keep unchanged */
-.results-count {
-    font-size: 14px;
-    color: var(--text-dark);
-    margin-bottom: 15px;
-}
-
-.results-number {
-    font-weight: 600;
-    color: var(--primary);
-}
-
-/* Responsive adjustments for scrolling lists */
-@media (max-width: 992px) {
-    .horizontal-list .recommendation-card {
-        width: calc(33.333% - 10px); /* 3 items per view */
+    /* =====================================================
+    BASE VARIABLES AND SETTINGS
+    ===================================================== */
+    :root {
+        /* Colors */
+        --primary: #8F94FB;
+        --primary-dark: #5a52e0;
+        --secondary: #f8f9fe;
+        --text-dark: #333;
+        --white: #fff;
+        --gray-light: #f5f5f5;
+        --gray: #ddd;
+        --star-color: #FFC107;
+        
+        /* Type colors */
+        --book-color: var(--primary-dark);
+        --book-bg: rgba(143, 148, 251, 0.15);
+        --movie-color: #34BFA3;
+        --movie-bg: rgba(52, 191, 163, 0.15);
+        --music-color: #FF5B5C;
+        --music-bg: rgba(255, 91, 92, 0.15);
+        
+        /* UI */
+        --border-radius: 6px;
+        --border-radius-lg: 10px;
+        --shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+        --hover-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        
+        /* Layout */
+        --container-max-width: 1200px;
+        --content-padding: 15px;
     }
-}
 
-@media (max-width: 768px) {
-    .horizontal-list .recommendation-card {
-        width: calc(50% - 8px); /* 2 items per view */
+    /* =====================================================
+    RESET & GLOBAL STYLES
+    ===================================================== */
+    body {
+        font-family: 'Inter', sans-serif;
+        color: var(--text-dark);
+        line-height: 1.5;
+        background-color: var(--secondary);
+        margin: 0;
+        padding: 0;
     }
-}
 
-@media (max-width: 480px) {
-    .horizontal-list .recommendation-card {
-        width: calc(100% - 10px); /* 1 item per view */
-        min-width: 200px;
+    /* =====================================================
+    LAYOUT & CONTAINERS
+    ===================================================== */
+    .search-container {
+        padding-top: 30px;
+        padding-bottom: 30px;
     }
-    
-    .horizontal-list-container {
-        padding: 5px 0;
+
+    .recommendations-row {
+        margin-top: 15px;
+        padding: 15px 0;
+        background-color: rgba(143, 148, 251, 0.05);
+        border-radius: var(--border-radius);
+        position: relative;
+        overflow: visible;
     }
-    
-    .list-nav-button {
-        min-width: 36px;
-        min-height: 36px;
+
+    /* =====================================================
+    SEARCH COMPONENTS
+    ===================================================== */
+    /* Search Input */
+    .search-input-container {
+        position: relative;
+        margin-bottom: 20px;
+        margin-top: 10px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 10px 40px 10px 15px;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--gray);
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 3px 8px rgba(143, 148, 251, 0.15);
+    }
+
+    .search-button {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: var(--primary);
+        color: var(--white);
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 2;
+    }
+
+    .search-button:hover {
+        background-color: var(--primary-dark);
+        transform: translateY(-50%) scale(1.05);
+    }
+
+    .search-button:focus,
+    .search-input:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 1px;
+    }
+
+    /* Search History */
+    .search-history-container {
+        background-color: var(--gray-light);
+        border-radius: var(--border-radius);
+        padding: 15px;
+        box-shadow: var(--shadow);
+    }
+
+    .search-history-title {
         font-size: 16px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        color: var(--text-dark);
     }
-}
+
+    .search-history-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .search-history-item {
+        padding: 8px 12px;
+        background-color: var(--white);
+        margin-bottom: 5px;
+        border-radius: var(--border-radius);
+        cursor: pointer;
+        font-size: 14px;
+        color: var(--text-dark);
+        transition: background-color 0.3s ease, color 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+    .search-history-item:hover {
+        background-color: var(--primary);
+        color: var(--white);
+        box-shadow: 0 4px 12px rgba(143, 148, 251, 0.2);
+    }
+
+    .no-history {
+        font-size: 14px;
+        color: #777;
+        text-align: center;
+    }
+
+    /* Autocomplete */
+    .autocomplete-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--white);
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+        border: 1px solid var(--gray);
+        border-top: none;
+        margin-top: -2px;
+    }
+
+    .autocomplete-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        transition: background-color 0.2s ease;
+        border-bottom: 1px solid var(--gray-light);
+    }
+
+    .autocomplete-item:last-child {
+        border-bottom: none;
+    }
+
+    .autocomplete-item:hover {
+        background-color: rgba(143, 148, 251, 0.05);
+    }
+
+    .autocomplete-icon {
+        margin-right: 12px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .autocomplete-icon.book {
+        background-color: var(--book-bg);
+        color: var(--book-color);
+    }
+
+    .autocomplete-icon.movie {
+        background-color: var(--movie-bg);
+        color: var(--movie-color);
+    }
+
+    .autocomplete-icon.music {
+        background-color: var(--music-bg);
+        color: var(--music-color);
+    }
+
+    .autocomplete-title {
+        flex-grow: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 14px;
+    }
+
+    .autocomplete-type {
+        margin-left: 10px;
+        font-size: 12px;
+        color: #777;
+        flex-shrink: 0;
+    }
+
+    .highlight {
+        font-weight: 700;
+        background-color: rgba(255, 235, 59, 0.3);
+        padding: 0 2px;
+    }
+
+    /* Search Input with Dropdown */
+    .search-input {
+        border-bottom-right-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+
+    .search-input:focus + .autocomplete-dropdown {
+        border-color: var(--primary);
+    }
+
+    /* =====================================================
+    CARDS & CONTENT STYLES
+    ===================================================== */
+    /* Result Cards - Base Styles */
+    .result-card {
+        background-color: var(--white);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        height: 100%;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        will-change: transform;
+    }
+
+    .result-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--hover-shadow);
+    }
+
+    .result-img {
+        width: 100%;
+        height: 120px;
+        object-fit: cover;
+    }
+
+    .result-body {
+        padding: 10px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .result-type {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 10px;
+        font-weight: 500;
+        margin-bottom: 6px;
+    }
+
+    .result-type.book {
+        background-color: var(--book-bg);
+        color: var(--book-color);
+    }
+
+    .result-type.movie {
+        background-color: var(--movie-bg);
+        color: var(--movie-color);
+    }
+
+    .result-type.music {
+        background-color: var(--music-bg);
+        color: var(--music-color);
+    }
+
+    .result-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        height: 36px;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        text-overflow: ellipsis;
+        white-space: normal;
+        color: var(--text-dark);
+        line-height: 1.3;
+    }
+
+    .result-meta {
+        display: flex;
+        justify-content: space-between;
+        color: var(--text-dark);
+        font-size: 11px;
+        opacity: 0.8;
+        margin-top: auto;
+    }
+
+    .result-rating i {
+        color: var(--star-color);
+        margin-right: 3px;
+    }
+
+    /* Recommendation Cards */
+    .recommendation-card {
+        position: relative;
+        z-index: 1;
+        margin: 5px 0;
+        transform: translateY(0);
+        transition: all 0.3s ease;
+        border: 1px solid transparent;
+        height: calc(100% - 10px);
+    }
+
+    .recommendation-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary);
+        z-index: 3;
+    }
+
+    .recommendation-badge {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background-color: var(--primary);
+        color: var(--white);
+        font-size: 10px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 10px;
+        z-index: 2;
+    }
+
+    .recommendation-card img {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* =====================================================
+    TOP 10 LISTS & HORIZONTAL SCROLLING - UPDATED VERSION
+    ===================================================== */
+
+    /* Keep your existing header styles unchanged */
+    .recommendations-header {
+        padding: 0 15px;
+        margin-bottom: 10px;
+    }
+
+    .recommendations-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--text-dark);
+        line-height: 1.3;
+    }
+
+    .recommendations-title a {
+        text-decoration: none;
+        color: var(--primary);
+        transition: color 0.3s ease;
+    }
+
+    .recommendations-title a:hover {
+        color: var(--primary-dark);
+    }
+
+    .recommendations-info {
+        font-size: 12px;
+        color: #777;
+        font-style: italic;
+    }
+
+    /* Updated Horizontal List for scrolling */
+    .horizontal-list-container {
+        display: flex;
+        align-items: center;
+        position: relative;
+        margin-top: 15px;
+        padding: 10px 0;
+        overflow: visible;
+    }
+
+    /* Changed from grid to flex for horizontal scrolling */
+    .horizontal-list {
+        display: flex;
+        gap: 15px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        width: 100%;
+        padding: 5px 0;
+        scroll-behavior: smooth; /* Enable smooth scrolling */
+        -ms-overflow-style: none; /* Hide scrollbar in IE and Edge */
+        scrollbar-width: none; /* Hide scrollbar in Firefox */
+        /* Prevent vertical scrolling */
+        overscroll-behavior-y: contain;
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .horizontal-list::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Fixed width for cards in horizontal scroll */
+    .horizontal-list .recommendation-card {
+        flex: 0 0 auto; /* Don't grow or shrink */
+        width: calc(25% - 12px); /* 4 items per view, accounting for gap */
+        min-width: 220px; /* Minimum width for small screens */
+        margin: 5px 0;
+    }
+
+    /* Updated navigation buttons */
+    .list-nav-button {
+        background-color: var(--primary);
+        color: var(--white);
+        border: none;
+        border-radius: 50%;
+        min-width: 40px;
+        min-height: 40px;
+        cursor: pointer;
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 5; /* Increased z-index to ensure visibility */
+        margin: 0 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .list-nav-button:hover {
+        background-color: var(--primary-dark);
+        transform: scale(1.1); /* Added scale effect on hover */
+    }
+
+    .list-nav-button:focus {
+        outline: 2px solid var(--primary);
+        outline-offset: 1px;
+    }
+
+    .list-nav-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
+
+    /* Keep your existing recommendation container styles */
+    #recommendations-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+    }
+
+    #recommendations-container .col {
+        width: 100%;
+        height: auto;
+        padding: 0 8px;
+        margin-bottom: 0;
+    }
+
+    /* Numbered badge styles */
+    .numbered-badge {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: var(--white);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        z-index: 2;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Special styling for top 3 positions */
+    .numbered-badge.no1 {
+        background-color: #FFD700; /* Gold */
+        color: #000;
+    }
+
+    .numbered-badge.no2 {
+        background-color: #C0C0C0; /* Silver */
+        color: #000;
+    }
+
+    .numbered-badge.no3 {
+        background-color: #CD7F32; /* Bronze */
+        color: #000;
+    }
+
+    /* Add a slight difference for different media types */
+    .book .numbered-badge {
+        border-left: 3px solid var(--book-color, #5a52e0);
+    }
+
+    .movie .numbered-badge {
+        border-left: 3px solid var(--movie-color, #34BFA3);
+    }
+
+    .music .numbered-badge {
+        border-left: 3px solid var(--music-color, #FF5B5C);
+    }
+
+    /* Ensure hover effect doesn't mess up badge positioning */
+    .recommendation-card:hover .numbered-badge {
+        transform: translateY(0); /* Keep badge in place when card moves */
+    }
+
+    /* Results count - keep unchanged */
+    .results-count {
+        font-size: 14px;
+        color: var(--text-dark);
+        margin-bottom: 15px;
+    }
+
+    .results-number {
+        font-weight: 600;
+        color: var(--primary);
+    }
+
+    /* Responsive adjustments for scrolling lists */
+    @media (max-width: 992px) {
+        .horizontal-list .recommendation-card {
+            width: calc(33.333% - 10px); /* 3 items per view */
+        }
+    }
+
+    @media (max-width: 768px) {
+        .horizontal-list .recommendation-card {
+            width: calc(50% - 8px); /* 2 items per view */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .horizontal-list .recommendation-card {
+            width: calc(100% - 10px); /* 1 item per view */
+            min-width: 200px;
+        }
+        
+        .horizontal-list-container {
+            padding: 5px 0;
+        }
+        
+        .list-nav-button {
+            min-width: 36px;
+            min-height: 36px;
+            font-size: 16px;
+        }
+    }
 
 
-/* =====================================================
-   HORIZONTAL SCROLLBAR FOR TOP 10 LISTS
-   ===================================================== */
+    /* =====================================================
+    HORIZONTAL SCROLLBAR FOR TOP 10 LISTS
+    ===================================================== */
 
-/* Container for horizontal list with scrollbar */
-.horizontal-list-wrapper {
-    position: relative;
-    width: 100%;
-    margin-bottom: 15px;
-}
+    /* Container for horizontal list with scrollbar */
+    .horizontal-list-wrapper {
+        position: relative;
+        width: 100%;
+        margin-bottom: 15px;
+    }
 
-/* List container with proper padding for scrollbar */
-.horizontal-list-container {
-    overflow: visible;
-    position: relative;
-    padding: 10px 0 0 0;
-}
+    /* List container with proper padding for scrollbar */
+    .horizontal-list-container {
+        overflow: visible;
+        position: relative;
+        padding: 10px 0 0 0;
+    }
 
-/* Custom scrollbar container */
-.custom-scrollbar {
-    height: 8px;
-    width: calc(100% - 10px);
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 4px;
-    margin: 8px auto 15px;
-    position: relative;
-    cursor: pointer;
-}
+    /* Custom scrollbar container */
+    .custom-scrollbar {
+        height: 8px;
+        width: calc(100% - 10px);
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 4px;
+        margin: 8px auto 15px;
+        position: relative;
+        cursor: pointer;
+    }
 
-/* Scrollbar thumb (the part that moves) */
-.scrollbar-thumb {
-    position: absolute;
-    height: 100%;
-    width: 25%; /* Will be calculated dynamically */
-    background: var(--primary);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-    top: 0;
-    left: 0;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.scrollbar-thumb:hover {
-    background: var(--primary-dark);
-}
-
-.scrollbar-thumb:active {
-    background: var(--primary-dark);
-    height: 10px;
-    top: -1px;
-}
-
-/* Ensure scrollbar remains visible when list is empty */
-.custom-scrollbar:empty::after {
-    content: '';
-    position: absolute;
-    width: 25%;
-    height: 100%;
-    background-color: var(--primary);
-    border-radius: 4px;
-}
-
-/* Remove default scrollbar for Chrome, Safari, and Opera */
-.horizontal-list::-webkit-scrollbar {
-    display: none;
-}
-
-/* Remove navigation buttons when using scrollbar */
-.horizontal-list-wrapper .list-nav-button {
-    display: none;
-}
-
-/* Responsive adjustments for scrollbar */
-@media (max-width: 992px) {
+    /* Scrollbar thumb (the part that moves) */
     .scrollbar-thumb {
-        width: 33.3%; /* Match the 3 items per view width ratio */
+        position: absolute;
+        height: 100%;
+        width: 25%; /* Will be calculated dynamically */
+        background: var(--primary);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        top: 0;
+        left: 0;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     }
-}
 
-@media (max-width: 768px) {
-    .scrollbar-thumb {
-        width: 50%; /* Match the 2 items per view width ratio */
+    .scrollbar-thumb:hover {
+        background: var(--primary-dark);
     }
+
+    .scrollbar-thumb:active {
+        background: var(--primary-dark);
+        height: 10px;
+        top: -1px;
+    }
+
+    /* Ensure scrollbar remains visible when list is empty */
+    .custom-scrollbar:empty::after {
+        content: '';
+        position: absolute;
+        width: 25%;
+        height: 100%;
+        background-color: var(--primary);
+        border-radius: 4px;
+    }
+
+    /* Remove default scrollbar for Chrome, Safari, and Opera */
+    .horizontal-list::-webkit-scrollbar {
+        display: none;
+    }
+
+    /* Remove navigation buttons when using scrollbar */
+    .horizontal-list-wrapper .list-nav-button {
+        display: none;
+    }
+
+    /* Responsive adjustments for scrollbar */
+    @media (max-width: 992px) {
+        .scrollbar-thumb {
+            width: 33.3%; /* Match the 3 items per view width ratio */
+        }
+    }
+
+    @media (max-width: 768px) {
+        .scrollbar-thumb {
+            width: 50%; /* Match the 2 items per view width ratio */
+        }
+        .custom-scrollbar {
+            height: 6px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .scrollbar-thumb {
+            width: 75%; /* Match the 1 item per view width ratio */
+        }
+        .custom-scrollbar {
+            height: 4px;
+        }
+    }
+
+    /* Enhanced scrollbar styling for smoother appearance */
     .custom-scrollbar {
         height: 6px;
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 3px;
+        margin: 10px 5px 5px 5px;
+        position: relative;
+        cursor: pointer;
     }
-}
 
-@media (max-width: 480px) {
+    /* Scrollbar thumb with improved visuals */
     .scrollbar-thumb {
-        width: 75%; /* Match the 1 item per view width ratio */
+        position: absolute;
+        height: 100%;
+        width: 25%;
+        background: var(--primary);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.05s ease;
+        top: 0;
+        left: 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        will-change: transform; /* Optimize for animations */
+        
+        /* Use transform instead of left for smoother animation */
+        transform: translateX(0);
     }
-    .custom-scrollbar {
-        height: 4px;
+
+    .scrollbar-thumb:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px) scaleY(1.1) translateX(var(--position, 0));
     }
-}
 
-/* Enhanced scrollbar styling for smoother appearance */
-.custom-scrollbar {
-    height: 6px;
-    background: rgba(0, 0, 0, 0.05);
-    border-radius: 3px;
-    margin: 10px 5px 5px 5px;
-    position: relative;
-    cursor: pointer;
-}
-
-/* Scrollbar thumb with improved visuals */
-.scrollbar-thumb {
-    position: absolute;
-    height: 100%;
-    width: 25%;
-    background: var(--primary);
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s, transform 0.05s ease;
-    top: 0;
-    left: 0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    will-change: transform; /* Optimize for animations */
-    
-    /* Use transform instead of left for smoother animation */
-    transform: translateX(0);
-}
-
-.scrollbar-thumb:hover {
-    background: var(--primary-dark);
-    transform: translateY(-1px) scaleY(1.1) translateX(var(--position, 0));
-}
-
-.scrollbar-thumb:active {
-    background: var(--primary-dark);
-    transform: translateY(0) scaleY(1.2) translateX(var(--position, 0));
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
-}
-
-/* Enable smooth scrolling on the list */
-.horizontal-list {
-    scroll-behavior: auto; /*auto for default scrolling effect*/
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-}
-
-/* =====================================================
-   NUMBERED BADGES FOR TOP 10 ITEMS
-   ===================================================== */
-
-/* Base numbered badge style */
-.numbered-badge {
-    position: absolute;
-    top: 5px;
-    left: 5px;
-    background-color: rgba(0, 0, 0, 0.7);
-    color: var(--white);
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 8px;
-    border-radius: 6px;
-    z-index: 2;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-/* Special styling for top 3 positions */
-.numbered-badge.no1 {
-    background-color: #FFD700; /* Gold */
-    color: #000;
-}
-
-.numbered-badge.no2 {
-    background-color: #C0C0C0; /* Silver */
-    color: #000;
-}
-
-.numbered-badge.no3 {
-    background-color: #CD7F32; /* Bronze */
-    color: #000;
-}
-
-/* Add a slight difference for different media types */
-.book .numbered-badge {
-    border-left: 3px solid var(--book-color);
-}
-
-.movie .numbered-badge {
-    border-left: 3px solid var(--movie-color);
-}
-
-.music .numbered-badge {
-    border-left: 3px solid var(--music-color);
-}
-
-/* Make sure badge doesn't overlap with recommendation badge if both exist */
-.recommendation-badge + .numbered-badge {
-    top: 28px; /* Position below recommendation badge */
-}
-
-/* Ensure hover effect doesn't mess up badge positioning */
-.recommendation-card:hover .numbered-badge {
-    transform: translateY(0); /* Keep badge in place when card moves */
-}
-
-/* =====================================================
-   HEADER STYLES
-   ===================================================== */
-#header-placeholder header {
-    background-color: var(--white);
-    padding: 10px 0;
-    box-shadow: var(--shadow);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-#header-placeholder header .container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: var(--container-max-width);
-    margin: 0 auto;
-    padding: 0 15px;
-    height: 100%;
-}
-
-/* Logo */
-#header-placeholder .logo {
-    display: flex;
-    align-items: center;
-    position: relative;
-}
-
-#header-placeholder .logo a {
-    display: flex;
-    align-items: center;
-}
-
-#header-placeholder .logo img {
-    height: 30px;
-    object-fit: contain;
-    vertical-align: middle;
-    transition: transform 0.3s ease;
-}
-
-#header-placeholder .website-name {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin-left: 10px;
-    color: var(--primary);
-    letter-spacing: 0.5px;
-    position: relative;
-    display: inline-block;
-    vertical-align: middle;
-    transition: color 0.3s ease;
-}
-
-/* Navigation */
-#header-placeholder header nav {
-    display: flex;
-    align-items: center;
-    height: 100%;
-}
-
-#header-placeholder nav ul {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-#header-placeholder nav ul li {
-    display: flex;
-    align-items: center;
-    height: 100%;
-    margin-left: 20px;
-    list-style: none;
-}
-
-#header-placeholder nav ul li a {
-    display: flex;
-    align-items: center;
-    height: auto;
-    font-weight: 500;
-    font-size: 14px;
-    color: var(--text-dark);
-    text-decoration: none;
-    transition: color 0.3s;
-    padding: 0;
-    position: relative;
-}
-
-#header-placeholder nav ul li a:hover {
-    color: var(--primary);
-}
-
-/* Auth buttons */
-#header-placeholder .auth-buttons {
-    display: flex;
-    align-items: center;
-    height: 100%;
-}
-
-#header-placeholder .auth-buttons a {
-    margin-left: 15px;
-    font-weight: 500;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    text-decoration: none;
-}
-
-#header-placeholder .auth-buttons .username {
-    color: var(--primary);
-    position: relative;
-    padding: 6px 0;
-}
-
-#header-placeholder .auth-buttons .username:after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: 0;
-    left: 0;
-    background-color: var(--primary);
-    transition: width 0.3s ease;
-}
-
-#header-placeholder .auth-buttons .username:hover {
-    color: var(--primary-dark);
-}
-
-#header-placeholder .auth-buttons .username:hover:after {
-    width: 100%;
-}
-
-#header-placeholder .auth-buttons .logout {
-    background-color: var(--primary);
-    color: var(--white);
-    padding: 6px 12px;
-    border-radius: var(--border-radius);
-    transition: all 0.3s ease;
-    display: inline-block;
-    font-size: 13px;
-}
-
-#header-placeholder .auth-buttons .logout:hover {
-    background-color: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
-
-/* =====================================================
-   FOOTER STYLES
-   ===================================================== */
-   #footer-placeholder {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    box-sizing: border-box !important;
-}
-
-#footer-placeholder .container,
-#footer-placeholder .container-fluid {
-    max-width: 100% !important;
-    width: 100% !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-}
-
-#footer-placeholder .footer-content {
-    max-width: var(--container-max-width);
-    margin: 0 auto;
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-/* =====================================================
-   UTILITY CLASSES & BOOTSTRAP OVERRIDES
-   ===================================================== */
-.row > * {
-    padding-right: calc(var(--bs-gutter-x) * 0.4);
-    padding-left: calc(var(--bs-gutter-x) * 0.4);
-}
-
-.g-4 {
-    --bs-gutter-y: 0.8rem;
-    --bs-gutter-x: 0.8rem;
-}
-
-.mb-4 {
-    margin-bottom: 1rem !important;
-}
-
-.mb-3 {
-    margin-bottom: 0.75rem !important;
-}
-
-/* =====================================================
-   RESPONSIVE DESIGN
-   ===================================================== */
-/* Large tablets and small desktops */
-@media (max-width: 992px) {
-    #header-placeholder nav {
-        display: flex !important;
+    .scrollbar-thumb:active {
+        background: var(--primary-dark);
+        transform: translateY(0) scaleY(1.2) translateX(var(--position, 0));
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
     }
-    
-    #header-placeholder header .container {
-        padding: 0 12px;
-    }
-    
-    #header-placeholder nav ul li {
-        margin-left: 15px;
-    }
-    
-    #recommendations-container {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
 
-/* Medium tablets */
-@media (max-width: 920px) and (min-width: 769px) {
-    #recommendations-container,
+    /* Enable smooth scrolling on the list */
     .horizontal-list {
-        grid-template-columns: repeat(3, 1fr);
+        scroll-behavior: auto; /*auto for default scrolling effect*/
+        scrollbar-width: none;
+        -ms-overflow-style: none;
     }
-    
-    .recommendations-title {
-        font-size: 16px;
-    }
-}
 
-/* Small tablets and large phones */
-@media (max-width: 768px) {
-    #header-placeholder nav ul li {
-        margin-left: 12px;
-    }
-    
-    #header-placeholder nav ul li a,
-    #header-placeholder .auth-buttons a {
-        font-size: 13px;
-    }
-    
-    #header-placeholder .auth-buttons .logout {
-        padding: 5px 10px;
-    }
-    
-    .sort-buttons {
-        margin-top: 15px;
-    }
-    
-    .recommendations-slider {
-        overflow-x: auto;
-        -webkit-overflow-scrolling: touch;
-        padding-bottom: 10px;
-    }
-    
-    #recommendations-container,
-    .horizontal-list {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .list-nav-button {
-        width: 32px;
-        height: 32px;
-        font-size: 16px;
-    }
-    
-    .recommendation-card img {
-        height: 150px;
-    }
-}
+    /* =====================================================
+    NUMBERED BADGES FOR TOP 10 ITEMS
+    ===================================================== */
 
-/* Mobile phones */
-@media (max-width: 576px) {
-    #recommendations-container {
-        grid-template-columns: repeat(1, 1fr);
+    /* Base numbered badge style */
+    .numbered-badge {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: var(--white);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        z-index: 2;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     }
-}
 
-/* Extra small devices */
-@media (max-width: 480px) {
-    .horizontal-list {
-        grid-template-columns: repeat(1, 1fr);
+    /* Special styling for top 3 positions */
+    .numbered-badge.no1 {
+        background-color: #FFD700; /* Gold */
+        color: #000;
     }
-    
-    .recommendation-card img {
-        height: 140px;
-    }
-    
-    .recommendations-header {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
-    
-    .recommendations-info {
-        margin-top: 5px;
-    }
-}
 
-/* =====================================================
-   PRINT STYLES
-   ===================================================== */
-@media print {
-    .search-button,
-    .list-nav-button,
-    .recommendation-badge {
-        display: none !important;
+    .numbered-badge.no2 {
+        background-color: #C0C0C0; /* Silver */
+        color: #000;
     }
-    
-    body {
-        background-color: white;
-        color: black;
+
+    .numbered-badge.no3 {
+        background-color: #CD7F32; /* Bronze */
+        color: #000;
     }
-    
-    .result-card,
-    .recommendation-card {
-        break-inside: avoid;
-        box-shadow: none;
-        border: 1px solid #ddd;
+
+    /* Add a slight difference for different media types */
+    .book .numbered-badge {
+        border-left: 3px solid var(--book-color);
     }
-}
+
+    .movie .numbered-badge {
+        border-left: 3px solid var(--movie-color);
+    }
+
+    .music .numbered-badge {
+        border-left: 3px solid var(--music-color);
+    }
+
+    /* Make sure badge doesn't overlap with recommendation badge if both exist */
+    .recommendation-badge + .numbered-badge {
+        top: 28px; /* Position below recommendation badge */
+    }
+
+    /* Ensure hover effect doesn't mess up badge positioning */
+    .recommendation-card:hover .numbered-badge {
+        transform: translateY(0); /* Keep badge in place when card moves */
+    }
+
+    /* =====================================================
+    UTILITY CLASSES & BOOTSTRAP OVERRIDES
+    ===================================================== */
+    .row > * {
+        padding-right: calc(var(--bs-gutter-x) * 0.4);
+        padding-left: calc(var(--bs-gutter-x) * 0.4);
+    }
+
+    .g-4 {
+        --bs-gutter-y: 0.8rem;
+        --bs-gutter-x: 0.8rem;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem !important;
+    }
+
+    .mb-3 {
+        margin-bottom: 0.75rem !important;
+    }
+
+    /* =====================================================
+    PRINT STYLES
+    ===================================================== */
+    @media print {
+        .search-button,
+        .list-nav-button,
+        .recommendation-badge {
+            display: none !important;
+        }
+        
+        body {
+            background-color: white;
+            color: black;
+        }
+        
+        .result-card,
+        .recommendation-card {
+            break-inside: avoid;
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
