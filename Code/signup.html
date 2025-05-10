@@ -1,159 +1,265 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign Up - Pickify</title>
-    <link rel="icon" href="./assests/favicon.ico">
-    <link rel="stylesheet" href="./css/header-footer.css">
-    <link rel="stylesheet" href="./css/auth.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">   
-    <style>
-        .error-message {
-            color: #e53e3e;
-            font-size: 12px;
-            margin-top: -20px;
-            margin-bottom: 15px;
-            display: none;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign Up - Pickify</title>
+  <link rel="icon" href="./assests/favicon.ico">
+  <link rel="stylesheet" href="./css/header-footer.css">
+  <link rel="stylesheet" href="./css/auth.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@2.4.3/dist/bcrypt.min.js"></script>
 
-        .password-field {
-            margin-bottom: 0px;
-        }
-    </style>
-</head>
-<body data-page-type="homepage">
-    <div id="header-placeholder"></div>
-    <div class="auth-container">
-        <div class="auth-card">
-            <h1>Sign up</h1>
-            <form id="signup-form">
-                <label for="email">Email address</label>
-                <input type="email" id="email" placeholder="Enter your email address" required>
-                <div id="email-error" class="error-message">Please enter a valid email address</div>
-                
-                <label for="username">Username</label>
-                <input type="text" id="username" placeholder="Enter your username" required>
-                <div id="username-error" class="error-message">Username is required</div>
-                
-                <label for="password">Password</label>
-                <div class="password-field">
-                    <input type="password" id="password" placeholder="Enter your password" required>
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                <div id="password-error" class="error-message">Password must be at least 8 characters with 1 uppercase letter and 1 symbol</div>
-                
-                <label for="confirm-password">Confirm Password</label>
-                <div class="password-field">
-                    <input type="password" id="confirm-password" placeholder="Confirm your password" required>
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                </div>
-                <div id="confirm-password-error" class="error-message">Passwords do not match</div>
-                
-                <button type="submit" class="btn-primary">Sign up</button>
-            </form>
-            <p>If you already have an account, <a href="login.html">Login here!</a></p>
-        </div>
-    </div>
-    
-    <div id="footer-placeholder"></div>
-    <script src="./js/header-footer.js"></script>
-<script>
-    // Toggle password visibility
-    function togglePasswordVisibility(button) {
-        const passwordInput = button.previousElementSibling;
-        const icon = button.querySelector('i');
 
-        if (passwordInput.type === 'password') {
-            passwordInput.type = 'text';
-            icon.classList.remove('fa-eye');
-            icon.classList.add('fa-eye-slash');
-        } else {
-            passwordInput.type = 'password';
-            icon.classList.remove('fa-eye-slash');
-            icon.classList.add('fa-eye');
-        }
+
+  <style>
+    .error-message {
+      color: #e53e3e;
+      font-size: 12px;
+      margin-top: -20px;
+      margin-bottom: 15px;
+      display: none;
     }
 
-    document.getElementById('signup-form').addEventListener('submit', async function (event) {
-        event.preventDefault();
+    .password-field {
+      margin-bottom: 0px;
+    }
 
-        const email = document.getElementById('email').value.trim();
-        const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
+    #captcha-box {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      z-index: 1001;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
 
-        let isValid = true;
+    #captcha-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+    }
+  </style>
+</head>
+<body data-page-type="homepage">
+  <div id="header-placeholder"></div>
 
-        // Hide all error messages
-        document.querySelectorAll('.error-message').forEach(el => {
-            el.style.display = 'none';
+  <div class="auth-container">
+    <div class="auth-card">
+      <h1>Sign up</h1>
+      <form id="signup-form">
+        <label for="email">Email address</label>
+        <input type="email" id="email" placeholder="Enter your email address" required>
+        <div id="email-error" class="error-message">Please enter a valid email address</div>
+        
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="Enter your username" required>
+        <div id="username-error" class="error-message">Username is required</div>
+        
+        <label for="password">Password</label>
+        <div class="password-field">
+          <input type="password" id="password" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div id="password-error" class="error-message">Password must be at least 8 characters with 1 uppercase letter and 1 symbol</div>
+        
+        <label for="confirm-password">Confirm Password</label>
+        <div class="password-field">
+          <input type="password" id="confirm-password" placeholder="Confirm your password" required>
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this)">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+        <div id="confirm-password-error" class="error-message">Passwords do not match</div>
+        
+        <button type="submit" class="btn-primary">Sign up</button>
+      </form>
+
+      <p>If you already have an account, <a href="login.html">Login here!</a></p>
+    </div>
+  </div>
+
+  <!-- CAPTCHA Overlay and Modal -->
+  <div id="captcha-overlay"></div>
+
+  <div class="captcha-box" id="captcha-box">
+    <canvas id="canvas" width="120" height="40"></canvas><br>
+    <input type="text" id="captcha-input" placeholder="Enter CAPTCHA" />
+    <button class="btn-primary" id="captcha-submit">Verify</button>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="./js/header-footer.js"></script>
+  
+  <script>
+    let generatedCaptcha = "";
+
+    function togglePasswordVisibility(btn) {
+      const input = btn.previousElementSibling;
+      input.type = input.type === 'password' ? 'text' : 'password';
+    }
+
+    function getColor() {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function generateCaptchaText() {
+      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+      let code = '';
+      for (let i = 0; i < 4; i++) {
+        code += chars[Math.floor(Math.random() * chars.length)];
+      }
+      return code;
+    }
+
+    function drawCaptcha() {
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, 120, 40);
+      ctx.strokeRect(0, 0, 120, 40);
+
+      generatedCaptcha = generateCaptchaText();
+      for (let i = 0; i < generatedCaptcha.length; i++) {
+        const x = 20 + i * 20;
+        const y = 20 + 10 * Math.random();
+        const deg = Math.random() * Math.PI / 4;
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(deg);
+        ctx.fillStyle = getColor();
+        ctx.font = 'bold 20px sans-serif';
+        ctx.fillText(generatedCaptcha[i], 0, 0);
+        ctx.restore();
+      }
+
+      for (let i = 0; i < 8; i++) {
+        ctx.beginPath();
+        ctx.moveTo(Math.random() * 120, Math.random() * 40);
+        ctx.lineTo(Math.random() * 120, Math.random() * 40);
+        ctx.strokeStyle = getColor();
+        ctx.stroke();
+      }
+
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * 120;
+        const y = Math.random() * 40;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 1, y + 1);
+        ctx.strokeStyle = getColor();
+        ctx.stroke();
+      }
+    }
+
+    document.getElementById('canvas').onclick = drawCaptcha;
+
+    document.getElementById('signup-form').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      let valid = true;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$/;
+
+      document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+      if (!emailRegex.test(email)) {
+        document.getElementById('email-error').style.display = 'block';
+        valid = false;
+      }
+      if (!username) {
+        document.getElementById('username-error').style.display = 'block';
+        valid = false;
+      }
+      if (!passwordRegex.test(password)) {
+        document.getElementById('password-error').style.display = 'block';
+        valid = false;
+      }
+      if (password !== confirmPassword) {
+        document.getElementById('confirm-password-error').style.display = 'block';
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      // Show CAPTCHA overlay
+      document.getElementById('captcha-box').style.display = 'block';
+      document.getElementById('captcha-overlay').style.display = 'block';
+      drawCaptcha();
+    });
+
+    document.getElementById('captcha-submit').addEventListener('click', async function () {
+      const input = document.getElementById('captcha-input').value.trim();
+      if (input !== generatedCaptcha) {
+        alert('Incorrect CAPTCHA. Try again.');
+        drawCaptcha();
+        return;
+      }
+
+      const email = document.getElementById('email').value.trim();
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await fetch('http://localhost:3000/User');
+        const users = await res.json();
+        const exists = users.some(u => u.Name.toLowerCase() === username.toLowerCase());
+
+        if (exists) {
+          alert('Username already exists.');
+          document.getElementById('signup-form').style.display = 'block';
+          document.getElementById('captcha-box').style.display = 'none';
+          document.getElementById('captcha-overlay').style.display = 'none';
+          document.getElementById('username-error').textContent = 'Username already exists';
+          document.getElementById('username-error').style.display = 'block';
+          return;
+        }
+
+        const salt = bcrypt.genSaltSync(10);
+        const hashedPassword = bcrypt.hashSync(password, salt);
+        const bcrypt = dcodeIO.bcrypt; 
+
+        const post = await fetch('http://localhost:3000/User', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                Name: username,
+                Email: email,
+                Password: hashedPassword
+            }) 
         });
 
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            document.getElementById('email-error').style.display = 'block';
-            isValid = false;
-        }
 
-        // Username required check
-        if (!username) {
-            document.getElementById('username-error').textContent = "Username is required";
-            document.getElementById('username-error').style.display = 'block';
-            isValid = false;
-        }
+        if (!post.ok) throw new Error(await post.text());
 
-        // Password validation
-        const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-        if (!passwordRegex.test(password)) {
-            document.getElementById('password-error').style.display = 'block';
-            isValid = false;
-        }
-
-        // Confirm password match
-        if (password !== confirmPassword) {
-            document.getElementById('confirm-password-error').style.display = 'block';
-            isValid = false;
-        }
-
-        if (!isValid) return;
-
-        // Check for duplicate username
-        try {
-            const response = await fetch('http://localhost:3000/User');
-            const users = await response.json();
-
-            const usernameExists = users.some(user => user.Name.toLowerCase() === username.toLowerCase());
-            if (usernameExists) {
-                document.getElementById('username-error').textContent = "Username already exists";
-                document.getElementById('username-error').style.display = 'block';
-                return;
-            }
-
-            // Submit form if all is valid and username is unique
-            const postResponse = await fetch('http://localhost:3000/User', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ Name: username, Email: email, Password: password })
-            });
-
-            if (!postResponse.ok) {
-                const errText = await postResponse.text();
-                throw new Error(errText);
-            }
-
-            alert("Account created successfully!");
-            window.location.href = "login.html";
-
-        } catch (err) {
-            console.error(err);
-            alert("Failed to create account:\n" + err.message);
-        }
+        alert('Account created successfully!');
+        window.location.href = 'login.html';
+      } catch (err) {
+        alert('Signup failed:\n' + err.message);
+      } finally {
+        document.getElementById('captcha-box').style.display = 'none';
+        document.getElementById('captcha-overlay').style.display = 'none';
+      }
     });
-</script>
-
+  </script>

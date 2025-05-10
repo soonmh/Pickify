@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="./css/header-footer.css">
     <link rel="stylesheet" href="./css/auth.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+
 
     <style>
         .error-message {
@@ -115,7 +117,8 @@
                 return;
             }
 
-            if (matchedUser.Password !== inputPassword) {
+            const isPasswordCorrect = bcrypt.compareSync(inputPassword, matchedUser.Password);
+            if (!isPasswordCorrect) {
                 document.getElementById('password-error').textContent = "Incorrect password";
                 document.getElementById('password-error').style.display = 'block';
                 return;
