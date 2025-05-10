@@ -8,6 +8,21 @@
     <link rel="stylesheet" href="./css/header-footer.css">
     <link rel="stylesheet" href="./css/auth.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <style>
+        .error-message {
+        color: #e53e3e;
+        font-size: 12px;
+        margin-top: -20px;
+        margin-bottom: 15px;
+        display: none;
+        }
+
+        .password-field {
+        margin-bottom: 0px;
+        }
+    </style>
+
 </head>
 <body data-page-type="homepage">
     <div id="header-placeholder"></div>
@@ -15,10 +30,12 @@
     <div class="auth-container">
         <div class="auth-card">
             <h1>Login</h1>
-            <form>
+            
+            <form id="login-form">
                 <label for="username">Enter your username or email address</label>
                 <input type="text" id="username" placeholder="Username or email address" required>
-                
+                <div id="username-error" class="error-message">User not found</div>
+
                 <label for="password">Enter your Password</label>
                 <div class="password-field">
                     <input type="password" id="password" placeholder="Password" required>
@@ -26,7 +43,8 @@
                         <i class="fas fa-eye"></i>
                     </button>
                 </div>
-                
+                <div id="password-error" class="error-message">Incorrect password</div>
+
                 <a href="forgotpasswordpage.html" class="forgot-password">Forgot Password?</a>
                 <button type="submit" class="btn-primary">Login</button>
             </form>
@@ -45,22 +63,76 @@
 
     <div id="footer-placeholder"></div>
     <script src="./js/header-footer.js"></script>
-    <script>
-        // Simple direct function for password visibility
-        function togglePasswordVisibility(button) {
-            const passwordInput = button.previousElementSibling;
-            const icon = button.querySelector('i');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                passwordInput.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+<script>
+    function togglePasswordVisibility(button) {
+        const passwordInput = button.previousElementSibling;
+        const icon = button.querySelector('i');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            icon.classList.remove('fa-eye');
+            icon.classList.add('fa-eye-slash');
+        } else {
+            passwordInput.type = 'password';
+            icon.classList.remove('fa-eye-slash');
+            icon.classList.add('fa-eye');
         }
-    </script>
+    }
+
+    document.getElementById('login-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const inputUsername = document.getElementById('username').value.trim();
+        const inputPassword = document.getElementById('password').value;
+
+        // Hide error messages
+        document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+        if (!inputUsername || !inputPassword) {
+            if (!inputUsername) {
+                document.getElementById('username-error').textContent = "Please enter your username or email";
+                document.getElementById('username-error').style.display = 'block';
+            }
+            if (!inputPassword) {
+                document.getElementById('password-error').textContent = "Please enter your password";
+                document.getElementById('password-error').style.display = 'block';
+            }
+            return;
+        }
+
+        try {
+            const response = await fetch('http://localhost:3000/User');
+            const users = await response.json();
+
+            const matchedUser = users.find(user =>
+                (user.Name && user.Name === inputUsername) ||
+                (user.Email && user.Email === inputUsername)
+            );
+
+            if (!matchedUser) {
+                document.getElementById('username-error').textContent = "User not found";
+                document.getElementById('username-error').style.display = 'block';
+                return;
+            }
+
+            if (matchedUser.Password !== inputPassword) {
+                document.getElementById('password-error').textContent = "Incorrect password";
+                document.getElementById('password-error').style.display = 'block';
+                return;
+            }
+
+            // Login success
+            localStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+            window.location.href = "mainpage.html";
+
+        } catch (error) {
+            console.error("Login failed:", error);
+            document.getElementById('username-error').textContent = "Login error, please try again.";
+            document.getElementById('username-error').style.display = 'block';
+        }
+    });
+</script>
+
+
 </body>
 </html>
