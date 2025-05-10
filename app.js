@@ -45,4 +45,3 @@ app.post('/User', (req, res) => {
         res.status(500).json({err: 'Could not create a new documents'})
     })
 })
-
