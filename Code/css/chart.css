@@ -1,0 +1,449 @@
+:root {
+    --primary-bg: #ffffff;         /* White */
+    --accent-color: #6366ca;       /* Purple accent */
+    --secondary-color: #939dff;    /* Lighter purple */
+    --text-color: #1e1e1e;         /* Almost black */
+    --button-color: #ffd12e;       /* Yellow */
+    --light-gray: #f8f9fa;
+    --border-color: #e2e8f0;
+}
+
+.entertainment-chart {
+    font-family: Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background-color: var(--primary-bg);
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.chart-title {
+    color: var(--text-color);
+    font-size: 24px;
+    margin: 0;
+}
+
+.chart-filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.chart-filters select,
+.chart-search input {
+    padding: 10px 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--primary-bg);
+    color: var(--text-color);
+    font-size: 14px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+}
+
+#chart-search {
+    width: 300px; /* Increase width from default - adjust this value as needed */
+    min-width: 300px; /* Ensure minimum width */
+    padding: 8px 12px; /* Add comfortable padding */
+    font-size: 16px; /* Readable font size */
+    border-radius: 6px; /* Rounded corners */
+    border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.chart-filters select:hover,
+.chart-search input:hover {
+    border-color: var(--accent-color);
+}
+
+.chart-filters select:focus,
+.chart-search input:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(99, 102, 202, 0.2);
+    outline: none;
+}
+
+.chart-search {
+    position: relative;
+    margin-left: auto;
+}
+
+.chart-search input {
+    padding-right: 35px;
+    width: 200px;
+}
+
+.chart-search button {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.chart-content {
+    background-color: var(--primary-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.chart-tabs {
+    display: flex;
+    background-color: var(--light-gray);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.chart-tab {
+    padding: 12px 20px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.chart-tab.active {
+    color: var(--accent-color);
+    border-bottom-color: var(--accent-color);
+    background-color: var(--primary-bg);
+}
+
+.chart-tab:hover:not(.active) {
+    background-color: var(--border-color);
+}
+
+.chart-items {
+    padding: 0;
+}
+
+.chart-item {
+    display: flex;
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px;
+    transition: background-color 0.2s ease;
+}
+
+.chart-item:hover {
+    background-color: var(--light-gray);
+}
+
+.chart-item:last-child {
+    border-bottom: none;
+}
+
+.chart-rank {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.chart-thumbnail {
+    width: 80px;
+    height: 120px;
+    border-radius: 5px;
+    object-fit: cover;
+    margin-right: 15px;
+    flex-shrink: 0;
+    background-color: var(--border-color);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+}
+
+.chart-thumbnail:hover {
+    transform: scale(1.03);
+}
+
+.chart-thumbnail::after {
+    content: "\f144";
+    font-family: 'Font Awesome 5 Free';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.chart-thumbnail:hover::after {
+    opacity: 1;
+}
+
+.chart-info {
+    flex-grow: 1;
+}
+
+.chart-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.chart-item-title {
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--text-color);
+    margin: 0 0 5px 0;
+    cursor: pointer;
+}
+
+.chart-item-title:hover {
+    color: var(--accent-color);
+}
+
+.chart-rating-save {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.chart-rating {
+    display: flex;
+    align-items: center;
+    color: var(--button-color);
+    font-weight: bold;
+}
+
+.chart-rating i {
+    margin-right: 5px;
+}
+
+.chart-save {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent-color);
+    padding: 0;
+    font-size: 16px;
+    transition: color 0.2s ease;
+}
+
+.chart-save:hover {
+    color: var(--secondary-color);
+}
+
+.chart-meta {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #718096;
+}
+
+.chart-meta span {
+    margin-right: 15px;
+}
+
+.chart-meta i {
+    margin-right: 5px;
+}
+
+.chart-description {
+    font-size: 14px;
+    color: var(--text-color);
+    margin-bottom: 10px;
+    line-height: 1.4;
+}
+
+/* Loading state */
+.chart-loading {
+    padding: 40px;
+    text-align: center;
+    color: #718096;
+    display: none;
+}
+
+.chart-loading i {
+    font-size: 24px;
+    margin-bottom: 10px;
+    animation: spin 1s infinite linear;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty state */
+.chart-empty {
+    padding: 40px;
+    text-align: center;
+    color: #718096;
+    display: none;
+}
+
+/* Filter labels */
+.filter-label {
+    margin-bottom: 8px;
+    color: var(--accent-color);
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filter-group {
+    margin-right: 15px;
+}
+
+/* Apply filters button */
+.apply-filters {
+    padding: 8px 15px;
+    background-color: var(--button-color);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.apply-filters:hover {
+    background-color: #eac028;
+}
+
+.genre-text {
+    display: inline-block;
+    margin-right: 15px;
+    position: relative;
+}
+
+/* Add a visual separator after genre */
+.genre-text::after {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 12px;
+    background-color: var(--border-color);
+    margin-left: 15px;
+    position: relative;
+    top: 1px;
+}
+
+.meta-item {
+    display: inline-block;
+    position: relative;
+    margin-right: 18px;
+    padding-right: 18px;
+}
+
+/* Add a visual separator after each meta item except the last one */
+.meta-item:not(:last-child)::after {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 12px;
+    background-color: var(--border-color);
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Make icons purple */
+.chart-meta i {
+    margin-right: 5px;
+    color: var(--accent-color); /* Purple accent color */
+}
+
+/* Reset chart-meta styles to fix layout */
+.chart-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #718096;
+    line-height: 1.5;
+    gap: 0; /* Remove gap to control spacing with margins */
+}
+
+/* Style first item icon (type icon) */
+.chart-meta > span:first-child i {
+    color: var(--accent-color);
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+    #chart-search {
+        width: 100%; /* Full width on smaller screens */
+        min-width: unset;
+    }
+    
+    .chart-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .chart-search {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .chart-search input {
+        width: 100%;
+    }
+
+    .chart-filters {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .filter-group {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 10px;
+    }
+
+    .chart-filters select {
+        width: 100%;
+    }
+
+    .chart-item {
+        flex-direction: column;
+        position: relative;
+        padding-top: 50px;
+    }
+
+    .chart-thumbnail {
+        width: 100%;
+        height: 200px;
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+
+    .chart-rank {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+    }
+}
