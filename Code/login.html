@@ -25,6 +25,17 @@
     </style>
 
 </head>
+
+<script>
+// 🔐 Redirect already logged-in users
+document.addEventListener('DOMContentLoaded', () => {
+    const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+    if (isLoggedIn) {
+        window.location.href = 'mainpage.html';
+    }
+});
+</script>
+
 <body data-page-type="homepage">
     <div id="header-placeholder"></div>
 
@@ -70,6 +81,7 @@
 
     <div id="footer-placeholder"></div>
     <script src="./js/header-footer.js"></script>
+
 <script>
     function togglePasswordVisibility(button) {
         const passwordInput = button.previousElementSibling;
