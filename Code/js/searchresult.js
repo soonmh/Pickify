@@ -326,6 +326,10 @@ const genresByType = {
 };
 
 document.addEventListener('DOMContentLoaded', function() {
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const queryFromURL = urlParams.get('query');
+
     // DOM elements
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
@@ -347,46 +351,20 @@ document.addEventListener('DOMContentLoaded', function() {
     };
     let currentSort = 'rating'; // Default sort
     
-    // Create recommendations container and insert it after the filter card
-    createRecommendationsSection();
-    
-    // Initialize the page
-    initializeGenreDropdown();
-    renderRecommendations();
-    renderResults();
-    updateResultsCount();
-    renderPagination();
-    
-    // Create recommendations section
-    function createRecommendationsSection() {
-        // Check if the recommendations section already exists
-        if (document.getElementById('recommendations-container')) {
-            return;
-        }
-        
-        // Create the recommendations row HTML structure
-        const recommendationsHTML = `
-            <div class="row recommendations-row mb-4" id="recommendations-row">
-                <div class="col-12">
-                    <div class="recommendations-header d-flex justify-content-between align-items-center mb-3">
-                        <h3 class="recommendations-title mb-0">Recommended for You</h3>
-                        <span class="recommendations-info">Based on your watchlist</span>
-                    </div>
-                    <div class="recommendations-slider">
-                        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-4 g-4" id="recommendations-container">
-                            <!-- Recommendations will be inserted here -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Find the row containing the results count
-        const resultsCountRow = document.querySelector('.results-count').closest('.row');
-        
-        // Insert the recommendations row before the results count row
-        resultsCountRow.insertAdjacentHTML('beforebegin', recommendationsHTML);
+    // If there's a query parameter in the URL, set it as the search input value
+    // and apply search immediately
+    if (queryFromURL) {
+        searchInput.value = queryFromURL;
+        currentFilters.search = queryFromURL.toLowerCase().trim();
+        // Apply the search filter right away
+        applyFiltersAndSort();
+        initializeGenreDropdown()
+    } else {
+        renderResults();
+        updateResultsCount();
+        renderPagination();
     }
+    
     
     // Initialize the genre dropdown (disabled by default)
     function initializeGenreDropdown() {
@@ -437,98 +415,6 @@ document.addEventListener('DOMContentLoaded', function() {
             applyFiltersAndSort();
         });
     });
-    
-    // Render personalized recommendations
-    function renderRecommendations() {
-        const recommendationsContainer = document.getElementById('recommendations-container');
-        
-        if (!recommendationsContainer) return;
-        
-        // Clear existing recommendations
-        recommendationsContainer.innerHTML = '';
-        
-        // If no watchlist items, show a message
-        if (userWatchlist.length === 0) {
-            recommendationsContainer.innerHTML = `
-                <div class="col-12 text-center py-4">
-                    <p class="mb-0">Start adding items to your watchlist to get personalized recommendations!</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Generate recommendations based on user's watchlist (genres and types)
-        const recommendations = getRecommendationsForUser();
-        
-        if (recommendations.length === 0) {
-            recommendationsContainer.innerHTML = `
-                <div class="col-12 text-center py-4">
-                    <p class="mb-0">No recommendations available at the moment.</p>
-                </div>
-            `;
-            return;
-        }
-        
-        // Display up to 4 recommendations
-        recommendations.slice(0, 4).forEach(item => {
-            const col = document.createElement('div');
-            col.className = 'col';
-            col.setAttribute('data-id', item.id);
-            
-            col.innerHTML = `
-                <div class="result-card recommendation-card">
-                    <div class="recommendation-badge">Recommended</div>
-                    <img src="${item.image}" class="result-img" alt="${item.title}">
-                    <div class="result-body">
-                        <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
-                        <h5 class="result-title">${item.title}</h5>
-                        <div class="result-meta">
-                            <div class="result-rating">
-                                <i class="fas fa-star"></i> ${item.rating.toFixed(1)}
-                            </div>
-                            <div class="result-views">
-                                <i class="fas fa-eye"></i> ${formatNumber(item.views)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Add click event to each recommendation card
-            col.addEventListener('click', () => {
-                alert(`You clicked on recommended item: ${item.title}`);
-            });
-            
-            recommendationsContainer.appendChild(col);
-        });
-    }
-    
-    // Get personalized recommendations based on watchlist
-    function getRecommendationsForUser() {
-        // Extract genres and types from user's watchlist
-        const userGenres = userWatchlist.map(item => item.genre);
-        const userTypes = userWatchlist.map(item => item.type);
-        
-        // Filter out items already in the watchlist
-        const watchlistIds = userWatchlist.map(item => item.id);
-        
-        // Find items with similar genres or types, but not already in watchlist
-        return dummyData
-            .filter(item => !watchlistIds.includes(item.id))
-            .filter(item => userGenres.includes(item.genre) || userTypes.includes(item.type))
-            .sort((a, b) => {
-                // Prioritize items that match both genre and type
-                const aMatches = (userGenres.includes(a.genre) ? 1 : 0) + (userTypes.includes(a.type) ? 1 : 0);
-                const bMatches = (userGenres.includes(b.genre) ? 1 : 0) + (userTypes.includes(b.type) ? 1 : 0);
-                
-                if (bMatches !== aMatches) {
-                    return bMatches - aMatches;
-                }
-                
-                // If same match score, sort by rating
-                return b.rating - a.rating;
-            });
-    }
     
     // Disable genre dropdown when no specific type is selected
     function disableGenreDropdown() {

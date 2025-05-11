@@ -473,17 +473,10 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             return;
         }
-
         // Add query to search history
         addToSearchHistory(query);
-
-        // Filter search results based on query
-        const filteredSearchResults = dummyData.filter(item =>
-            item.title.toLowerCase().includes(query)
-        );
-
-        // Render the search results
-        renderSearchResults(filteredSearchResults, query);
+        // Redirect to searchresult.js with the query as a URL parameter
+        window.location.href = `searchresult.html?query=${encodeURIComponent(query)}`;
     }
 
     /**
