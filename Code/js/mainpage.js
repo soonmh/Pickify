@@ -169,6 +169,8 @@ const userWatchlist = [
 let searchHistory = [];
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    loadSearchHistoryFromStorage();
     // DOM Elements
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
@@ -491,7 +493,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 searchHistory.pop(); // Keep only the last 5 entries
             }
         }
+        saveSearchHistoryToStorage();
         renderSearchHistory();
+
+        
+    }
+
+    /**
+     * Save search history to localStorage
+     */
+    function saveSearchHistoryToStorage() {
+        localStorage.setItem('pickifySearchHistory', JSON.stringify(searchHistory));
+    }
+    /**
+     * Load search history from localStorage
+     */
+    function loadSearchHistoryFromStorage() {
+        const savedHistory = localStorage.getItem('pickifySearchHistory');
+        if (savedHistory) {
+            searchHistory = JSON.parse(savedHistory);
+        }
     }
 
     /**
