@@ -7,204 +7,8 @@
   <link rel="icon" href="./assests/favicon.ico">
   <link rel="stylesheet" href="./css/header-footer.css">
   <link rel="stylesheet" href="./css/auth.css">
+  <link rel="stylesheet" href="./css/signup.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">   
-  
-  <style>
-    .error-message {
-      color: #e53e3e;
-      font-size: 12px;
-      margin-top: -20px;
-      margin-bottom: 15px;
-      display: none;
-    }
-
-    .password-field {
-      margin-bottom: 0px;
-    }
-    
-    /* Success Modal Styles */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2000;
-    }
-    
-    .modal-content {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.9);
-      background: white;
-      width: 340px;
-      padding: 40px 30px;
-      border-radius: 16px;
-      text-align: center;
-      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
-      opacity: 0;
-      transition: all 0.4s ease;
-    }
-    
-    .modal-content.active {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
-    
-    .success-icon {
-      font-size: 60px;
-      color: #4caf50;
-      margin-bottom: 20px;
-      animation: success-bounce 1s ease;
-    }
-    
-    @keyframes success-bounce {
-      0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
-      40% {transform: translateY(-20px);}
-      60% {transform: translateY(-10px);}
-    }
-    
-    .modal-content h3 {
-      font-size: 24px;
-      font-weight: 700;
-      color: #2d3748;
-      margin-bottom: 15px;
-    }
-    
-    .modal-content p {
-      font-size: 16px;
-      color: #4a5568;
-      margin-bottom: 30px;
-    }
-    
-    #continue-btn {
-      min-width: 160px;
-    }
-
-    /* Enhanced CAPTCHA styles */
-    #captcha-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.6);
-      z-index: 1000;
-      backdrop-filter: blur(3px);
-      transition: all 0.3s ease;
-    }
-
-    #captcha-box {
-      display: none;
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.95);
-      background: white;
-      border-radius: 16px;
-      padding: 30px;
-      z-index: 1001;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-      text-align: center;
-      width: 300px;
-      opacity: 0;
-      transition: all 0.3s ease;
-    }
-
-    #captcha-box.active {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
-
-    #captcha-box h3 {
-      font-size: 18px;
-      font-weight: 600;
-      color: #2d3748;
-      margin-top: 0;
-      margin-bottom: 20px;
-    }
-
-    #canvas-container {
-      background: #f8fafc;
-      border-radius: 12px;
-      padding: 15px;
-      margin-bottom: 20px;
-      border: 1px solid #e2e8f0;
-      box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
-      display: inline-block;
-      position: relative;
-    }
-
-    #refresh-captcha {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      color: #a0aec0;
-      cursor: pointer;
-      font-size: 16px;
-      transition: color 0.2s ease;
-    }
-
-    #refresh-captcha:hover {
-      color: #4e54c8;
-    }
-
-    #captcha-input {
-      width: 100%;
-      padding: 14px 16px;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 15px;
-      transition: all 0.3s ease;
-      background-color: #f8fafc;
-      margin-bottom: 15px;
-      text-align: center;
-      letter-spacing: 3px;
-      font-weight: 600;
-    }
-
-    #captcha-input:focus {
-      border-color: #8F94FB;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(143, 148, 251, 0.2);
-      background-color: #fff;
-    }
-
-    #captcha-submit {
-      width: 100%;
-      background: linear-gradient(90deg, #8F94FB, #4e54c8);
-      color: #fff;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 10px rgba(79, 94, 230, 0.3);
-    }
-
-    #captcha-submit:hover {
-      background: linear-gradient(90deg, #7a7ff8, #4348b8);
-      box-shadow: 0 6px 14px rgba(79, 94, 230, 0.4);
-      transform: translateY(-2px);
-    }
-
-    #captcha-submit:active {
-      transform: translateY(0);
-    }
-
-    .captcha-message {
-      font-size: 13px;
-      color: #a0aec0;
-      margin-top: 15px;
-    }
-  </style>
 </head>
 <body data-page-type="homepage">
   <div id="header-placeholder"></div>
@@ -276,229 +80,224 @@
 
   <div id="footer-placeholder"></div>
 
-  <script src="./js/header-footer.js"></script>
-  <script>
-    let generatedCaptcha = "";
+<script src="./js/header-footer.js"></script>
+<script>
+  let generatedCaptcha = "";
 
-    function togglePasswordVisibility(btn) {
-      const input = btn.previousElementSibling;
-      input.type = input.type === 'password' ? 'text' : 'password';
+  function togglePasswordVisibility(btn) {
+    const input = btn.previousElementSibling;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  }
+
+  function getColor() {
+    const r = Math.floor(Math.random() * 256);
+    const g = Math.floor(Math.random() * 256);
+    const b = Math.floor(Math.random() * 256);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  function generateCaptchaText() {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return code;
+  }
+
+  function drawCaptcha() {
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 120, 40);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(0, 0, 120, 40);
+
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i < 120; i += 10) {
+      ctx.beginPath();
+      ctx.moveTo(i, 0);
+      ctx.lineTo(i, 40);
+      ctx.stroke();
     }
 
-    function getColor() {
-      const r = Math.floor(Math.random() * 256);
-      const g = Math.floor(Math.random() * 256);
-      const b = Math.floor(Math.random() * 256);
-      return `rgb(${r},${g},${b})`;
+    for (let i = 0; i < 40; i += 10) {
+      ctx.beginPath();
+      ctx.moveTo(0, i);
+      ctx.lineTo(120, i);
+      ctx.stroke();
     }
 
-    function generateCaptchaText() {
-      const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-      let code = '';
-      for (let i = 0; i < 4; i++) {
-        code += chars[Math.floor(Math.random() * chars.length)];
-      }
-      return code;
+    generatedCaptcha = generateCaptchaText();
+    for (let i = 0; i < generatedCaptcha.length; i++) {
+      const x = 20 + i * 20;
+      const y = 20 + 5 * Math.random();
+      const deg = (Math.random() - 0.5) * Math.PI / 4;
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(deg);
+      ctx.fillStyle = getColor();
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(generatedCaptcha[i], 0, 0);
+      ctx.restore();
     }
 
-    function drawCaptcha() {
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, 120, 40);
-      ctx.fillStyle = '#f8fafc';
-      ctx.fillRect(0, 0, 120, 40);
-      
-      // Draw a subtle grid pattern
-      ctx.strokeStyle = 'rgba(200, 200, 200, 0.2)';
-      ctx.lineWidth = 0.5;
-      for (let i = 0; i < 120; i += 10) {
-        ctx.beginPath();
-        ctx.moveTo(i, 0);
-        ctx.lineTo(i, 40);
-        ctx.stroke();
-      }
-      
-      for (let i = 0; i < 40; i += 10) {
-        ctx.beginPath();
-        ctx.moveTo(0, i);
-        ctx.lineTo(120, i);
-        ctx.stroke();
-      }
-
-      generatedCaptcha = generateCaptchaText();
-      for (let i = 0; i < generatedCaptcha.length; i++) {
-        const x = 20 + i * 20;
-        const y = 20 + 5 * Math.random();
-        const deg = (Math.random() - 0.5) * Math.PI / 4;
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(deg);
-        ctx.fillStyle = getColor();
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(generatedCaptcha[i], 0, 0);
-        ctx.restore();
-      }
-
-      // Add more elegant noise
-      for (let i = 0; i < 5; i++) {
-        ctx.beginPath();
-        ctx.moveTo(Math.random() * 120, Math.random() * 40);
-        ctx.bezierCurveTo(
-          Math.random() * 120, Math.random() * 40,
-          Math.random() * 120, Math.random() * 40,
-          Math.random() * 120, Math.random() * 40
-        );
-        ctx.strokeStyle = getColor();
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
-
-      // Add confetti-like dots
-      for (let i = 0; i < 30; i++) {
-        const x = Math.random() * 120;
-        const y = Math.random() * 40;
-        const size = Math.random() * 3;
-        ctx.beginPath();
-        ctx.arc(x, y, size, 0, Math.PI * 2);
-        ctx.fillStyle = getColor();
-        ctx.fill();
-      }
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath();
+      ctx.moveTo(Math.random() * 120, Math.random() * 40);
+      ctx.bezierCurveTo(
+        Math.random() * 120, Math.random() * 40,
+        Math.random() * 120, Math.random() * 40,
+        Math.random() * 120, Math.random() * 40
+      );
+      ctx.strokeStyle = getColor();
+      ctx.lineWidth = 1;
+      ctx.stroke();
     }
 
-    document.getElementById('canvas').onclick = drawCaptcha;
-    document.getElementById('refresh-captcha').onclick = drawCaptcha;
+    for (let i = 0; i < 30; i++) {
+      const x = Math.random() * 120;
+      const y = Math.random() * 40;
+      const size = Math.random() * 3;
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fillStyle = getColor();
+      ctx.fill();
+    }
+  }
 
-    document.getElementById('signup-form').addEventListener('submit', function (e) {
-      e.preventDefault();
+  document.getElementById('canvas').onclick = drawCaptcha;
+  document.getElementById('refresh-captcha').onclick = drawCaptcha;
 
-      const email = document.getElementById('email').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-      const confirmPassword = document.getElementById('confirm-password').value;
+  // ✅ Modified submit handler — check duplicates before CAPTCHA
+  document.getElementById('signup-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-      let valid = true;
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$/;
+    const email = document.getElementById('email').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirm-password').value;
 
-      document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+    let valid = true;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$/;
 
-      if (!emailRegex.test(email)) {
-        document.getElementById('email-error').style.display = 'block';
-        valid = false;
-      }
-      if (!username) {
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+    if (!emailRegex.test(email)) {
+      document.getElementById('email-error').style.display = 'block';
+      valid = false;
+    }
+    if (!username) {
+      document.getElementById('username-error').style.display = 'block';
+      valid = false;
+    }
+    if (!passwordRegex.test(password)) {
+      document.getElementById('password-error').style.display = 'block';
+      valid = false;
+    }
+    if (password !== confirmPassword) {
+      document.getElementById('confirm-password-error').style.display = 'block';
+      valid = false;
+    }
+
+    if (!valid) return;
+
+    // ✅ Check for duplicates FIRST (case-sensitive)
+    try {
+      const res = await fetch('http://localhost:3000/User');
+      const users = await res.json();
+
+      const usernameExists = users.some(u => u.Name === username);
+      const emailExists = users.some(u => u.Email === email);
+
+      if (usernameExists) {
+        document.getElementById('username-error').textContent = 'Username already exists';
         document.getElementById('username-error').style.display = 'block';
-        valid = false;
-      }
-      if (!passwordRegex.test(password)) {
-        document.getElementById('password-error').style.display = 'block';
-        valid = false;
-      }
-      if (password !== confirmPassword) {
-        document.getElementById('confirm-password-error').style.display = 'block';
-        valid = false;
-      }
-
-      if (!valid) return;
-
-      // Show CAPTCHA overlay with animation
-      document.getElementById('captcha-box').style.display = 'block';
-      document.getElementById('captcha-overlay').style.display = 'block';
-      
-      // Trigger reflow before adding active class for animation
-      void document.getElementById('captcha-box').offsetWidth;
-      document.getElementById('captcha-box').classList.add('active');
-      
-      // Clear previous captcha input
-      document.getElementById('captcha-input').value = '';
-      
-      drawCaptcha();
-    });
-
-    document.getElementById('captcha-submit').addEventListener('click', async function () {
-      const input = document.getElementById('captcha-input').value.trim();
-      if (input !== generatedCaptcha) {
-        // Shake animation effect (adding and removing class)
-        const captchaBox = document.getElementById('captcha-box');
-        captchaBox.classList.add('shake');
-        setTimeout(() => captchaBox.classList.remove('shake'), 500);
-        
-        document.getElementById('captcha-input').value = '';
-        drawCaptcha();
         return;
       }
 
-      const email = document.getElementById('email').value.trim();
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value;
-
-      try {
-        const res = await fetch('http://localhost:3000/User');
-        const users = await res.json();
-        const exists = users.some(u => u.Name.toLowerCase() === username.toLowerCase());
-
-        if (exists) {
-          document.getElementById('captcha-box').classList.remove('active');
-          setTimeout(() => {
-            document.getElementById('captcha-box').style.display = 'none';
-            document.getElementById('captcha-overlay').style.display = 'none';
-            
-            document.getElementById('username-error').textContent = 'Username already exists';
-            document.getElementById('username-error').style.display = 'block';
-          }, 300);
-          return;
-        }
-
-        const post = await fetch('http://localhost:3000/User', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ Name: username, Email: email, Password: password })
-        });
-
-        if (!post.ok) throw new Error(await post.text());
-
-        document.getElementById('captcha-box').classList.remove('active');
-        setTimeout(() => {
-          document.getElementById('captcha-box').style.display = 'none';
-          
-          // Show success modal with animation
-          const successModal = document.getElementById('success-modal');
-          const modalContent = successModal.querySelector('.modal-content');
-          successModal.style.display = 'block';
-          
-          // Trigger reflow before adding active class for animation
-          void modalContent.offsetWidth;
-          modalContent.classList.add('active');
-        }, 300);
-      } catch (err) {
-        document.getElementById('captcha-box').classList.remove('active');
-        setTimeout(() => {
-          document.getElementById('captcha-box').style.display = 'none';
-          document.getElementById('captcha-overlay').style.display = 'none';
-          alert('Signup failed:\n' + err.message);
-        }, 300);
+      if (emailExists) {
+        document.getElementById('email-error').textContent = 'Email address already in use';
+        document.getElementById('email-error').style.display = 'block';
+        return;
       }
-    });
 
-    // Add shake animation for wrong CAPTCHA entry
-    document.head.insertAdjacentHTML('beforeend', `
-      <style>
-        @keyframes shake {
-          0%, 100% { transform: translate(-50%, -50%); }
-          10%, 30%, 50%, 70%, 90% { transform: translate(-52%, -50%); }
-          20%, 40%, 60%, 80% { transform: translate(-48%, -50%); }
-        }
-        #captcha-box.shake {
-          animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-        }
-      </style>
-    `);
-    
-    // Handle continue button click
-    document.getElementById('continue-btn').addEventListener('click', function() {
-      window.location.href = 'login.html';
-    });
-  </script>
+      // ✅ Only show CAPTCHA if everything passes
+      document.getElementById('captcha-box').style.display = 'block';
+      document.getElementById('captcha-overlay').style.display = 'block';
+      void document.getElementById('captcha-box').offsetWidth;
+      document.getElementById('captcha-box').classList.add('active');
+      document.getElementById('captcha-input').value = '';
+      drawCaptcha();
+
+    } catch (err) {
+      alert('Failed to validate user uniqueness:\n' + err.message);
+    }
+  });
+
+  document.getElementById('captcha-submit').addEventListener('click', async function () {
+    const input = document.getElementById('captcha-input').value.trim();
+    if (input !== generatedCaptcha) {
+      const captchaBox = document.getElementById('captcha-box');
+      captchaBox.classList.add('shake');
+      setTimeout(() => captchaBox.classList.remove('shake'), 500);
+      document.getElementById('captcha-input').value = '';
+      drawCaptcha();
+      return;
+    }
+
+    const email = document.getElementById('email').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value;
+
+    try {
+      const post = await fetch('http://localhost:3000/User', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Name: username, Email: email, Password: password })
+      });
+
+      if (!post.ok) throw new Error(await post.text());
+
+      document.getElementById('captcha-box').classList.remove('active');
+      setTimeout(() => {
+        document.getElementById('captcha-box').style.display = 'none';
+        const successModal = document.getElementById('success-modal');
+        const modalContent = successModal.querySelector('.modal-content');
+        successModal.style.display = 'block';
+        void modalContent.offsetWidth;
+        modalContent.classList.add('active');
+      }, 300);
+    } catch (err) {
+      document.getElementById('captcha-box').classList.remove('active');
+      setTimeout(() => {
+        document.getElementById('captcha-box').style.display = 'none';
+        document.getElementById('captcha-overlay').style.display = 'none';
+        alert('Signup failed:\n' + err.message);
+      }, 300);
+    }
+  });
+
+  // Shake animation style
+  document.head.insertAdjacentHTML('beforeend', `
+    <style>
+      @keyframes shake {
+        0%, 100% { transform: translate(-50%, -50%); }
+        10%, 30%, 50%, 70%, 90% { transform: translate(-52%, -50%); }
+        20%, 40%, 60%, 80% { transform: translate(-48%, -50%); }
+      }
+      #captcha-box.shake {
+        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+      }
+    </style>
+  `);
+
+  document.getElementById('continue-btn').addEventListener('click', function() {
+    window.location.href = 'login.html';
+  });
+</script>
+
 </body>
 </html>

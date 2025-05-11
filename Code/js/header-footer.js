@@ -1,40 +1,68 @@
-// shared-components.js
-function loadComponent(elementId, componentPath) {
-    fetch(componentPath)
-      .then(response => response.text())
-      .then(data => {
-        const placeholder = document.getElementById(elementId);
-        
-        // Simply insert the HTML content
-        placeholder.innerHTML = data;
-        
-        // For header placeholders, transfer needed attributes to the placeholder
-        if (elementId === 'header-placeholder') {
-          const headerElement = placeholder.querySelector('header');
-          if (headerElement) {
-            // Get computed styles from the inner header
-            const styles = window.getComputedStyle(headerElement);
-            
-            // Apply shadow to the placeholder instead of inner header
-            placeholder.style.boxShadow = styles.boxShadow;
-            headerElement.style.boxShadow = 'none';
-            headerElement.style.position = 'static'; // Remove sticky from inner header
-            
-            // Ensure padding is properly applied
-            placeholder.style.padding = '0';
-          }
+function loadComponent(elementId, componentPath, callback) {
+  fetch(componentPath)
+    .then(response => response.text())
+    .then(data => {
+      const placeholder = document.getElementById(elementId);
+      placeholder.innerHTML = data;
+
+      // Header-specific adjustments
+      if (elementId === 'header-placeholder') {
+        const headerElement = placeholder.querySelector('header');
+        if (headerElement) {
+          const styles = window.getComputedStyle(headerElement);
+          placeholder.style.boxShadow = styles.boxShadow;
+          headerElement.style.boxShadow = 'none';
+          headerElement.style.position = 'static';
+          placeholder.style.padding = '0';
         }
-      });   
-  }
-  
-  document.addEventListener('DOMContentLoaded', function() {
-    const pageType = document.body.dataset.pageType || 'main';
-    
-    if (pageType === 'homepage') {
-      loadComponent('header-placeholder', 'header-footer/homepageheader.html');
-      loadComponent('footer-placeholder', 'header-footer/homepagefooter.html');
-    } else {
-      loadComponent('header-placeholder', 'header-footer/header.html');
-      loadComponent('footer-placeholder', 'header-footer/footer.html');
+
+        // 🔄 Call callback after header is injected
+        if (typeof callback === 'function') {
+          callback();
+        }
+      }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  const pageType = document.body.dataset.pageType || 'main';
+
+  const headerPath =
+    pageType === 'homepage'
+      ? 'header-footer/homepageheader.html'
+      : 'header-footer/header.html';
+  const footerPath =
+    pageType === 'homepage'
+      ? 'header-footer/homepagefooter.html'
+      : 'header-footer/footer.html';
+
+  loadComponent('header-placeholder', headerPath, () => {
+    // ✅ After header is loaded, update username
+    const userData = localStorage.getItem('loggedInUser') || sessionStorage.getItem('loggedInUser');
+    const usernameEl = document.getElementById('header-username');
+
+    if (usernameEl) {
+      if (userData) {
+        const user = JSON.parse(userData);
+        usernameEl.textContent = user.Name || user.Email || "Profile";
+        usernameEl.href = "profile.html";
+      } else {
+        usernameEl.textContent = "Login";
+        usernameEl.href = "signin.html";
+      }
+    }
+
+    // ✅ Logout functionality
+    const logoutBtn = document.querySelector('.logout');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        sessionStorage.removeItem('loggedInUser');
+        localStorage.removeItem('loggedInUser');
+        window.location.href = 'homepage.html'; // Redirect after logout
+      });
     }
   });
+
+  loadComponent('footer-placeholder', footerPath);
+});

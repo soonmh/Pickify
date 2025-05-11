@@ -7,6 +7,7 @@
     <link rel="icon" href="./assests/favicon.ico">
     <link rel="stylesheet" href="./css/header-footer.css">
     <link rel="stylesheet" href="./css/auth.css">
+    <link rel="stylesheet" href="./css/login.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
@@ -44,7 +45,13 @@
                     </button>
                 </div>
                 <div id="password-error" class="error-message">Incorrect password</div>
-
+                <div class="form-options">
+                    <label class="custom-checkbox">
+                    <input type="checkbox" id="rememberMe" name="rememberMe">
+                    <span class="checkmark"></span>
+                    Remember me
+                    </label>
+                </div>
                 <a href="forgotpasswordpage.html" class="forgot-password">Forgot Password?</a>
                 <button type="submit" class="btn-primary">Login</button>
             </form>
@@ -121,8 +128,17 @@
                 return;
             }
 
-            // Login success
-            localStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+            // Session-based login
+            sessionStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+
+            // Optional: persistent login
+            const rememberMe = document.getElementById('rememberMe').checked;
+            if (rememberMe) {
+                localStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+            } else {
+                localStorage.removeItem('loggedInUser');
+            }
+
             window.location.href = "mainpage.html";
 
         } catch (error) {
@@ -132,7 +148,6 @@
         }
     });
 </script>
-
 
 </body>
 </html>
