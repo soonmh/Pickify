@@ -28,12 +28,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const pageType = document.body.dataset.pageType || 'main';
 
   const headerPath =
-    pageType === 'homepage'
-      ? 'header-footer/homepageheader.html'
+    pageType === 'landingpage'
+      ? 'header-footer/landingpageheader.html'
       : 'header-footer/header.html';
   const footerPath =
-    pageType === 'homepage'
-      ? 'header-footer/homepagefooter.html'
+    pageType === 'landingpage'
+      ? 'header-footer/landingpagefooter.html'
       : 'header-footer/footer.html';
 
   loadComponent('header-placeholder', headerPath, () => {
@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         sessionStorage.removeItem('loggedInUser');
         localStorage.removeItem('loggedInUser');
-        window.location.href = 'homepage.html'; // Redirect after logout
+        window.location.href = 'landingpage.html'; // Redirect after logout
       });
     }
   });

@@ -32,12 +32,12 @@
 document.addEventListener('DOMContentLoaded', () => {
     const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
     if (isLoggedIn) {
-        window.location.href = 'mainpage.html';
+        window.location.href = 'homepage.html';
     }
 });
 </script>
 
-<body data-page-type="homepage">
+<body data-page-type="landingpage">
     <div id="header-placeholder"></div>
 
     <div class="auth-container">
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchedUser.Name === "Admin" || matchedUser.Email === "pickify125@gmail.com") {
                 window.location.href = "admin.html";
             } else {
-                window.location.href = "mainpage.html";
+                window.location.href = "homepage.html";
             }
 
         } catch (error) {
