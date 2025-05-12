@@ -166,7 +166,7 @@ input::placeholder {
 .password-toggle {
     position: absolute;
     right: 10px;
-    top: 9px; /* Fixed position instead of percentage */
+    top: 13px; /* Fixed position instead of percentage */
     background: none;
     border: none;
     cursor: pointer;
