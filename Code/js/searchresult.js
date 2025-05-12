@@ -675,6 +675,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Helper function to format numbers (e.g., 12000 -> 12k)
     function formatNumber(num) {
+        if (num >= 1000000) {
+            return (num / 1000000).toFixed(1) + 'M';
+        }
         if (num >= 1000) {
             return (num / 1000).toFixed(1) + 'k';
         }
