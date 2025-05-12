@@ -81,7 +81,7 @@ section {
 /* Header Styles */
 header {
     background-color: var(--white);
-    padding: 15px 0;
+    padding: 8px 0;
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
