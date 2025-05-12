@@ -78,7 +78,7 @@ body {
     padding: 0 15rem;
 }
 
-  .feature-card {
+  .feature-card-link {
       text-align: center;
       flex: 1;
       min-width: 300px;
@@ -92,11 +92,11 @@ body {
       box-shadow: 0 0.5rem 1rem 0.2rem rgba(0, 0, 0, 0.08);
   }
 
-  .feature-card:hover {
+  .feature-card-link:hover {
       transform: translateY(-10px);
   }
 
-  .feature-card i {
+  .feature-card-link i {
     font-size: 2rem;
     display: block;
     margin-bottom: 0.5rem;

@@ -24,10 +24,10 @@
                 <a href="mainpage.html">
                     Home
                 </a>
-                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                <a href="javascript:void(0);" onclick="CollectionPage(this)" class="favourite-bar">
                     Favourite
                 </a>
-                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                <a href="javascript:void(0);" onclick="CollectionPage(this)" class="watchlater-bar">
                     Watch Later
                 </a>
                 <a href="javascript:void(0);" onclick="addListPage()" class="create-btn">
@@ -146,7 +146,8 @@
             addListPage.style.display="none";
             collectionPage.style.display="flex";
 
-            const clickedText = linkElement.textContent.trim();
+            const clickedText = linkElement.textContent.trim() || linkElement.trim();
+            console.log(clickedText);
             const title=document.getElementById("collection-title");
             title.textContent=clickedText;
         }
@@ -154,5 +155,6 @@
             window.location.href="watchList.html"
         }
     </script>
+    <!-- <script type="module" src="./js/watchlist.js"></script> -->
 </body>
 </html>
