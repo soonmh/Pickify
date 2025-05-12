@@ -1,4 +1,3 @@
-// Combine all dummy data into one larger collection
 const dummyData = [
     {
         id: 1,
@@ -16,124 +15,14 @@ const dummyData = [
         title: "Inception",
         type: "movie",
         genre: "sci-fi",
-        rating: 4.7,
-        views: 48700,
+        rating: 4.9,
+        views: 15000000,
         image: "./assests/Inception.png",
         director: "Christopher Nolan",
         year: 2010
     },
     {
         id: 3,
-        title: "Taylor Swift - Folklore",
-        type: "music",
-        genre: "pop",
-        rating: 4.9,
-        views: 38200,
-        image: "./assests/movieposter.png",
-        artist: "Taylor Swift",
-        year: 2020
-    },
-    {
-        id: 4,
-        title: "Dune",
-        type: "book",
-        genre: "sci-fi",
-        rating: 4.6,
-        views: 15800,
-        image: "./assests/movieposter.png",
-        author: "Frank Herbert",
-        year: 1965
-    },
-    {
-        id: 5,
-        title: "The Shawshank Redemption",
-        type: "movie",
-        genre: "drama",
-        rating: 4.9,
-        views: 52300,
-        image: "./assests/movieposter.png",
-        director: "Frank Darabont",
-        year: 1994
-    },
-    {
-        id: 6,
-        title: "Kendrick Lamar - To Pimp a Butterfly",
-        type: "music",
-        genre: "hip-hop",
-        rating: 4.8,
-        views: 27500,
-        image: "./assests/movieposter.png",
-        artist: "Kendrick Lamar",
-        year: 2015
-    },
-    {
-        id: 7,
-        title: "Project Hail Mary",
-        type: "book",
-        genre: "sci-fi",
-        rating: 4.7,
-        views: 9300,
-        image: "./assests/movieposter.png",
-        author: "Andy Weir",
-        year: 2021
-    },
-    {
-        id: 8,
-        title: "Everything Everywhere All at Once",
-        type: "movie",
-        genre: "sci-fi",
-        rating: 4.8,
-        views: 31700,
-        image: "./assests/movieposter.png",
-        director: "Daniels",
-        year: 2022
-    },
-    {
-        id: 9,
-        title: "The Great Gatsby",
-        type: "book",
-        genre: "classic",
-        rating: 4.5,
-        views: 45600,
-        image: "./assests/movieposter.png",
-        author: "F. Scott Fitzgerald",
-        year: 1925
-    },
-    {
-        id: 10,
-        title: "Parasite",
-        type: "movie",
-        genre: "thriller",
-        rating: 4.8,
-        views: 38900,
-        image: "./assests/movieposter.png",
-        director: "Bong Joon-ho",
-        year: 2019
-    },
-    {
-        id: 11,
-        title: "Billie Eilish - Happier Than Ever",
-        type: "music",
-        genre: "pop",
-        rating: 4.7,
-        views: 32100,
-        image: "./assests/movieposter.png",
-        artist: "Billie Eilish",
-        year: 2021
-    },
-    {
-        id: 12,
-        title: "Educated",
-        type: "book",
-        genre: "memoir",
-        rating: 4.7,
-        views: 20300,
-        image: "./assests/movieposter.png",
-        author: "Tara Westover",
-        year: 2018
-    },
-    {
-        id: 13,
         title: "The Dark Knight",
         type: "movie",
         genre: "action",
@@ -144,6 +33,7 @@ const dummyData = [
         year: 2008
     },
     {
+    
         id: 4,
         title: "Interstellar",
         type: "movie",
@@ -177,8 +67,8 @@ const dummyData = [
         year: 1994
     },
     {
-        id: 17,
-        title: "The Weeknd - After Hours",
+        id: 7,
+        title: "Blinding Lights",
         type: "music",
         genre: "pop",
         rating: 4.9,
@@ -220,7 +110,6 @@ const dummyData = [
         artist: "Queen",
         year: 1975
     },
-    // Books
     {
         id: 11,
         title: "Atomic Habits",
@@ -253,6 +142,193 @@ const dummyData = [
         image: "./assests/1984.png",
         author: "George Orwell",
         year: 1949
+    },
+    {
+        id: 14,
+        title: "The Matrix",
+        type: "movie",
+        genre: "action",
+        rating: 4.8,
+        views: 1000000,
+        image: "./assests/TheMatrix.png",
+        director: "George Orwell",
+        year: 1949
+    },
+    {
+        id: 15,
+        title: "Forrest Gump",
+        type: "movie",
+        genre: "dystopian",
+        rating: 4.9,
+        views: 1300000,
+        image: "./assests/ForrestGump.png",
+        director: "George Orwell",
+        year: 1949
+    },
+    {
+        id: 16,
+        title: "The Shawshank Redemption",
+        type: "movie",
+        genre: "drama",
+        rating: 4.9,
+        views: 1600000,
+        image: "./assests/ShawshankRedemption.png",
+        director: "Frank Darabont",
+        year: 1994
+    },
+    {
+        id: 17,
+        title: "The Godfather",
+        type: "movie",
+        genre: "drama",
+        rating: 4.9,
+        views: 1700000,
+        image: "./assests/TheGodfather.png",
+        director: "Frank Darabont",
+        year: 1994
+    },
+    {
+        id: 18,
+        title: "Avengers: Endgame",
+        type: "movie",
+        genre: "action",
+        rating: 4.7,
+        views: 2100000,
+        image: "./assests/movieposter.png",
+        director: "Frank Darabont",
+        year: 1994
+    },
+    {
+        id: 19,
+        title: "Someone Like You",
+        type: "music",
+        genre: "pop",
+        rating: 4.8,
+        views: 1600000,
+        image: "./assests/SomeoneLikeYou.png",
+        artist: "Adele",
+        year: 2017
+    },
+    {
+        id: 20,
+        title: "Let It Be",
+        type: "music",
+        genre: "pop",
+        rating: 4.8,
+        views: 1700000,
+        image: "./assests/LetItBe.png",
+        artist: "Frank Darabont",
+        year: 1994
+    },
+    {
+        id: 21,
+        title: "Bad Guy",
+        type: "music",
+        genre: "pop",
+        rating: 4.6,
+        views: 1400000,
+        image: "./assests/badguy.png",
+        artist: "Billie Eilish",
+        year: 2020
+    },
+    {
+        id: 22,
+        title: "Hotel California",
+        type: "music",
+        genre: "pop",
+        rating: 4.9,
+        views: 1900000,
+        image: "./assests/HotelCalifornia.png",
+        artist: "Hey",
+        year: 2020
+    },
+    {
+        id: 23,
+        title: "Hey Jude",
+        type: "music",
+        genre: "pop",
+        rating: 4.9,
+        views: 2000000,
+        image: "./assests/HeyJude.png",
+        artist: "Beatles",
+        year: 2020
+    },
+    {
+        id: 24,
+        title: "Stairway to Heaven",
+        type: "music",
+        genre: "hip-hop",
+        rating: 4.8,
+        views: 1800000,
+        image: "./assests/StairwayToHeaven.png",
+        artist: "Beatles",
+        year: 2020
+    },
+    {
+        id: 25,
+        title: "To Kill a Mockingbird",
+        type: "book",
+        genre: "self help",
+        rating: 4.8,
+        views: 800000,
+        image: "./assests/ToKillAMockingbird.png",
+        author: "123",
+        year: 2020
+    },
+    {
+        id: 26,
+        title: "The Great Gatsby",
+        type: "book",
+        genre: "classic",
+        rating: 4.8,
+        views: 550000,
+        image: "./assests/TheGreatGatsby.png",
+        author: "123",
+        year: 2020
+    },
+    {
+        id: 27,
+        title: "The Catcher in the Rye",
+        type: "book",
+        genre: "memoir",
+        rating: 4.8,
+        views: 1800000,
+        image: "./assests/TheCatcherInTheRye.png",
+        author: "123",
+        year: 2020
+    },
+    {
+        id: 28,
+        title: "Sapiens",
+        type: "book",
+        genre: "sci-fi",
+        rating: 4.8,
+        views: 500000,
+        image: "./assests/Sapiens.png",
+        author: "123",
+        year: 2020
+    },
+    {
+        id: 29,
+        title: "Harry Potter and the Philosopher's Stone",
+        type: "book",
+        genre: "non-fiction",
+        rating: 4.9,
+        views: 1000000,
+        image: "./assests/HarryPotter1.png",
+        author: "123",
+        year: 2020
+    },
+    {
+        id: 30,
+        title: "Pride and Prejudice",
+        type: "book",
+        genre: "classic",
+        rating: 4.8,
+        views: 750000,
+        image: "./assests/PrideAndPrejudice .png",
+        author: "123",
+        year: 2020
     }
 ];
 
