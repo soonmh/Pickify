@@ -227,7 +227,7 @@ const dummyData = [
         genre: "fiction",
         rating: 4.5,
         views: 31200,
-        image: "https://source.unsplash.com/random/300x200?book,nature",
+        image: "./assests/movieposter.png",
         author: "Delia Owens",
         year: 2018
     },
