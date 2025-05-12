@@ -92,7 +92,6 @@
 .nav-links a.create-btn {
     background-color: #8B70D7; 
     color: #FFFFFF; 
-    justify-content: center; 
     font-weight: 500;
 }
 
@@ -124,11 +123,11 @@
     font-weight: 600; 
 }
 
-.create-btn {
+/* .create-btn {
     background-color: #786ef2;
     color: white;
     font-weight: bold;
-}
+} */
 
 /* Main */
 .main-content {

@@ -31,7 +31,7 @@ body {
     line-height: 1.6;
 }
 
-.container {
+.my-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
@@ -81,7 +81,7 @@ section {
 /* Header Styles */
 header {
     background-color: var(--white);
-    padding: 15px 0;
+    padding: 6px 0;
     box-shadow: var(--shadow);
     position: sticky;
     top: 0;
@@ -95,7 +95,7 @@ header {
     z-index: 100;
 }
 
-header .container {
+header .my-container {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -156,6 +156,7 @@ header .container {
 }
 
 nav ul {
+    margin-top: 15px;
     display: flex;
 }
 
