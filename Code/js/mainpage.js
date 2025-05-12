@@ -7,7 +7,7 @@ const dummyData = [
         genre: "fantasy",
         rating: 4.8,
         views: 12400,
-        image: "./assests/movieposter.png",
+        image: "./assests/MidnightLibrary.png",
         author: "Matt Haig",
         year: 2020
     },
@@ -18,7 +18,7 @@ const dummyData = [
         genre: "sci-fi",
         rating: 4.7,
         views: 48700,
-        image: "./assests/movieposter.png",
+        image: "./assests/Inception.png",
         director: "Christopher Nolan",
         year: 2010
     },
@@ -31,7 +31,7 @@ const dummyData = [
         genre: "action",
         rating: 4.9,
         views: 1500000,
-        image: "./assests/movieposter.png",
+        image: "./assests/TheDarkKnight.png",
         director: "Christopher Nolan",
         year: 2008
     },
@@ -42,7 +42,7 @@ const dummyData = [
         genre: "sci-fi",
         rating: 4.7,
         views: 1100000,
-        image: "./assests/movieposter.png",
+        image: "./assests/Interstellar.png",
         director: "Christopher Nolan",
         year: 2014
     },
@@ -53,7 +53,7 @@ const dummyData = [
         genre: "drama",
         rating: 4.8,
         views: 800000,
-        image: "./assests/movieposter.png",
+        image: "./assests/FightClub.png",
         director: "David Fincher",
         year: 1999
     },
@@ -64,7 +64,7 @@ const dummyData = [
         genre: "crime",
         rating: 4.6,
         views: 900000,
-        image: "./assests/movieposter.png",
+        image: "./assests/PulpFiction.png",
         director: "Quentin Tarantino",
         year: 1994
     },
@@ -76,7 +76,7 @@ const dummyData = [
         genre: "pop",
         rating: 4.9,
         views: 2000000,
-        image: "./assests/movieposter.png",
+        image: "./assests/BlindingLights.png",
         artist: "The Weeknd",
         year: 2019
     },
@@ -87,7 +87,7 @@ const dummyData = [
         genre: "pop",
         rating: 4.8,
         views: 1800000,
-        image: "./assests/movieposter.png",
+        image: "./assests/ShapeOfYou.png",
         artist: "Ed Sheeran",
         year: 2017
     },
@@ -98,7 +98,7 @@ const dummyData = [
         genre: "soul",
         rating: 4.7,
         views: 1500000,
-        image: "./assests/movieposter.png",
+        image: "./assests/RollingInTheDeep.png",
         artist: "Adele",
         year: 2011
     },
@@ -109,7 +109,7 @@ const dummyData = [
         genre: "rock",
         rating: 4.9,
         views: 1900000,
-        image: "./assests/movieposter.png",
+        image: "./assests/BohemianRhapsody.png",
         artist: "Queen",
         year: 1975
     },
@@ -121,7 +121,7 @@ const dummyData = [
         genre: "self-help",
         rating: 4.8,
         views: 600000,
-        image: "./assests/movieposter.png",
+        image: "./assests/AtomicHabits.png",
         author: "James Clear",
         year: 2018
     },
@@ -132,7 +132,7 @@ const dummyData = [
         genre: "fantasy",
         rating: 4.9,
         views: 700000,
-        image: "./assests/movieposter.png",
+        image: "./assests/TheAlchemist.png",
         author: "Paulo Coelho",
         year: 1988
     },
@@ -143,7 +143,7 @@ const dummyData = [
         genre: "dystopian",
         rating: 4.8,
         views: 650000,
-        image: "./assests/movieposter.png",
+        image: "./assests/1984.png",
         author: "George Orwell",
         year: 1949
     }
@@ -183,44 +183,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Dummy Data for Top 10 Movies
     const top10Movies = [
-        { id: 3, title: "The Dark Knight", image: "./assests/movieposter.png", rating: 4.9, views: "1.5M", type: "movie" },
-        { id: 4, title: "Interstellar", image: "./assests/movieposter.png", rating: 4.7, views: "1.1M", type: "movie" },
-        { id: 2, title: "Inception", image: "./assests/movieposter.png", rating: 4.7, views: "48.7K", type: "movie" },
-        { id: 5, title: "Fight Club", image: "./assests/movieposter.png", rating: 4.8, views: "800K", type: "movie" },
-        { id: 6, title: "Pulp Fiction", image: "./assests/movieposter.png", rating: 4.6, views: "900K", type: "movie" },
-        { id: 14, title: "The Matrix", image: "./assests/movieposter.png", rating: 4.8, views: "1.0M", type: "movie" },
-        { id: 15, title: "Forrest Gump", image: "./assests/movieposter.png", rating: 4.9, views: "1.3M", type: "movie" },
-        { id: 16, title: "The Shawshank Redemption", image: "./assests/movieposter.png", rating: 4.9, views: "1.6M", type: "movie" },
-        { id: 17, title: "The Godfather", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M", type: "movie" },
+        { id: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
+        { id: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
+        { id: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
+        { id: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
+        { id: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
+        { id: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
+        { id: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
+        { id: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
+        { id: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
         { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
     ];
 
     // Dummy Data for Top 10 Music
     const top10Music = [
-        { id: 7, title: "Blinding Lights", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M", type: "music" },
-        { id: 8, title: "Shape of You", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M", type: "music" },
-        { id: 9, title: "Rolling in the Deep", image: "./assests/movieposter.png", rating: 4.7, views: "1.5M", type: "music" },
-        { id: 10, title: "Bohemian Rhapsody", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M", type: "music" },
-        { id: 19, title: "Someone Like You", image: "./assests/movieposter.png", rating: 4.8, views: "1.6M", type: "music" },
-        { id: 20, title: "Let It Be", image: "./assests/movieposter.png", rating: 4.9, views: "1.7M", type: "music" },
-        { id: 21, title: "Bad Guy", image: "./assests/movieposter.png", rating: 4.6, views: "1.4M", type: "music" },
-        { id: 22, title: "Hotel California", image: "./assests/movieposter.png", rating: 4.9, views: "1.9M", type: "music" },
-        { id: 23, title: "Hey Jude", image: "./assests/movieposter.png", rating: 4.9, views: "2.0M", type: "music" },
-        { id: 24, title: "Stairway to Heaven", image: "./assests/movieposter.png", rating: 4.8, views: "1.8M", type: "music" },
+        { id: 7, title: "Blinding Lights", image: "./assests/BlindingLights.png", rating: 4.9, views: "2.0M", type: "music" },
+        { id: 8, title: "Shape of You", image: "./assests/ShapeOfYou.png", rating: 4.8, views: "1.8M", type: "music" },
+        { id: 9, title: "Rolling in the Deep", image: "./assests/RollingInTheDeep.png", rating: 4.7, views: "1.5M", type: "music" },
+        { id: 10, title: "Bohemian Rhapsody", image: "./assests/BohemianRhapsody.png", rating: 4.9, views: "1.9M", type: "music" },
+        { id: 19, title: "Someone Like You", image: "./assests/SomeoneLikeYou.png", rating: 4.8, views: "1.6M", type: "music" },
+        { id: 20, title: "Let It Be", image: "./assests/LetItBe.png", rating: 4.9, views: "1.7M", type: "music" },
+        { id: 21, title: "Bad Guy", image: "./assests/badguy.png", rating: 4.6, views: "1.4M", type: "music" },
+        { id: 22, title: "Hotel California", image: "./assests/HotelCalifornia.png", rating: 4.9, views: "1.9M", type: "music" },
+        { id: 23, title: "Hey Jude", image: "./assests/HeyJude.png", rating: 4.9, views: "2.0M", type: "music" },
+        { id: 24, title: "Stairway to Heaven", image: "./assests/StairwayToHeaven.png", rating: 4.8, views: "1.8M", type: "music" },
     ];
 
     // Dummy Data for Top 10 Books
     const top10Books = [
-        { id: 1, title: "The Midnight Library", image: "./assests/movieposter.png", rating: 4.8, views: "12.4K", type: "book" },
-        { id: 11, title: "Atomic Habits", image: "./assests/movieposter.png", rating: 4.8, views: "600K", type: "book" },
-        { id: 12, title: "The Alchemist", image: "./assests/movieposter.png", rating: 4.9, views: "700K", type: "book" },
-        { id: 13, title: "1984", image: "./assests/movieposter.png", rating: 4.8, views: "650K", type: "book" },
-        { id: 25, title: "To Kill a Mockingbird", image: "./assests/movieposter.png", rating: 4.9, views: "800K", type: "book" },
-        { id: 26, title: "The Great Gatsby", image: "./assests/movieposter.png", rating: 4.6, views: "550K", type: "book" },
-        { id: 27, title: "The Catcher in the Rye", image: "./assests/movieposter.png", rating: 4.7, views: "500K", type: "book" },
-        { id: 28, title: "Sapiens", image: "./assests/movieposter.png", rating: 4.8, views: "700K", type: "book" },
-        { id: 29, title: "Harry Potter and the Sorcerer's Stone", image: "./assests/movieposter.png", rating: 4.9, views: "1.0M", type: "book" },
-        { id: 30, title: "Pride and Prejudice", image: "./assests/movieposter.png", rating: 4.8, views: "750K", type: "book" },
+        { id: 1, title: "The Midnight Library", image: "./assests/MidnightLibrary.png", rating: 4.8, views: "12.4K", type: "book" },
+        { id: 11, title: "Atomic Habits", image: "./assests/AtomicHabits.png", rating: 4.8, views: "600K", type: "book" },
+        { id: 12, title: "The Alchemist", image: "./assests/TheAlchemist.png", rating: 4.9, views: "700K", type: "book" },
+        { id: 13, title: "1984", image: "./assests/1984.png", rating: 4.8, views: "650K", type: "book" },
+        { id: 25, title: "To Kill a Mockingbird", image: "./assests/ToKillAMockingbird.png", rating: 4.9, views: "800K", type: "book" },
+        { id: 26, title: "The Great Gatsby", image: "./assests/TheGreatGatsby.png", rating: 4.6, views: "550K", type: "book" },
+        { id: 27, title: "The Catcher in the Rye", image: "./assests/TheCatcherInTheRye.png", rating: 4.7, views: "500K", type: "book" },
+        { id: 28, title: "Sapiens", image: "./assests/Sapiens.png", rating: 4.8, views: "700K", type: "book" },
+        { id: 29, title: "Harry Potter and the Philosopher's Stone", image: "./assests/HarryPotter1.png", rating: 4.9, views: "1.0M", type: "book" },
+        { id: 30, title: "Pride and Prejudice", image: "./assests/PrideAndPrejudice .png", rating: 4.8, views: "750K", type: "book" },
     ];
 
     // Initialize the page
