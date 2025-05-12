@@ -152,7 +152,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.removeItem('loggedInUser');
             }
 
-            window.location.href = "mainpage.html";
+            // Redirect based on user type
+            if (matchedUser.Name === "Admin" || matchedUser.Email === "pickify125@gmail.com") {
+                window.location.href = "admin.html";
+            } else {
+                window.location.href = "mainpage.html";
+            }
 
         } catch (error) {
             console.error("Login failed:", error);
