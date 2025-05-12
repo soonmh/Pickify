@@ -1,0 +1,46 @@
+.custom-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Adds spacing between checkbox and text */
+    cursor: pointer;
+    font-size: 14px;
+    color: #4a5568;
+    font-weight: 500;
+}
+
+.custom-checkbox input {
+    display: none;
+}
+
+.custom-checkbox .checkmark {
+    height: 18px;
+    width: 18px;
+    background-color: #f1f3f5;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.custom-checkbox input:checked + .checkmark {
+    background-color: #8F94FB;
+    border-color: #8F94FB;
+}
+
+.custom-checkbox .checkmark::after {
+    content: "";
+    position: absolute;
+    display: none;
+    left: 6px;
+    top: 3px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.custom-checkbox input:checked + .checkmark::after {
+    display: block;
+}
