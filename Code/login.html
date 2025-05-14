@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In - Pickify</title>
+    <title>Login - Pickify</title>
     <link rel="icon" href="./assests/favicon.ico">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="./css/header-footer.css">
@@ -24,7 +24,7 @@
         margin-bottom: 0px;
         }
     </style>
-
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 
 <script>
@@ -69,21 +69,37 @@ document.addEventListener('DOMContentLoaded', () => {
             </form>
             <div class="auth-divider">OR</div>
             <div class="social-login">
-                <button class="btn-google" aria-label="Sign in with Google">
-                    <i class="fab fa-google"></i>
-                </button>
-                <button class="btn-facebook" aria-label="Sign in with Facebook">
-                    <i class="fab fa-facebook-f"></i>
-                </button>
+                <div id="g_id_onload"
+                    data-client_id="454289733396-d2nn9t9qsu1tmlc9ch2a7i9f8250d97k.apps.googleusercontent.com"
+                    data-callback="handleGoogleCredential"
+                    data-auto_prompt="false">
+                </div>
+
+                <div class="g_id_signin"
+                    data-type="icon"
+                    data-shape="circle"
+                    data-theme="filled_black"
+                    data-size="large">
+                </div>
+
             </div>
             <p>If you don't have an account, <a href="signup.html">Register here!</a></p>
         </div>
     </div>
+     <!-- Username Prompt Modal -->
+  <div id="username-modal" class="auth-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; max-width: 400px;">
+    <h2 style="text-align: center; font-size: 22px;">Choose a Username</h2>
+    <input type="text" id="new-username" placeholder="Enter a username" required />
+    <div id="username-modal-error" style="color: red; font-size: 14px; margin-top: 10px; display: none;">Username already taken</div>
+    <button onclick="submitNewUser()" class="btn-primary" style="margin-top: 20px;">Continue</button>
+  </div>
 
     <div id="footer-placeholder"></div>
     <script src="./js/header-footer.js"></script>
 
 <script>
+    let googlePayload = null;
+
     function togglePasswordVisibility(button) {
         const passwordInput = button.previousElementSibling;
         const icon = button.querySelector('i');
@@ -165,6 +181,78 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('username-error').style.display = 'block';
         }
     });
+</script>
+<script>
+    async function handleGoogleCredential(response) {
+        const token = response.credential;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        googlePayload = payload;
+
+        try {
+            const res = await fetch('http://localhost:3000/User');
+            const users = await res.json();
+
+            const existingUser = users.find(u => u.Email === payload.email);
+
+            if (existingUser) {
+                sessionStorage.setItem('loggedInUser', JSON.stringify(existingUser));
+                localStorage.setItem('loggedInUser', JSON.stringify(existingUser));
+                window.location.href = existingUser.Email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+            } else {
+                document.getElementById('username-modal').style.display = 'block';
+            }
+        } catch (error) {
+            console.error("Google Sign-In failed:", error);
+        }
+    }
+
+    async function submitNewUser() {
+        const username = document.getElementById('new-username').value.trim();
+        const errorBox = document.getElementById('username-modal-error');
+
+        if (!username) {
+            errorBox.textContent = "Please enter a username";
+            errorBox.style.display = 'block';
+            return;
+        }
+
+        try {
+            const res = await fetch('http://localhost:3000/User');
+            const users = await res.json();
+
+            if (users.some(u => u.Name === username)) {
+                errorBox.textContent = "Username already taken";
+                errorBox.style.display = 'block';
+                return;
+            }
+
+            const newUser = {
+                Name: username,
+                Email: googlePayload.email,
+                Picture: googlePayload.picture,
+                GoogleId: googlePayload.sub
+            };
+
+            const addRes = await fetch('http://localhost:3000/User', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newUser)
+            });
+
+            if (addRes.ok) {
+                sessionStorage.setItem('loggedInUser', JSON.stringify(newUser));
+                localStorage.setItem('loggedInUser', JSON.stringify(newUser));
+                window.location.href = newUser.Email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+            } else {
+                errorBox.textContent = "Something went wrong. Please try again.";
+                errorBox.style.display = 'block';
+            }
+        } catch (error) {
+            console.error("Submit new user error:", error);
+            errorBox.textContent = "Failed to create account.";
+            errorBox.style.display = 'block';
+        }
+    }
 </script>
 
 </body>
