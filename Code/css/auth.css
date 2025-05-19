@@ -192,7 +192,6 @@ input::placeholder {
 .social-login {
     display: flex;
     justify-content: center;
-    gap: 16px;
     margin-bottom: 25px;
 }
 
@@ -200,43 +199,15 @@ input::placeholder {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 50px;
-    height: 50px;
-    padding: 12px;
     border: none;
-    border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    
 }
 
-.btn-google {
-    background-color: #db4437;
-    color: white;
-}
 
-.btn-google:hover {
-    background-color: #c33d2f;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-}
 
-.btn-facebook {
-    background-color: #4267B2;
-    color: white;
-}
-
-.btn-facebook:hover {
-    background-color: #365899;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);
-}
-
-/* Ensure a proper size for social login icons */
-.social-login button i {
-    font-size: 20px;
-}
 
 .auth-card p {
     font-size: 14px;

@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const successModalOverlay = document.getElementById('successMessageModal');
     const successModalOkBtn = document.getElementById('successModalOkBtn');
 
+    // Password complexity regex: At least 8 chars, 1 uppercase, 1 symbol
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
+
     const showError = (inputElement, errorElement, message) => {
         if (errorElement) errorElement.textContent = message;
         if (inputElement) inputElement.classList.add('input-error');
@@ -51,9 +54,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (newPasswordInput.value.trim() === '') {
             // showError(newPasswordInput, newPasswordError, 'New password is required.');
             isValid = false;
-        } else if (newPasswordInput.value.length < 6) {
-            // 2. New password must contain at least 6 characters
-            showError(newPasswordInput, newPasswordError, 'Must be at least 6 characters long.');
+        } else if (!passwordRegex.test(newPasswordInput.value)) {
+            // 2. New password must meet complexity requirements
+            showError(newPasswordInput, newPasswordError, 'Password must be at least 8 characters with 1 uppercase letter and 1 symbol.');
             isValid = false;
         }
         if (confirmNewPasswordInput.value.trim() === '') {

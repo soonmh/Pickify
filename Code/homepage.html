@@ -4,252 +4,105 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pickify - Discover Entertainment You'll Love</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="icon" href="./assests/favicon.ico">
-    <link rel="stylesheet" href="./css/homepage.css">
-    <link rel="stylesheet" href="./css/header-footer.css">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="./css/header-footer.css">
+    <link rel="stylesheet" href="./css/homepage.css">
+    <script src="./js/auth-guard.js"></script>
+    <script src="./js/session-timeout.js"></script>
+
 </head>
-<body data-page-type="homepage">
+<body data-page-type="search">
     <div id="header-placeholder"></div>
     
-    <section class="hero">
-        <div id="top" class="container">
-            <div class="hero-content">
-                <h1>Discover Entertainment You'll Love</h1>
-                <p>Movies, Music, and Books—personalized just for you. Find your next favorite with Pickify.</p>
-                <a href="signup.html" class="btn-primary">Register</a>
-            </div>
-            <div class="hero-image">
-                <img src="./assests/Homepagepic1 - Copy.png" alt="Pickify Platform Illustration">
-            </div>
-        </div>
-    </section>
-
-    <section class="trust">
-        <div class="container">
-            <h2>Our Users Trust Pickify</h2>
-            <p>We've helped thousands discover what to watch, listen to, and read next.</p>
-            <blockquote>"Pickify always knows what I want next!"</blockquote>
-        </div>
-    </section>
-
-    <section id="features" class="features">
-        <div class="container">
-            <h2>Why Pickify?</h2>
-            <p>One Platform. Endless Picks.</p>
-
-            <div class="feature-cards">
-                <div class="feature-card">
-                    <div class="icon movies-icon">
-                        <img src="./assests/MovieIcon2.png" alt="Movies Icon">
-                    </div>
-                    <h3>Movies You'll Love</h3>
-                    <p>Trending films and personalized suggestions based on your taste</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="icon music-icon">
-                        <img src="./assests/MusicIcon2.png" alt="Music Icon">
-                    </div>
-                    <h3>Music That Matches Your Mood</h3>
-                    <p>Discover new tracks, albums, and hidden gems—your playlist redefined</p>
-                </div>
-
-                <div class="feature-card">
-                    <div class="icon books-icon">
-                        <img src="./assests/BookIcon2.png" alt="Books Icon">
-                    </div>
-                    <h3>Books That Speak to You</h3>
-                    <p>Explore reviews, top picks, and curated reads just for you</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id= "product" class="how-it-works">
-        <div class="container">
-            <div class="how-image">
-                <img src="./assests/Homepagepic2 - Copy.png" alt="How Pickify Works">
-            </div>
-            <div class="how-content">
-                <h2>How It Works</h2>
-                <p>Smart Recommendations in 3 Simple Steps</p>
-                <div class="steps">
-                    <div class="step">
-                        <p><span>Step 1:</span> Sign Up & Set Your Preferences</p>
-                    </div>
-                    <div class="step">
-                        <p><span>Step 2:</span> Browse Curated Content Across Categories</p>
-                    </div>
-                    <div class="step">
-                        <p><span>Step 3:</span> Rate, Save & Get Personalized Suggestions</p>
+    <main class="main-content">
+        <div class="container search-container">
+            <!-- Search Bar -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-8">
+                    <div class="search-input-container">
+                        <input type="text" class="search-input" id="search-input" placeholder="Search for books, movies, music...">
+                        <button class="search-button" id="search-button">
+                            <i class="fas fa-search"></i>
+                        </button>
                     </div>
                 </div>
-                <a href="login.html" class="btn-secondary">Learn More</a>
             </div>
-        </div>
-    </section>
 
-    <section id="testimonials" class="stats-testimonials">
-        <div class="container">
-            <div class="combined-sections">
-
-                <div class="testimonials-section">
-                    <h2>What Our Users Say</h2>
-                    <div class="testimonial">
-                        <blockquote>"Pickify recommended a book I couldn't put down and a movie I rewatched twice!"</blockquote>
-                        <p class="author">— Alex, Student</p>
-                    </div>
-                    <div class="testimonial">
-                        <blockquote>"It's like having your own entertainment assistant."</blockquote>
-                        <p class="author">— Jai Yi, Movie Buff</p>
+            <!-- Search History Section -->
+            <div class="row justify-content-center mb-4">
+                <div class="col-lg-8">
+                    <div class="search-history-container" id="search-history-container">
+                        <h5 class="search-history-title">Recent Searches</h5>
+                        <ul class="search-history-list" id="search-history-list">
+                            <!-- Search history items will be dynamically added here -->
+                        </ul>
                     </div>
                 </div>
-                <div class="stats-section">
-                    <div class="stats-container">
-                        <div class="stats-row">
-                            <div class="stat">
-                                <div class="icon users-icon">
-                                    <img src="./assests/UsersIcon.png" alt="Users Icon">
-                                </div>
-                                <div class="stat-details">
-                                    <h3>2,245,341</h3>
-                                    <p>Users</p>
-                                </div>
-                            </div>
-                            <div class="stat">
-                                <div class="icon ratings-icon">
-                                    <img src="./assests/RatingIcon.png" alt="Ratings Icon">
-                                </div>
-                                <div class="stat-details">
-                                    <h3>46,328</h3>
-                                    <p>Ratings Submitted</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="stats-row">
-                            <div class="stat">
-                                <div class="icon songs-icon">
-                                    <img src="./assests/MusicIcon.png" alt="Songs Icon">
-                                </div>
-                                <div class="stat-details">
-                                    <h3>10,842</h3>
-                                    <p>Songs & Albums Explored</p>
-                                </div>
-                            </div>
-                            <div class="stat">
-                                <div class="icon movies-rev-icon">
-                                    <img src="./assests/MovieIcon.png" alt="Movies Reviewed Icon">
-                                </div>
-                                <div class="stat-details">
-                                    <h3>1,526</h3>
-                                    <p>Movies Reviewed</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="stats-row">
-                            <div class="stat books-featured-stat">
-                                <div class="icon books-icon">
-                                    <img src="./assests/BookIcon.png" alt="Books Featured Icon">
-                                </div>
-                                <div class="stat-details">
-                                    <h3>8,272</h3>
-                                    <p>Books Featured</p>
-                                </div>
-                            </div>
+            </div>
+
+            <!-- Recommendations Section -->
+            <div class="row recommendations-row mb-4" id="recommendations-row">
+                <div class="col-12">
+                    <div class="recommendations-header d-flex justify-content-between align-items-center mb-3">
+                        <h3 class="recommendations-title mb-0">Recommended for You</h3>
+                        <span class="recommendations-info">Based on your watchlist</span>
+                    </div>
+                    <div class="recommendations-slider">
+                        <div class="row flex-nowrap" id="recommendations-container">
+                            <!-- Will be populated with 10 recommendations by JavaScript -->
                         </div>
                     </div>
                 </div>
-                
-                
             </div>
-        </div>
-    </section>
 
-    <section class="latest-picks">
-        <div class="container">
-            <h2>Latest Picks & Insights</h2>
-            <div class="picks-grid">
-                <div class="pick-card">
-                    <h3>Top 10 Underrated Movies Worth Watching in 2025</h3>
-                    <p>Big names dominate the spotlight, but these hidden gems deserve your attention. Check out our handpicked list of 2025's most overlooked films that are actually amazing.</p>
-                    <div class="tags">
-                        <span>Tags:</span>
-                        <a href="login.html">#Movies</a>
-                        <a href="login.html">#HiddenGems</a>
-                        <a href="login.html">#2025</a>
-                    </div>
-                    <a href="login.html" class="read-more">Readmore <i class="fas fa-arrow-right"></i></a>
+            <!-- Top 10 Movies Section -->
+            <div class="recommendations-row">
+                <div class="recommendations-header">
+                    <h2 class="recommendations-title">
+                        <a href="chart.html?type=movies&tab=top-rated">Top Movies</a>
+                    </h2>
                 </div>
-
-                <div class="pick-card">
-                    <h3>How to Build the Perfect Booklist for Your Personality</h3>
-                    <p>Love thrillers? Prefer cozy reads? Whether you're an INTJ or an ENFP, we curated book lists that align with personality types—so you'll never get stuck on what to read next.</p>
-                    <div class="tags">
-                        <span>Tags:</span>
-                        <a href="login.html">#Books</a>
-                        <a href="login.html">#Personality</a>
-                        <a href="login.html">#ReadingList</a>
-                    </div>
-                    <a href="login.html" class="read-more">Find Your Picks <i class="fas fa-arrow-right"></i></a>
+                <div class="horizontal-list-container">
+                    <div id="top10-movies" class="horizontal-list"></div>
                 </div>
+            </div>
 
-                <div class="pick-card">
-                    <h3>Music Genres to Match Your Study Vibe</h3>
-                    <p>Trying to focus? Or need a brain boost? Discover the best music genres that enhance focus based on your mood and task—from lo-fi to classical focus and more.</p>
-                    <div class="tags">
-                        <span>Tags:</span>
-                        <a href="login.html">#Music</a>
-                        <a href="login.html">#Productivity</a>
-                        <a href="login.html">#StudyVibes</a>
-                    </div>
-                    <a href="login.html" class="read-more">Explore now <i class="fas fa-arrow-right"></i></a>
+            <!-- Top 10 Music Section -->
+            <div class="recommendations-row">
+                <div class="recommendations-header">
+                    <h2 class="recommendations-title">
+                        <a href="chart.html?type=music&tab=top-rated">Top Music</a>
+                    </h2>
+                </div>
+                <div class="horizontal-list-container">
+                    <div id="top10-music" class="horizontal-list"></div>
+                </div>
+            </div>
+
+            <!-- Top 10 Books Section -->
+            <div class="recommendations-row">
+                <div class="recommendations-header">
+                    <h2 class="recommendations-title">
+                        <a href="chart.html?type=books&tab=top-rated">Top Books</a>
+                    </h2>
+                </div>
+                <div class="horizontal-list-container">
+                    <div id="top10-books" class="horizontal-list"></div>
                 </div>
             </div>
         </div>
-    </section>
-
-    <script src="./js/homepage.js"></script>
-    <section id="faq" class="faq">
-        <div class="container">
-            <h2>Frequently Asked Questions</h2>
-            <div class="faq-content">
-                <div class="faq-item">
-                    <h3 class="faq-question">Is Pickify free to use?</h3>
-                    <div class="faq-answer">Yes! Creating an account and exploring recommendations is completely free.</div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Can I save entertainment I like?</h3>
-                    <div class="faq-answer">Yes! You can add items to your Favourites, Watch Later list, or organize them into custom collections.</div>
-                </div>
-                <div class="faq-item">
-                    <h3 class="faq-question">Do I need to log in to access features like watchlist or reviews?</h3>
-                    <div class="faq-answer">Yes, you need to log in to access personalized features like your watchlist, saved collections, and review submissions.</div>
-                </div>
-            </div>
-        </div>
-    </section>
-
+    </main>
+    
+    <!-- Footer placeholder OUTSIDE the container -->
     <div id="footer-placeholder"></div>
-    <script src="./js/header-footer.js"></script>
 
-    <script>
-        document.querySelectorAll('header nav a').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                e.preventDefault();
-                
-                const targetId = this.getAttribute('href');
-                const targetElement = document.querySelector(targetId);
-                
-                if (targetElement) {
-                    window.scrollTo({
-                        top: targetElement.offsetTop - 80,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-    </script>
+    <script src="./js/header-footer.js"></script>
+    <script src="./js/autocomplete.js"></script>
+    <script src="./js/homepage.js"></script>
 </body>
 </html>

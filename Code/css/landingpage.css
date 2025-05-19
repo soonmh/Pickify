@@ -1,0 +1,471 @@
+
+/* Hero Section */
+.hero {
+    background-color: var(--secondary);
+    padding: 80px 0;
+    position: relative;
+}
+
+.hero .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.hero-content {
+    flex: 1;
+    max-width: 500px;
+}
+
+.hero-image {
+    flex: 1;
+    text-align: right;
+}
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+}
+
+.btn-primary {
+    display: inline-block;
+    background-color: var(--primary);
+    color: var(--white);
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-dark);
+}
+
+.btn-secondary {
+    display: inline-block;
+    background-color: var(--white);
+    color: var(--primary);
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    font-weight: 500;
+    border: 1px solid var(--primary);
+    transition: all 0.3s;
+}
+
+.btn-secondary:hover {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.dots {
+    display: flex;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background-color: var(--gray);
+    border-radius: 50%;
+    margin: 0 5px;
+}
+
+.dot.active {
+    background-color: var(--primary);
+}
+
+/* Trust Section */
+.trust {
+    text-align: center;
+    padding: 60px 0;
+}
+
+.trust p {
+    max-width: 600px;
+    margin: 0 auto 30px;
+}
+
+.trust blockquote {
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+/* Features Section */
+.features {
+    background-color: var(--white);
+    text-align: center;
+}
+
+.features p {
+    max-width: 600px;
+    margin: 0 auto 40px;
+}
+
+.feature-cards {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 60px;
+    flex-wrap: wrap;
+}
+
+.feature-card {
+    flex: 1;
+    min-width: 300px;
+    padding: 30px;
+    margin: 15px;
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+    transition: transform 0.3s;
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+}
+
+
+/* How It Works Section */
+.how-it-works .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.how-image {
+    flex: 1;
+}
+
+.how-content {
+    flex: 1;
+    padding-left: 50px;
+}
+
+.how-content h2,
+.how-content p {
+    text-align: left;
+}
+
+.steps {
+    margin: 30px 0;
+}
+
+.step {
+    margin-bottom: 15px;
+}
+
+.step span {
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.stats-testimonials {
+    background-color: var(--secondary);
+    padding: 60px 0;
+}
+
+.combined-sections {
+    display: flex;
+    justify-content: space-between;
+    gap: 40px;
+    align-items: stretch; /* This ensures both sections have the same height */
+}
+
+.stats-section, .testimonials-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 45px;
+}
+
+.stats-row:last-child {
+    margin-bottom: 0;
+    justify-content: center; /* Center the last row with single stat */
+}
+
+.stat {
+    display: flex;
+    align-items: center;
+    width: 45%; /* Control the width of each stat block */
+}
+
+.icon {
+    flex: 0 0 50px; /* Fixed width that doesn't grow or shrink */
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative; /* For positioning the image */
+}
+
+.icon img {
+    max-width: 100%;
+    max-height: 100%;
+    position: absolute; /* Take the image out of flow */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center perfectly */
+    object-fit: contain; /* Maintain aspect ratio */
+}
+
+.stat-details {
+    margin-left: 15px;
+    flex: 1; /* Allow text to take remaining space */
+}
+
+.stat-details h3 {
+    margin-bottom: 5px;
+    color: var(--primary);
+}
+
+.stat-details p {
+    margin-bottom: 0;
+    font-size: 14px;
+}
+
+.books-featured-stat {
+    width: auto; /* Override the 45% width for the centered stat */
+}
+
+.testimonials-section {
+    padding: 20px;
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.testimonial {
+    margin-bottom: 30px;
+}
+
+.testimonial:last-child {
+    margin-bottom: 0;
+}
+
+.testimonial blockquote {
+    font-size: 18px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.author {
+    font-weight: 500;
+    text-align: right;
+}
+
+/* Latest Picks Section */
+.latest-picks {
+    background-color: var(--white);
+}
+
+.picks-grid {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.pick-card {
+    flex: 1;
+    min-width: 300px;
+    padding: 30px;
+    margin: 15px;
+    background-color: var(--white);
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow);
+}
+
+.pick-card h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+}
+
+.tags {
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+.tags a {
+    color: var(--primary);
+    margin-right: 10px;
+}
+
+.read-more {
+    display: inline-block;
+    margin-top: 15px;
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.read-more i {
+    margin-left: 5px;
+    transition: transform 0.3s;
+}
+
+.read-more:hover i {
+    transform: translateX(5px);
+}
+
+/* FAQ Section */
+.faq {
+    background-color: var(--secondary);
+    padding: 60px 0;
+}
+
+.faq h2 {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.faq-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.faq-item {
+    background-color: var(--white);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    text-align: left;
+    overflow: hidden;
+}
+
+.faq-question {
+    padding: 18px 24px;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.faq-question:hover {
+    background-color: rgba(0,0,0,0.02);
+}
+
+.faq-answer {
+    padding: 0 24px 18px;
+    color: var(--text);
+    line-height: 1.6;
+}
+
+
+.faq-question::after {
+    content: "+";
+    position: absolute;
+    right: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 24px;
+    transition: all 0.3s ease;
+}
+
+.faq-item.active .faq-question::after {
+    content: "-";
+}
+
+.faq-answer {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, padding 0.3s ease;
+    padding: 0 24px;
+}
+
+.faq-item.active .faq-answer {
+    max-height: 200px;
+    padding: 0 24px 18px;
+}
+
+
+.faq-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+
+
+
+/* Responsive */
+@media (max-width: 992px) {
+
+    .hero .container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .hero-content {
+        margin-bottom: 40px;
+    }
+    
+    .how-it-works .container {
+        flex-direction: column;
+    }
+    
+    .how-image {
+        margin-bottom: 40px;
+    }
+    
+    .how-content {
+        padding-left: 0;
+    }
+    
+    .feature-cards {
+        flex-direction: column;
+    }
+    
+    .feature-card {
+        margin-bottom: 30px;
+    }
+    
+    .combined-sections {
+        flex-direction: column;
+    }
+    
+    .stats-section, .testimonials-section {
+        margin-bottom: 30px;
+    }
+    
+    .picks-grid {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 768px) {
+    .faq-question {
+        font-size: 16px;
+        padding: 16px 20px;
+    }
+    
+    .faq-answer {
+        padding: 0 20px 16px;
+    }
+}

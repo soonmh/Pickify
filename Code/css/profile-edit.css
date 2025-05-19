@@ -144,9 +144,9 @@
 }
 
 .edit-profile-options-modal-actions input[type="text"]:focus {
-    border-color: var(--primary, #007bff);
+    border-color: var(--primary);
     outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    box-shadow: 0 0 0 0.2rem rgba(143, 148, 251,.25);
 }
 
 .edit-profile-options-modal-actions .buttons {

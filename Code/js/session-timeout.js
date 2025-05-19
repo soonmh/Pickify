@@ -55,7 +55,7 @@
 
     // Only run on protected pages if user is logged in
     const protectedPages = [
-        'mainpage.html',
+        'homepage.html',
         'watchList.html',
         'chart.html',
         'profile.html',

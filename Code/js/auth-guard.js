@@ -1,6 +1,6 @@
 (function () {
     const protectedPages = [
-        'mainpage.html',
+        'homepage.html',
         'watchList.html',
         'chart.html',
         'profile.html',
@@ -26,7 +26,7 @@
 
         if (!userData) {
             alert("Please log in to access this page.");
-            window.location.href = "homepage.html";
+            window.location.href = "landingpage.html";
         }
     }
 })();

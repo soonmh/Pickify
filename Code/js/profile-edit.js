@@ -28,6 +28,26 @@ document.addEventListener('DOMContentLoaded', () => {
     profilePicFileInput.type = 'file';
     profilePicFileInput.accept = 'image/*';
 
+    // Function to load profile data from local storage
+    const loadProfileData = () => {
+        const savedProfilePic = localStorage.getItem('profilePic');
+        const savedBackgroundPic = localStorage.getItem('backgroundPic');
+        const savedUsername = localStorage.getItem('username');
+
+        if (savedProfilePic && mainProfilePic) {
+            mainProfilePic.src = savedProfilePic;
+            modalProfilePicPreview.src = savedProfilePic; // Also update modal preview
+        }
+        if (savedBackgroundPic && mainHeaderImg) {
+            mainHeaderImg.src = savedBackgroundPic;
+            modalBackgroundPreview.src = savedBackgroundPic; // Also update modal preview
+        }
+        if (savedUsername && mainUsernameDisplay) {
+            mainUsernameDisplay.textContent = savedUsername;
+            modalUsernameInput.value = savedUsername; // Also update modal input
+        }
+    };
+
     const backgroundPicFileInput = document.createElement('input');
     backgroundPicFileInput.type = 'file';
     backgroundPicFileInput.accept = 'image/*';
@@ -35,14 +55,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const showModal = () => {
         // Pre-fill username from main page
         if (mainUsernameDisplay && modalUsernameInput) {
-            modalUsernameInput.value = mainUsernameDisplay.textContent;
+            modalUsernameInput.value = mainUsernameDisplay.textContent || '';
         }
         // Reset previews to current main images when modal opens
         if (mainProfilePic && modalProfilePicPreview) {
-            modalProfilePicPreview.src = mainProfilePic.src;
+            modalProfilePicPreview.src = mainProfilePic.src || 'assests/blank-profile-picture.webp';
         }
         if (mainHeaderImg && modalBackgroundPreview) {
-            modalBackgroundPreview.src = mainHeaderImg.src;
+            modalBackgroundPreview.src = mainHeaderImg.src || 'assests/foster-lake.jpg';
         }
         editOptionsModalOverlay.classList.add('active');
     };
@@ -113,14 +133,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update main profile picture
             if (mainProfilePic && modalProfilePicPreview.src !== mainProfilePic.src) {
                 mainProfilePic.src = modalProfilePicPreview.src;
+                localStorage.setItem('profilePic', modalProfilePicPreview.src);
             }
             // Update main background image
             if (mainHeaderImg && modalBackgroundPreview.src !== mainHeaderImg.src) {
                 mainHeaderImg.src = modalBackgroundPreview.src;
+                localStorage.setItem('backgroundPic', modalBackgroundPreview.src);
             }
             // Update main username
             if (mainUsernameDisplay && modalUsernameInput) {
-                mainUsernameDisplay.textContent = modalUsernameInput.value;
+                const newUsername = modalUsernameInput.value.trim();
+                mainUsernameDisplay.textContent = newUsername;
+                localStorage.setItem('username', newUsername);
             }
             console.log('Profile changes saved (simulated).');
             // In a real app, you'd send this data to a server.
@@ -128,4 +152,8 @@ document.addEventListener('DOMContentLoaded', () => {
             hideModal();
         });
     }
+
+    // Load existing data from local storage when the page loads
+    // localStorage.clear();
+    loadProfileData();
 });

@@ -25,6 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', () => {
         console.log('Account deletion confirmed. Implement actual deletion logic here.');
         hideModal(); // For now, just hide the modal
-        window.location.replace('homepage.html'); // Redirect to homepage
+        window.location.replace('landingpage.html'); // Redirect to landingpage
     });
 });
