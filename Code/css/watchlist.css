@@ -10,6 +10,11 @@
     font-family: sans-serif;
 }
 
+html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Prevent double scroll */
+}
 .layout {
     display: flex;
     height: 100vh;
@@ -25,6 +30,7 @@
     background-color: #F8F7FC;
     overflow-y: auto;
     padding: 20px;
+    padding-bottom: 70px;
     box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -63,6 +69,15 @@
     transition: background-color 0.2s ease, color 0.2s ease;
     font-size: 14.5px;
     font-weight: 500; 
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* position: relative; */
+    /* width: 100%;
+    max-width: 200px;
+    box-sizing: border-box; */
 }
 
 .nav-links a .icon,
@@ -82,6 +97,17 @@
     font-size: 16px;
     color: #3D3D3D; 
 }
+
+/* .collectionType::after{
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to right, rgba(237, 237, 240, 0), #EDEDF0 70%);
+    pointer-events: none; 
+} */
 
 .nav-links a:hover,
 .my-lists-nav a:hover {
@@ -135,11 +161,11 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    overflow-y: auto;
+    padding-bottom: 60px;
 }
 /* WatchList Page */
 .content-inner {
-    overflow-y: auto;
     padding: 2rem;
     background: #fafafa;
     flex: 1;
@@ -181,9 +207,17 @@
     padding: 0.8rem;
 }
 
-.rating {
+.language {
     color: #aaf779;
     font-size: 0.9rem;
+    /* display: flex; */
+    /* gap: 30px; */
+}
+
+.language p {
+    /* display: inline-block; */
+    display: flex;
+    margin-bottom: 0px;
 }
 
 .title {
@@ -195,14 +229,40 @@
 .add-collection-container {
     display: none;
     flex-direction: column;
-    padding: 2rem;
+    padding: 4rem;
+    padding-left: 4.5rem;
     gap: 1.5rem;
     background-color: #FFFFFF;
 }
+
+#collection-name{
+    width: 700px;
+    padding-bottom: 24px;
+}
+.textarea-container {
+    position: relative;
+    width: fit-content;
+    display: inline-block;
+}
+
+#collection-description {
+    width: 700px; /* adjust as needed */
+    padding-bottom: 24px; /* space for the counter */
+}
+
+#desc-char-count, #name-char-count{
+    position: absolute;
+    bottom: 5px;
+    right: 10px;
+    font-size: 0.8rem;
+    color: #666;
+}
+
 #add-list-title{
     text-align: left;
 }
-input, textarea {
+
+textarea {
     padding: 8px;
     font-size: 1rem;
     border: 1px solid #ccc;
@@ -229,7 +289,6 @@ input, textarea {
     display: none;
     flex-direction: column;
     padding: 2rem;
-    overflow-y: auto;
     color: #878787;
     background: #ffffff;
 }
@@ -247,14 +306,14 @@ input, textarea {
     margin-top: 0.5rem;
 }
 
-.collection-desc {
+#collection-desc {
     color: #888;
     margin-bottom: 1.5rem;
 }
 .analysis{
     display: flex;
     gap: 1rem;
-    margin-bottom: 2rem;
+    margin-bottom: 20px;
 }
 
 .analysis-card{
@@ -274,4 +333,40 @@ input, textarea {
     color: #000000;
     font-size: 1.5rem;
     margin-bottom: 0rem;
+}
+
+#loadingScreen{
+    display: none; 
+    text-align: center; 
+    margin-top: 200px;
+}
+
+#requestLogin{
+    display: none; 
+    text-align: center; 
+    margin-top: 200px;
+}
+
+#nothingInside{
+    display: none; 
+    text-align: center; 
+    margin-top: 200px;
+}
+
+.failureButton{
+    padding: 12px 24px;
+    background-color: #A989FF;
+    color: white;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.failureButton:hover{
+    background-color: #944DFF;
+    transform: translateY(-2px);
 }

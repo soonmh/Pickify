@@ -21,16 +21,13 @@
             </div>
         
             <nav class="nav-links">
-                <!-- <a href="homepage.html">
-                    Home
-                </a> -->
-                <a href="javascript:void(0);" onclick="CollectionPage(this)" class="favourite-bar">
+                <a class="collectionType">
                     Favourite
                 </a>
-                <a href="javascript:void(0);" onclick="CollectionPage(this)" class="watchlater-bar">
+                <a class="collectionType">
                     Watch Later
                 </a>
-                <a href="javascript:void(0);" onclick="addListPage()" class="create-btn">
+                <a class="create-btn">
                     <span class="icon">+</span> Create watchlist
                 </a>
             </nav>
@@ -38,15 +35,10 @@
             <hr>
         
             <div class="my-lists-title">My Lists</div>
+            <!-- dynamic -->
             <nav class="my-lists-nav">
-                <a href="javascript:void(0);" onclick="CollectionPage(this)">
+                <!-- <a class="collectionType">
                     Movies
-                </a>
-                <!-- <a href="#">
-                    <span class="icon"></span> Series
-                </a>
-                <a href="#">
-                    <span class="icon"></span> Anime
                 </a> -->
             </nav>
         </aside>
@@ -83,17 +75,25 @@
                 <h2 id="add-list-title">Create a New Watchlist</h2>
                 
                 <label for="collection-name">Name:</label>
-                <input type="text" id="collection-name" placeholder="Enter collection name" />
+                <div class="textarea-container">
+                    <textarea type="text" id="collection-name" rows="1" placeholder="Enter collection name" maxlength="30"></textarea>
+                    <div id="name-char-count">0 / 30</div>
+                </div>
+                <!-- <input type="text" id="collection-name" placeholder="Enter collection name" /> -->
               
                 <label for="collection-description">Description:</label>
-                <textarea id="collection-description" rows="5" placeholder="Write a brief description..."></textarea>
+                <div class="textarea-container">
+                    <textarea id="collection-description" rows="3" placeholder="Write a brief description..." maxlength="100"></textarea>
+                    <div id="desc-char-count">0 / 100</div>
+                </div>
+                <!-- <textarea id="collection-description" rows="5" placeholder="Write a brief description..." maxlength="100"></textarea> -->
               
-                <button id="create-list-button" onclick="saveCollection()">Create Watchlist</button>
+                <button id="create-list-button">Create Watchlist</button>
             </div>
             <div class="collectionPage">
                 <h2 id="collection-title">Movies</h2>
                 <div class="collection-subtitle">About this watchlist</div>
-                <p class="collection-desc">Very Nice :)</p>
+                <p id="collection-desc">Very Nice</p>
 
                 <div class="analysis">
                     <div class="analysis-card">
@@ -106,55 +106,37 @@
                     </div>
                 </div>
                 <div class="collection-list">
+                    <!-- Dynamic -->
                     <div class="movie-grid">
-                        <div class="movie-card">
+                        <!-- <div class="movie-card">
                             <img src="assests/topgun.jpeg" alt="Top Gun">
                             <div class="info">
                                 <div class="rating">83/100</div>
                                 <div class="title">Top Gun: Maverick (2022)</div>
                             </div>
-                        </div>
-    
-                        <div class="movie-card">
-                            <img src="assests/secretDumbledore.jpg" alt="Dumbledore">
-                            <div class="info">
-                                <div class="rating">68/100</div>
-                                <div class="title">Fantastic Beasts (2022)</div>
-                            </div>
-                        </div>
+                        </div> -->
                     </div>
                 </div>
             </div>
+            <div id="loadingScreen">
+                <i class="fas fa-spinner fa-spin fa-3x"></i>
+                <p>Loading...</p>
+            </div>
+            <div id="requestLogin">
+                <p>Psst... you gotta log in to see the good stuff!</p>
+                <button class="failureButton" onclick="window.location.href='login.html'">Login</button>
+            </div>
+            <div id="nothingInside" style="display: none; text-align: center;">
+                <p>Nothing's here right now... </p>
+                <i class="fas fa-frown fa-3x" style="color: #999;"></i>
+                <p>Let’s head home and dig up something fun!</p>
+                <button class="failureButton" onclick="window.location.href='homepage.html'">Go to Home</button>
+            </div>
         </main>
     </div>
+    
 
     <script src="./js/header-footer.js"></script>
-    <script>
-        function addListPage(){
-            const watchlistPage = document.querySelector(".content-inner")
-            const addListPage = document.querySelector(".add-collection-container")
-            const collectionPage = document.querySelector(".collectionPage")
-            watchlistPage.style.display="none";
-            collectionPage.style.display="none";
-            addListPage.style.display="flex";
-        }
-        function CollectionPage(linkElement){
-            const watchlistPage = document.querySelector(".content-inner")
-            const addListPage = document.querySelector(".add-collection-container")
-            const collectionPage = document.querySelector(".collectionPage")
-            watchlistPage.style.display="none";
-            addListPage.style.display="none";
-            collectionPage.style.display="flex";
-
-            const clickedText = linkElement.textContent.trim() || linkElement.trim();
-            console.log(clickedText);
-            const title=document.getElementById("collection-title");
-            title.textContent=clickedText;
-        }
-        function saveCollection(){
-            window.location.href="watchList.html"
-        }
-    </script>
-    <!-- <script type="module" src="./js/watchlist.js"></script> -->
+    <script type="module" src="./js/watchlist.js"></script>
 </body>
 </html>
