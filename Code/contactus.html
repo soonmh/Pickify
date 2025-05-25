@@ -35,7 +35,7 @@
                                 </div>
                                 <div class="contact-text">
                                     <h3>Email Us</h3>
-                                    <p><a href="mailto:support@pickify.com">poseidonapollo11@gmail.com</a></p>
+                                    <p><a href="mailto:pickify@gmail.com">pickify125@gmail.com</a></p>
                                 </div>
                             </div>
                             
@@ -45,7 +45,7 @@
                                 </div>
                                 <div class="contact-text">
                                     <h3>Call Us</h3>
-                                    <p><a href="tel:+60123456789">+60 11 1090 6708</a></p>
+                                    <p><a href="tel:+601110906708">+60 11 1090 6708</a></p>
                                 </div>
                             </div>
                             
@@ -64,7 +64,13 @@
                     
                     <div class="contact-form-container">
                         <h2>Send Us a Message</h2>
-                        <form class="contact-form">
+                        <div class="success-message" id="successMessage">
+                            Message sent successfully! We'll get back to you soon.
+                        </div>
+                        <div class="error-message" id="errorMessage">
+                            Error sending message. Please try again.
+                        </div>
+                        <form class="contact-form" id="contactForm">
                             <div class="form-group">
                                 <label for="name">Your Name</label>
                                 <input type="text" id="name" name="name" placeholder="Enter your name" required>
@@ -85,7 +91,7 @@
                                 <textarea id="message" name="message" rows="5" placeholder="Tell us what you need help with" required></textarea>
                             </div>
                             
-                            <button type="submit" class="submit-btn">Send Message</button>
+                            <button type="submit" class="submit-btn" id="submitBtn">Send Message</button>
                         </form>
                     </div>
                 </div>
@@ -112,5 +118,71 @@
 
     <div id="footer-placeholder"></div>
     <script src="./js/header-footer.js"></script>
+<script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('contactForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const successMessage = document.getElementById('successMessage');
+            const errorMessage = document.getElementById('errorMessage');
+
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Hide previous messages
+                successMessage.style.display = 'none';
+                errorMessage.style.display = 'none';
+
+                // Disable submit button to prevent multiple submissions
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Sending...';
+
+                const name = document.getElementById('name').value.trim();
+                const email = document.getElementById('email').value.trim();
+                const subject = document.getElementById('subject').value.trim();
+                const message = document.getElementById('message').value.trim();
+
+                try {
+                    const post = await fetch('http://localhost:3000/contact', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name: name, email: email, subject: subject, message: message })
+                    });
+
+                    if (!post.ok) throw new Error(await post.text());
+
+                    successMessage.style.display = 'block';
+                    form.reset();
+                    successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                } catch (err) {
+                    errorMessage.textContent = 'Contact form failed:\n' + err.message;
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } finally {
+                    // Re-enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Send Message';
+                }
+            });
+
+            // Add input validation feedback
+            const inputs = form.querySelectorAll('input[required], textarea[required]');
+            inputs.forEach(input => {
+                input.addEventListener('blur', function() {
+                    if (this.value.trim() === '') {
+                        this.style.borderColor = '#dc3545';
+                    } else {
+                        this.style.borderColor = '#28a745';
+                    }
+                });
+
+                input.addEventListener('input', function() {
+                    if (this.style.borderColor === '#dc3545' && this.value.trim() !== '') {
+                        this.style.borderColor = '#ddd';
+                    }
+                });
+            });
+        });
+    </script>
 </body>
 </html>

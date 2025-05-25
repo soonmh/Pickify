@@ -45,3 +45,35 @@ app.post('/User', (req, res) => {
         res.status(500).json({err: 'Could not create a new documents'})
     })
 })
+
+app.post('/contact', async (req, res) => {
+    try {
+        const { name, email, subject, message } = req.body;
+
+        const contactMessage = {
+            name: name.trim(),
+            email: email.trim(),
+            subject: subject ? subject.trim() : '',
+            message: message.trim(),
+            date: new Date()
+        };
+
+        const result = await db.collection('messages').insertOne(contactMessage);
+
+        if (result.acknowledged) {
+            res.status(200).json({ 
+                success: true, 
+                message: 'Message sent successfully!' 
+            });
+        } else {
+            throw new Error('Failed to insert message into database');
+        }
+
+    } catch (err) {
+        console.error('Error saving contact message:', err);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error. Please try again later.' 
+        });
+    }
+});
