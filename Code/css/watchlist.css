@@ -58,7 +58,7 @@ html, body {
 
 .nav-links a,
 .my-lists-nav a {
-    display: flex;
+    display: block;
     align-items: center;
     padding: 11px 15px;
     margin-bottom: 9px;
@@ -74,21 +74,16 @@ html, body {
     overflow: hidden;
     text-overflow: ellipsis;
 
+    
+
     /* position: relative; */
-    /* width: 100%;
+    max-width: 100%;
+
+    /* -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+    mask-image: linear-gradient(to right, black 80%, transparent 100%); */
+    /* 
     max-width: 200px;
     box-sizing: border-box; */
-}
-
-.nav-links a .icon,
-.my-lists-nav a .icon {
-    margin-right: 12px; 
-    font-size: 17px;    
-    width: 20px;        
-    text-align: center;
-    color: #505050;    
-    font-weight: normal;
-    line-height: 1; 
 }
 
 /* Specific style for the 'M' icon in "Movies" */
