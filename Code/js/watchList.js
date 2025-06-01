@@ -18,10 +18,10 @@ document.addEventListener("DOMContentLoaded", function(){
 
         console.log(isLoggedIn);
         let userObj;
-
+        // console.log(userObj);
         if (isLoggedIn) {
             userObj = JSON.parse(isLoggedIn);
-            updateContent(userObj._id, clickedText);
+            updateContent(userObj.userId, clickedText);
         } else {
             loadingScreen.style.display = 'none';
             requestLogin.style.display = 'block';
@@ -53,7 +53,7 @@ async function buttonCreation(){
     myListNav.innerHTML="";
     if(isLoggedIn){
         const userObj = JSON.parse(isLoggedIn);
-        const userId=userObj._id;
+        const userId=userObj.userId;
         // console.log(userId);
         try {
             
@@ -96,35 +96,6 @@ const createCollection = document.querySelector(".create-btn");
 const loadingScreen = document.getElementById('loadingScreen');
 const requestLogin = document.getElementById('requestLogin');
 const nothingInside = document.getElementById("nothingInside");
-// collectionType.forEach(link => {
-//     link.addEventListener('click', async function(){
-//         watchlistPage.style.display="none";
-//         addListPage.style.display="none";
-//         collectionPage.style.display="none";
-//         requestLogin.style.display="none";
-//         nothingInside.style.display="none";
-//         await loadingScreenPage();
-        
-//         let clickedText = link.textContent.trim();
-//         let text=clickedText.toLowerCase().trim();
-//         updatePageUrl(text);
-        
-//         console.log(isLoggedIn);
-//         let userObj;
-        
-//         if (isLoggedIn) {
-//             userObj = JSON.parse(isLoggedIn);
-//             updateContent(userObj._id, clickedText);
-//         } else {
-//             loadingScreen.style.display='none';
-//             requestLogin.style.display='block';
-//             console.log("No user is logged in.");
-//         }        
-        
-        
-//         console.log("Displaying collection:", clickedText);
-//     });
-// });
 
 async function updateContent(userId,collectionName){
     if(userId&&collectionName){
@@ -251,7 +222,7 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     
     if (isLoggedIn) {
         userObj = JSON.parse(isLoggedIn);
-        addList(userObj._id);
+        addList(userObj.userId);
     } else {
         loadingScreen.style.display='none';
         requestLogin.style.display='block';

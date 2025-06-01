@@ -257,11 +257,14 @@
       const post = await fetch('http://localhost:3000/User', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ Name: username, Email: email, Password: password })
+        body: JSON.stringify({ name: username, email: email, password: password })
       });
 
-      if (!post.ok) throw new Error(await post.text());
 
+      if (!post.ok) throw new Error(await post.text());
+      const result=await post.json();
+      // console.log(post);
+      // console.log(result.userId);
       document.getElementById('captcha-box').classList.remove('active');
       setTimeout(() => {
         document.getElementById('captcha-box').style.display = 'none';
@@ -271,6 +274,10 @@
         void modalContent.offsetWidth;
         modalContent.classList.add('active');
       }, 300);
+      const favouriteDes="A personal space to keep the movies and shows you love the most. Easily access your top picks anytime.";
+      const watchLaterDes="Spotted something interesting? Drop it here and come back to it whenever you’re free.";
+      await defaultCollectionCreation(result.userId,"Favourite",favouriteDes);
+      await defaultCollectionCreation(result.userId,"Watch Later",watchLaterDes)
     } catch (err) {
       document.getElementById('captcha-box').classList.remove('active');
       setTimeout(() => {
@@ -298,6 +305,18 @@
   document.getElementById('continue-btn').addEventListener('click', function() {
     window.location.href = 'login.html';
   });
+
+async function defaultCollectionCreation(userId, collectionName, collectionDescription){
+    await fetch('http://localhost:3000/createCollection', {
+    method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            userId,
+            collectionName,
+            collectionDescription
+        })
+    });   
+}
 </script>
 
 </body>

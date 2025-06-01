@@ -4,8 +4,9 @@ const cors = require('cors');
 const { connectToDb, getDb } = require('./db')
 const app = express()
 const { ObjectId } = require('mongodb');
+const bcrypt = require('bcrypt');
+const saltRounds=10;
 let db
-//Testing
 app.use(cors());
 app.use(express.json())
 
@@ -33,16 +34,47 @@ app.get('/User', (req, res) => {
       
 });
 
-app.post('/User', (req, res) => {
+app.post('/login', async (req, res) =>{
+    const { username, password } = req.body;
+
+    const user = await db.collection('User').findOne({
+        $or: [{ name: username }, { email: username }]
+    });
+
+    if (!user) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+        return res.status(401).json({ success: false, error: 'Incorrect password' });
+    }
+
+    res.status(200).json({ 
+        success: true, 
+        message: 'Login successful', 
+        user:{
+            userId: user._id,
+            email: user.email,
+            name: user.name
+        }
+        
+    });
+});
+
+app.post('/User', async (req, res) => {
     const user = req.body
+
+    const hashPassword = await bcrypt.hash(user.password, saltRounds);
+    user.password = hashPassword;
 
     db.collection('User')
     .insertOne(user)
     .then(result => {
-        res.status(201).json(result)
+        res.status(201).json({ success: true, userId: result.insertedId });
     })
     .catch(err => {
-        res.status(500).json({err: 'Could not create a new documents'})
+        res.status(500).json({success: false, error: 'Failed to create user'})
     })
 })
 
@@ -77,6 +109,28 @@ app.post('/contact', async (req, res) => {
         });
     }
 });
+
+app.post('/saveTracks', async (req, res) => {
+    // console.log("Hello");
+    // console.log('Received body:', req.body);
+    const track = req.body;
+
+    if (typeof track !== 'object' || track === null) {
+        return res.status(400).json({ error: 'Invalid data format, expected an object' });
+    }
+
+    try {
+        const result = await db.collection('Music').insertOne(track);
+        res.json({
+            message: 'Track saved successfully',
+            insertedId: result.insertedId
+        });
+    } catch (error) {
+        console.error('DB insert error:', error);
+        res.status(500).json({ error: 'Failed to save track' });
+    }
+});
+
 app.get('/collectionNameList', async (req, res) => {
 
     const { userId } = req.query;

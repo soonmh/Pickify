@@ -138,39 +138,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const response = await fetch('http://localhost:3000/User');
-            const users = await response.json();
+            const response = await fetch('http://localhost:3000/login',{
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: inputUsername, password: inputPassword})
+            });
+            const result = await response.json();
 
-            const matchedUser = users.find(user =>
-                (user.Name && user.Name === inputUsername) ||
-                (user.Email && user.Email === inputUsername)
-            );
+            // const matchedUser = users.find(user =>
+            //     (user.name && user.name === inputUsername) ||
+            //     (user.email && user.email === inputUsername)
+            // );
 
-            if (!matchedUser) {
-                document.getElementById('username-error').textContent = "User not found";
-                document.getElementById('username-error').style.display = 'block';
-                return;
-            }
+            // if (!matchedUser) {
+            //     document.getElementById('username-error').textContent = "User not found";
+            //     document.getElementById('username-error').style.display = 'block';
+            //     return;
+            // }
 
-            if (matchedUser.Password !== inputPassword) {
-                document.getElementById('password-error').textContent = "Incorrect password";
-                document.getElementById('password-error').style.display = 'block';
+            // const passwordIsMatch = await bcrypt.compare(inputPassword,matchedUser.password);
+            // if (!passwordIsMatch) {
+            //     document.getElementById('password-error').textContent = "Incorrect password";
+            //     document.getElementById('password-error').style.display = 'block';
+            //     return;
+            // }
+
+            if(!result.success){
+                if (result.error === "User not found") {
+                    document.getElementById('username-error').textContent = result.error;
+                    document.getElementById('username-error').style.display = 'block';
+                } else if (result.error === "Incorrect password") {
+                    document.getElementById('password-error').textContent = result.error;
+                    document.getElementById('password-error').style.display = 'block';
+                }
                 return;
             }
 
             // Session-based login
-            sessionStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+            // console.log(result.user)
+            sessionStorage.setItem('loggedInUser', JSON.stringify(result.user));
 
             // Optional: persistent login
             const rememberMe = document.getElementById('rememberMe').checked;
             if (rememberMe) {
-                localStorage.setItem('loggedInUser', JSON.stringify(matchedUser));
+                localStorage.setItem('loggedInUser', JSON.stringify(result.user));
             } else {
                 localStorage.removeItem('loggedInUser');
             }
 
             // Redirect based on user type
-            if (matchedUser.Name === "Admin" || matchedUser.Email === "pickify125@gmail.com") {
+            if (result.user.name === "Admin" || result.user.email === "pickify125@gmail.com") {
                 window.location.href = "admin.html";
             } else {
                 window.location.href = "homepage.html";

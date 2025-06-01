@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (usernameEl) {
       if (userData) {
         const user = JSON.parse(userData);
-        usernameEl.textContent = user.Name || user.Email || "Profile";
+        usernameEl.textContent = user.name || user.nmail || "Profile";
         usernameEl.href = "profile.html";
       } else {
         usernameEl.textContent = "Login";
