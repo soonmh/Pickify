@@ -6,6 +6,15 @@ const app = express()
 const { ObjectId } = require('mongodb');
 const bcrypt = require('bcrypt');
 const saltRounds=10;
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth:{
+        user: process.env.EMAIL_NAME,
+        pass: process.env.EMAIL_APP_PASSWORD
+    }
+})
 let db
 app.use(cors());
 app.use(express.json())
@@ -77,6 +86,33 @@ app.post('/User', async (req, res) => {
         res.status(500).json({success: false, error: 'Failed to create user'})
     })
 })
+
+app.post('/VerificationCode', async (req,res) => {
+    const {userEmail}=req.body;
+    const code=generateVerificationCode();
+    try{
+        await sendVerificationEmail(userEmail,code);
+        res.status(200).json({success: true, message: 'Email sent successfully'});
+    }catch (error){
+        console.error('Failed to send email:', error);
+        res.status(500).json({success: false, error: 'Failed to send email'});
+    }
+
+})
+
+function generateVerificationCode(){
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
+async function sendVerificationEmail(to,code){
+    const emailContent={
+        from: process.env.EMAIL_NAME,
+        to,
+        subject: 'Your Verification Code',
+        text: `Your verification code is: ${code}`
+    }
+    await transporter.sendMail(emailContent);
+}
 
 app.post('/contact', async (req, res) => {
     try {

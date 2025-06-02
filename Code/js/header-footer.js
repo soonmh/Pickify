@@ -3,7 +3,9 @@ function loadComponent(elementId, componentPath, callback) {
     .then(response => response.text())
     .then(data => {
       const placeholder = document.getElementById(elementId);
-      placeholder.innerHTML = data;
+      // console.log(placeholder);
+      // console.log(data);
+      if(placeholder) placeholder.innerHTML = data;
 
       // Header-specific adjustments
       if (elementId === 'header-placeholder') {
