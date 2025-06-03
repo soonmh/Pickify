@@ -1,3 +1,7 @@
+// Configuration for API
+const API_BASE_URL = 'http://localhost:3000/api';
+const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+
 const dummyData = [
     {
         id: 1,
@@ -352,8 +356,8 @@ const userWatchlist = [
 let searchHistory = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-
     loadSearchHistoryFromStorage();
+
     // DOM Elements
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
@@ -364,55 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const top10MusicContainer = document.getElementById('top10-music');
     const top10BooksContainer = document.getElementById('top10-books');
 
-    // Dummy Data for Top 10 Movies
-    const top10Movies = [
-        { id: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
-        { id: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
-        { id: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
-        { id: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
-        { id: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
-        { id: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
-        { id: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
-        { id: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
-        { id: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
-        { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
-    ];
-
-    // Dummy Data for Top 10 Music
-    const top10Music = [
-        { id: 7, title: "Blinding Lights", image: "./assests/BlindingLights.png", rating: 4.9, views: "2.0M", type: "music" },
-        { id: 8, title: "Shape of You", image: "./assests/ShapeOfYou.png", rating: 4.8, views: "1.8M", type: "music" },
-        { id: 9, title: "Rolling in the Deep", image: "./assests/RollingInTheDeep.png", rating: 4.7, views: "1.5M", type: "music" },
-        { id: 10, title: "Bohemian Rhapsody", image: "./assests/BohemianRhapsody.png", rating: 4.9, views: "1.9M", type: "music" },
-        { id: 19, title: "Someone Like You", image: "./assests/SomeoneLikeYou.png", rating: 4.8, views: "1.6M", type: "music" },
-        { id: 20, title: "Let It Be", image: "./assests/LetItBe.png", rating: 4.9, views: "1.7M", type: "music" },
-        { id: 21, title: "Bad Guy", image: "./assests/badguy.png", rating: 4.6, views: "1.4M", type: "music" },
-        { id: 22, title: "Hotel California", image: "./assests/HotelCalifornia.png", rating: 4.9, views: "1.9M", type: "music" },
-        { id: 23, title: "Hey Jude", image: "./assests/HeyJude.png", rating: 4.9, views: "2.0M", type: "music" },
-        { id: 24, title: "Stairway to Heaven", image: "./assests/StairwayToHeaven.png", rating: 4.8, views: "1.8M", type: "music" },
-    ];
-
-    // Dummy Data for Top 10 Books
-    const top10Books = [
-        { id: 1, title: "The Midnight Library", image: "./assests/MidnightLibrary.png", rating: 4.8, views: "12.4K", type: "book" },
-        { id: 11, title: "Atomic Habits", image: "./assests/AtomicHabits.png", rating: 4.8, views: "600K", type: "book" },
-        { id: 12, title: "The Alchemist", image: "./assests/TheAlchemist.png", rating: 4.9, views: "700K", type: "book" },
-        { id: 13, title: "1984", image: "./assests/1984.png", rating: 4.8, views: "650K", type: "book" },
-        { id: 25, title: "To Kill a Mockingbird", image: "./assests/ToKillAMockingbird.png", rating: 4.9, views: "800K", type: "book" },
-        { id: 26, title: "The Great Gatsby", image: "./assests/TheGreatGatsby.png", rating: 4.6, views: "550K", type: "book" },
-        { id: 27, title: "The Catcher in the Rye", image: "./assests/TheCatcherInTheRye.png", rating: 4.7, views: "500K", type: "book" },
-        { id: 28, title: "Sapiens", image: "./assests/Sapiens.png", rating: 4.8, views: "700K", type: "book" },
-        { id: 29, title: "Harry Potter and the Philosopher's Stone", image: "./assests/HarryPotter1.png", rating: 4.9, views: "1.0M", type: "book" },
-        { id: 30, title: "Pride and Prejudice", image: "./assests/PrideAndPrejudice .png", rating: 4.8, views: "750K", type: "book" },
-    ];
-
-    // Initialize the page
-    renderScrollingList(top10MoviesContainer, top10Movies, 'movie');
-    renderScrollingList(top10MusicContainer, top10Music, 'music');
-    renderScrollingList(top10BooksContainer, top10Books, 'book');
-    setupCustomScrollbars();
-    renderSearchHistory(); // Initialize search history
-    renderRecommendations(); // Initialize recommendations
+    initializePage();
 
     // Add event listeners for search
     searchButton.addEventListener('click', handleSearch);
@@ -421,6 +377,299 @@ document.addEventListener('DOMContentLoaded', function () {
             handleSearch();
         }
     });
+
+    /**
+     * Initialize page with data from MongoDB
+     */
+    async function initializePage() {
+        console.log('🚀 Initializing homepage with MongoDB data...');
+        
+        try {
+            // Check if backend is available
+            await checkBackendHealth();
+            
+            // Show loading states
+            showLoadingState();
+            
+            // Load data from MongoDB
+            await Promise.all([
+                loadTopMoviesByPopularity(),
+                loadTopMusicByPopularity(),
+                loadTopBookByPopularity(),
+                loadRecommendations()
+            ]);
+            
+            setupCustomScrollbars();
+            renderSearchHistory();
+            
+            console.log('✅ Homepage initialized successfully with MongoDB data');
+        } catch (error) {
+            console.error('❌ Error loading MongoDB data:', error);
+            console.log('🔄 Falling back to dummy data...');
+            loadFallbackData();
+        }
+    }
+
+    /**
+     * Check if backend is running
+     */
+    async function checkBackendHealth() {
+        try {
+            const response = await fetch(`${API_BASE_URL}/health`);
+            if (!response.ok) {
+                throw new Error(`Backend health check failed: ${response.status}`);
+            }
+            const health = await response.json();
+            console.log('💚 Backend is healthy:', health);
+            return health;
+        } catch (error) {
+            console.error('💔 Backend health check failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Show loading state for all sections
+     */
+    function showLoadingState() {
+        const loadingHTML = `
+            <div class="loading-placeholder" style="display: flex; align-items: center; justify-content: center; height: 200px; background: #f8f9fa; border-radius: 8px;">
+                <div style="text-align: center;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color: #007bff; margin-bottom: 10px;"></i>
+                    <p style="margin: 0; color: #666;">Loading movies from database...</p>
+                </div>
+            </div>
+        `;
+        
+        top10MoviesContainer.innerHTML = loadingHTML;
+        top10MusicContainer.innerHTML = loadingHTML;
+        top10BooksContainer.innerHTML = loadingHTML;
+    }
+
+    /**
+     * Load top movies by popularity from MongoDB
+     */
+    async function loadTopMoviesByPopularity() {
+        try {
+            console.log('📊 Fetching top movies by popularity...');
+            
+            const response = await fetch(`${API_BASE_URL}/movies/top?limit=10`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch movies');
+            }
+            
+            console.log(`✅ Loaded ${result.count} popular movies from database`);
+            
+            const formattedMovies = result.data.map((movie, index) => formatMovieData(movie, index));
+            renderScrollingList(top10MoviesContainer, formattedMovies, 'movie');
+            
+        } catch (error) {
+            console.error('❌ Error loading popular movies:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load top music
+     */
+    async function loadTopMusicByPopularity() {
+        try {
+            console.log('🎬 Fetching top music...');
+            
+            const response = await fetch(`${API_BASE_URL}/music/top?limit=10`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch music');
+            }
+            
+            console.log(`✅ Loaded ${result.count} music from database`);
+            
+            const formattedMusics = result.data.map(formatMusicData);
+            renderScrollingList(top10MusicContainer, formattedMusics, 'music');
+            
+        } catch (error) {
+            console.error('❌ Error loading musics:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load top drama movies (for books section)
+     */
+    async function loadTopBookByPopularity() {
+        try {
+            console.log('🎭 Fetching top drama movies...');
+            
+            const response = await fetch(`${API_BASE_URL}/books/top?limit=10`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch books');
+            }
+            
+            console.log(`✅ Loaded ${result.count} books from database`);
+            
+            const formattedBooks = result.data.map(formatBookData);
+            renderScrollingList(top10BooksContainer, formattedBooks, 'books');
+            
+        } catch (error) {
+            console.error('❌ Error loading books:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load recommendations from MongoDB
+     */
+    async function loadRecommendations() {
+        try {
+            console.log('🌟 Fetching recommendations...');
+            
+            const response = await fetch(`${API_BASE_URL}/recommendations?limit=4`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch recommendations');
+            }
+            
+            console.log(`✅ Loaded ${result.count} recommendations from database`);
+            
+            const formattedRecommendations = result.data.map(movie => formatMovieData(movie));
+            renderRecommendations(formattedRecommendations);
+            
+        } catch (error) {
+            console.error('❌ Error loading recommendations:', error);
+            renderRecommendations([]);
+        }
+    }
+
+
+    /**
+     * Format movie data from MongoDB to match frontend expectations
+     */
+    function formatMovieData(movie, index = 0) {
+        const baseImageUrl = movie.poster_path ? 
+            `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : 
+            './assests/default-poster.png';
+            
+        return {
+            id: movie.tmdbId || movie._id,
+            title: movie.title || 'Unknown Title',
+            type: "movie",
+            genre: movie.genres && movie.genres.length > 0 ? 
+                movie.genres[0].name.toLowerCase() : 'unknown',
+            rating: Math.round(movie.vote_average /2 * 10) /10|| 0,
+            views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)),
+            image: baseImageUrl,
+            year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+            genres: movie.genres || [],
+            tmdbId: movie.tmdbId || movie._id,
+            popularity: movie.popularity || 0,
+            vote_count: movie.vote_count || 0
+        };
+    }
+
+    /**
+ * Format music data from the API response
+ */
+function formatMusicData(music) {
+    return {
+        id: music.id,
+        title: music.name,
+        image: music.poster_url || './assets/default-music.png',
+        rating: music.popularity || 'N/A',
+        views: `${music.popularity} `,
+        year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year'
+    };
+}
+
+/**
+ * Format book data from the API response
+ */
+function formatBookData(book) {
+    return {
+        id: book._id,
+        title: book.title,
+        image: book.image || './assets/default-book.png',
+        rating: book.rating || 'N/A',
+        views: formatViews(book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 1000000)),
+        year: book.year || 'Unknown Year'
+    };
+}
+
+    /**
+     * Load fallback data if MongoDB is unavailable
+     */
+    function loadFallbackData() {
+        console.log('🔄 Loading fallback dummy data...');
+        
+        // Your existing dummy data arrays
+        const top10Movies = [
+            { id: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
+            { id: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
+            { id: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
+            { id: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
+            { id: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
+            { id: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
+            { id: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
+            { id: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
+            { id: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
+            { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
+        ];
+
+        const top10Music = [
+            { id: 7, title: "Blinding Lights", image: "./assests/BlindingLights.png", rating: 4.9, views: "2.0M", type: "music" },
+            { id: 8, title: "Shape of You", image: "./assests/ShapeOfYou.png", rating: 4.8, views: "1.8M", type: "music" },
+            { id: 9, title: "Rolling in the Deep", image: "./assests/RollingInTheDeep.png", rating: 4.7, views: "1.5M", type: "music" },
+            { id: 10, title: "Bohemian Rhapsody", image: "./assests/BohemianRhapsody.png", rating: 4.9, views: "1.9M", type: "music" },
+            { id: 19, title: "Someone Like You", image: "./assests/SomeoneLikeYou.png", rating: 4.8, views: "1.6M", type: "music" },
+            { id: 20, title: "Let It Be", image: "./assests/LetItBe.png", rating: 4.9, views: "1.7M", type: "music" },
+            { id: 21, title: "Bad Guy", image: "./assests/badguy.png", rating: 4.6, views: "1.4M", type: "music" },
+            { id: 22, title: "Hotel California", image: "./assests/HotelCalifornia.png", rating: 4.9, views: "1.9M", type: "music" },
+            { id: 23, title: "Hey Jude", image: "./assests/HeyJude.png", rating: 4.9, views: "2.0M", type: "music" },
+            { id: 24, title: "Stairway to Heaven", image: "./assests/StairwayToHeaven.png", rating: 4.8, views: "1.8M", type: "music" },
+        ];
+
+        const top10Books = [
+            { id: 1, title: "The Midnight Library", image: "./assests/MidnightLibrary.png", rating: 4.8, views: "12.4K", type: "book" },
+            { id: 11, title: "Atomic Habits", image: "./assests/AtomicHabits.png", rating: 4.8, views: "600K", type: "book" },
+            { id: 12, title: "The Alchemist", image: "./assests/TheAlchemist.png", rating: 4.9, views: "700K", type: "book" },
+            { id: 13, title: "1984", image: "./assests/1984.png", rating: 4.8, views: "650K", type: "book" },
+            { id: 25, title: "To Kill a Mockingbird", image: "./assests/ToKillAMockingbird.png", rating: 4.9, views: "800K", type: "book" },
+            { id: 26, title: "The Great Gatsby", image: "./assests/TheGreatGatsby.png", rating: 4.6, views: "550K", type: "book" },
+            { id: 27, title: "The Catcher in the Rye", image: "./assests/TheCatcherInTheRye.png", rating: 4.7, views: "500K", type: "book" },
+            { id: 28, title: "Sapiens", image: "./assests/Sapiens.png", rating: 4.8, views: "700K", type: "book" },
+            { id: 29, title: "Harry Potter and the Philosopher's Stone", image: "./assests/HarryPotter1.png", rating: 4.9, views: "1.0M", type: "book" },
+            { id: 30, title: "Pride and Prejudice", image: "./assests/PrideAndPrejudice .png", rating: 4.8, views: "750K", type: "book" },
+        ];
+
+        // Render fallback data
+        renderScrollingList(top10MoviesContainer, top10Movies, 'movie');
+        renderScrollingList(top10MusicContainer, top10Music, 'music');
+        renderScrollingList(top10BooksContainer, top10Books, 'book');
+        setupCustomScrollbars();
+        renderSearchHistory();
+        renderRecommendations([]);
+        
+        console.log('✅ Fallback data loaded successfully');
+    }
+
+
 
     /**
      * Find all horizontal lists and add custom scrollbars
@@ -727,39 +976,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    /**
-     * Render search results
-     * @param {Array} results - Array of search result objects
-     * @param {string} query - The search query
-     */
-    function renderSearchResults(results, query) {
-        // Clear the search results container
-        searchResultsContainer.innerHTML = '';
-
-        // If no results, show a message
-        if (results.length === 0) {
-            searchResultsContainer.innerHTML = `
-                <p class="no-results-message">No results found for "${query}". Try another search!</p>
-            `;
-            return;
-        }
-
-        // Render the search results
-        results.forEach(item => {
-            const resultCard = document.createElement('div');
-            resultCard.className = 'result-card';
-
-            resultCard.innerHTML = `
-                <img src="${item.image}" class="result-img" alt="${item.title}">
-                <div class="result-body">
-                    <h5 class="result-title">${item.title}</h5>
-                    <p class="result-meta">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</p>
-                </div>
-            `;
-
-            searchResultsContainer.appendChild(resultCard);
-        });
-    }
 
     /**
      * Render recommendations in the recommendations container
@@ -888,7 +1104,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return (views / 1000000).toFixed(1) + 'M';
         }
         if (views >= 1000) {
-            return (views / 1000).toFixed(1) + 'k';
+            return (views / 1000).toFixed(1) + 'K';
         }
         return views.toString();
     }
