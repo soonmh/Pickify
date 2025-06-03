@@ -224,7 +224,8 @@
         document.getElementById('email-error').style.display = 'block';
         return;
       }
-
+      //DH write send email code here :)
+      await sendEmail(email);
       // ✅ Only show CAPTCHA if everything passes
       document.getElementById('captcha-box').style.display = 'block';
       document.getElementById('captcha-overlay').style.display = 'block';
@@ -306,9 +307,10 @@
     window.location.href = 'login.html';
   });
 
+//DH created function jangan delete :)
 async function defaultCollectionCreation(userId, collectionName, collectionDescription){
     await fetch('http://localhost:3000/createCollection', {
-    method: 'POST',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             userId,
@@ -316,6 +318,27 @@ async function defaultCollectionCreation(userId, collectionName, collectionDescr
             collectionDescription
         })
     });   
+}
+
+//DH created function jangan delete :)
+async function sendEmail(userEmail){
+    try {
+        const response = await fetch('http://localhost:3000/VerificationCode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userEmail })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.error || 'Failed to send verification email');
+        }
+
+        console.log('Email sent successfully!');
+    } catch (error) {
+        console.error('Error sending email:', error);
+    }
 }
 </script>
 
