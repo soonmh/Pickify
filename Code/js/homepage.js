@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadTopMoviesByPopularity(),
                 loadTopMusicByPopularity(),
                 loadTopBookByPopularity(),
-                loadRecommendations()
+                renderRecommendations() // Use dummy data for recommendations
             ]);
             
             setupCustomScrollbars();
@@ -529,35 +529,6 @@ document.addEventListener('DOMContentLoaded', function () {
             throw error;
         }
     }
-
-    /**
-     * Load recommendations from MongoDB
-     */
-    async function loadRecommendations() {
-        try {
-            console.log('🌟 Fetching recommendations...');
-            
-            const response = await fetch(`${API_BASE_URL}/recommendations?limit=4`);
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-            }
-            
-            const result = await response.json();
-            if (!result.success) {
-                throw new Error(result.error || 'Failed to fetch recommendations');
-            }
-            
-            console.log(`✅ Loaded ${result.count} recommendations from database`);
-            
-            const formattedRecommendations = result.data.map(movie => formatMovieData(movie));
-            renderRecommendations(formattedRecommendations);
-            
-        } catch (error) {
-            console.error('❌ Error loading recommendations:', error);
-            renderRecommendations([]);
-        }
-    }
-
 
     /**
      * Format movie data from MongoDB to match frontend expectations
@@ -980,107 +951,197 @@ function formatBookData(book) {
     /**
      * Render recommendations in the recommendations container
      */
-    function renderRecommendations() {
-        // Clear the recommendations container
-        recommendationsContainer.innerHTML = '';
-
-        const recommendations = getRecommendationsForUser();
-
-        // If no recommendations, show a message
-        if (recommendations.length === 0) {
+    async function renderRecommendations() {
+    recommendationsContainer.innerHTML = '';
+    
+    try {
+        // Get user ID from localStorage/sessionStorage
+        const userId = getCurrentUserId();
+        
+        if (!userId) {
             recommendationsContainer.innerHTML = `
                 <div class="col-12 text-center py-4">
-                    <p class="mb-0">No recommendations available. Add items to your watchlist!</p>
+                    <div style="text-align: center; padding: 2rem;">
+                        <i class="fas fa-user fa-3x" style="color: #e0e0e0; margin-bottom: 1rem;"></i>
+                        <h5 style="color: #666;">Login Required</h5>
+                        <p class="mb-0" style="color: #888;">Please log in to see personalized recommendations.</p>
+                        <a href="login.html" class="btn btn-primary mt-2">Login</a>
+                    </div>
                 </div>
             `;
             return;
         }
 
-        // Render up to 4 recommendations
-        recommendations.slice(0, 4).forEach(item => {
+        // Show loading state
+        recommendationsContainer.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div style="text-align: center;">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="color: #007bff; margin-bottom: 10px;"></i>
+                    <p style="margin: 0; color: #666;">Loading personalized recommendations...</p>
+                </div>
+            </div>
+        `;
+
+        console.log(`🎯 Fetching recommendations for user: ${userId}`);
+
+        // Fetch personalized recommendations
+        const response = await fetch(`${API_BASE_URL}/recommendation/${userId}?limit=4`);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to fetch recommendations');
+        }
+
+        const recommendations = result.data || [];
+
+        // Clear loading state
+        recommendationsContainer.innerHTML = '';
+
+        if (recommendations.length === 0) {
+            recommendationsContainer.innerHTML = `
+                <div class="col-12">
+            <div style="display: flex; justify-content: center; align-items: center; min-height: 200px; text-align: center;">
+                <div style="padding: 2rem;">
+                    <i class="fas fa-heart fa-3x" style="color:rgb(223, 41, 41); margin-bottom: 1rem;"></i>
+                    <h5 style="color: #666;">No recommendations yet</h5>
+                    <p class="mb-0" style="color: #888;">Add movies to your collections to get personalized recommendations!</p>
+                </div>
+            </div>
+        </div>
+            `;
+            return;
+        }
+
+        console.log(`✅ Loaded ${recommendations.length} recommendations`);
+        console.log(`🎭 Recommendation type: ${result.type}`);
+        if (result.userPreferences) {
+            console.log(`📊 Based on ${result.userPreferences.totalMoviesInCollections} movies`);
+            console.log(`🎪 Preferred genres:`, result.userPreferences.preferredGenres);
+        }
+
+        // Render recommendations
+        recommendations.forEach(item => {
             const col = document.createElement('div');
             col.className = 'col';
-            col.setAttribute('data-id', item.id);
+            col.setAttribute('data-id', item._id || item.tmdbId);
+
+            // Format the item data consistently
+            const formattedItem = formatRecommendationData(item);
+
+            // Add recommendation reason based on type
+            let reason = '';
+            if (result.type === 'personalized' && result.userPreferences?.preferredGenres?.length > 0) {
+                const movieGenres = item.genres?.map(g => g.name) || [];
+                const matchingGenre = movieGenres.find(genre => 
+                    result.userPreferences.preferredGenres.includes(genre)
+                );
+                if (matchingGenre) {
+                    reason = `Because you like ${matchingGenre}`;
+                } else {
+                    reason = 'Highly rated';
+                }
+            } else if (result.type === 'general') {
+                reason = 'Popular choice';
+            }
 
             col.innerHTML = `
-                <div class="result-card recommendation-card">
-                    <div class="recommendation-badge">Recommended</div>
-                    <img src="${item.image}" class="result-img" alt="${item.title}">
+                <div class="result-card recommendation-card" onclick="handleRecommendationClick('${formattedItem.id}', '${formattedItem.type}')">
+                    <div class="recommendation-badge">${result.type === 'personalized' ? 'For You' : 'Popular'}</div>
+                    <img src="${formattedItem.image}" 
+                         class="result-img" 
+                         alt="${formattedItem.title}"
+                         onerror="this.src='./assests/default-poster.png'">
                     <div class="result-body">
-                        <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
-                        <h5 class="result-title">${item.title}</h5>
+                        <span class="result-type ${formattedItem.type}">${formattedItem.type.charAt(0).toUpperCase() + formattedItem.type.slice(1)}</span>
+                        <h5 class="result-title">${formattedItem.title}</h5>
                         <div class="result-meta">
                             <div class="result-rating">
-                                <i class="fas fa-star"></i> ${formatRating(item.rating)}
+                                <i class="fas fa-star"></i> ${formattedItem.rating}
                             </div>
                             <div class="result-views">
-                                <i class="fas fa-eye"></i> ${formatViews(item.views)}
+                                <i class="fas fa-eye"></i> ${formattedItem.views}
                             </div>
                         </div>
+                        ${reason ? `<div class="recommendation-reason">${reason}</div>` : ''}
                     </div>
                 </div>
             `;
 
             recommendationsContainer.appendChild(col);
         });
+
+    } catch (error) {
+        console.error('❌ Error loading recommendations:', error);
+        recommendationsContainer.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-exclamation-triangle fa-2x" style="color: #ffc107; margin-bottom: 1rem;"></i>
+                    <p class="mb-0" style="color: #666;">Failed to load recommendations. Please try again later.</p>
+                </div>
+            </div>
+        `;
+    }
     }
 
-    /**
-     * Get personalized recommendations based on the user's watchlist
-     * @returns {Array} Array of recommendation objects
-     */
-    function getRecommendationsForUser() {
-        // Extract genres and types from user's watchlist
-        const userGenres = userWatchlist.map(item => item.genre);
-        const userTypes = userWatchlist.map(item => item.type);
+/**
+ * Format recommendation data for consistent display
+ */
+function formatRecommendationData(item) {
+    // Handle different data structures from your backend
+    return {
+        id: item._id || item.id || item.tmdbId,
+        title: item.title || item.name || 'Unknown Title',
+        type: item.type || (item.media_type === 'movie' ? 'movie' : item.media_type) || 'unknown',
+        image: item.image || item.poster_url || (item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : './assests/1984.png'),
+        rating: formatRating(item.rating || item.vote_average || item.popularity || 0),
+        views: formatViews(item.views || (item.popularity ? Math.round(item.popularity * 1000) : 0)),
+        reason: item.recommendationReason || null // e.g., "Because you liked Inception"
+    };
+}
+
+
+
+
+/**
+ * Get current user ID from localStorage (stored after login)
+ */
+function getCurrentUserId() {
+    try {
+        // Check sessionStorage first (current session)
+        let userData = sessionStorage.getItem('loggedInUser');
         
-        // Get watchlist IDs to exclude items already in watchlist
-        const watchlistIds = userWatchlist.map(item => item.id);
+        // If not in session, check localStorage (persistent login)
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
         
-        // Find items with similar genres or types, but not already in watchlist
-        let recommendations = dummyData.filter(item => 
-            (userGenres.includes(item.genre) || userTypes.includes(item.type)) && 
-            !watchlistIds.includes(item.id)
-        );
-        
-        // If we don't have enough recommendations based on watchlist, add some from top lists
-        if (recommendations.length < 4) {
-            // Get potential recommendations from top lists that aren't already in our recommendations
-            const existingIds = recommendations.map(item => item.id);
-            const potentialMovies = top10Movies.filter(item => 
-                !watchlistIds.includes(item.id) && !existingIds.includes(item.id)
-            );
-            const potentialBooks = top10Books.filter(item => 
-                !watchlistIds.includes(item.id) && !existingIds.includes(item.id)
-            );
-            const potentialMusic = top10Music.filter(item => 
-                !watchlistIds.includes(item.id) && !existingIds.includes(item.id)
-            );
+        if (userData) {
+            const user = JSON.parse(userData);
+            console.log('👤 Found user data:', user);
             
-            // Add recommendations until we have 4 or run out of options
-            let i = 0;
-            while (recommendations.length < 4) {
-                // Add one from each category in rotation if available
-                if (i < potentialMovies.length && !recommendations.some(r => r.id === potentialMovies[i].id)) {
-                    recommendations.push(potentialMovies[i]);
-                }
-                if (recommendations.length < 4 && i < potentialBooks.length && !recommendations.some(r => r.id === potentialBooks[i].id)) {
-                    recommendations.push(potentialBooks[i]);
-                }
-                if (recommendations.length < 4 && i < potentialMusic.length && !recommendations.some(r => r.id === potentialMusic[i].id)) {
-                    recommendations.push(potentialMusic[i]);
-                }
-                
-                i++;
-                // Break if we've gone through all options
-                if (i >= Math.max(potentialMovies.length, potentialBooks.length, potentialMusic.length)) {
-                    break;
-                }
+            // Your backend returns userId, but check for other possible ID fields
+            const userId = user.userId || user._id || user.id;
+            
+            if (userId) {
+                console.log(`✅ Found user ID: ${userId}`);
+                return userId;
+            } else {
+                console.log('⚠️ User data found but no userId field:', user);
             }
         }
         
-        return recommendations;
+        console.log('❌ No user data found in storage');
+        return null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
     }
+}
 
     /**
      * Format ratings for display

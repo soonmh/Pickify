@@ -241,6 +241,202 @@ app.post('/createCollection', async (req, res) => {
     res.json({ success: true });
 });
 
+// GET /api/recommendation/:userId - Get personalized recommendations
+app.get('/api/recommendation/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+        
+        console.log(`🎯 Fetching recommendations for user: ${userId}`);
+        
+        // Convert userId string to ObjectId
+        let userObjectId;
+        try {
+            userObjectId = new ObjectId(userId);
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid user ID format'
+            });
+        }
+
+        // 1. Get user's collections to understand preferences
+        const userCollections = await db.collection('userCollection')
+            .find({ userId: userObjectId, collectionName: 'Favourite' })
+            .toArray();
+
+        if (!userCollections || userCollections.length === 0) {
+            console.log('👤 User has no collections, returning empty state');
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'no_collections',
+                message: 'No collections found. Create a collection and add movies to get personalized recommendations!'
+            });
+        }
+
+        // 2. Extract all movie IDs from the "Favourite" collection
+        const userMovieIds = userCollections[0].item.map(id => 
+            typeof id === 'string' ? new ObjectId(id) : id
+        );
+
+        if (userMovieIds.length === 0) {
+            console.log('📭 User collections are empty, returning empty state');
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'empty_collections',
+                message: 'Your collections are empty. Add some movies to your watchlist to get personalized recommendations!'
+            });
+        }
+        
+        // 3. Get details of user's movies to analyze preferences
+        const userMovies = await db.collection('Movie')
+            .find({ _id: { $in: userMovieIds } })
+            .toArray();
+        console.log(`👥 User has ${userMovieIds.length} movies in their collections`);
+        console.log('🎥 User movie IDs:', userMovieIds);
+        console.log(`📊 Found ${userMovies.length} movies in user's collections`);
+
+        // If no movies found in database (invalid movie IDs)
+        if (userMovies.length === 0) {
+            console.log('🔍 No valid movies found in database for user collections');
+            return res.status(200).json({
+    success: true,
+    count: 0,
+    data: [],
+    type: 'invalid_movies',
+    message: `No valid movies found in your collections. You have ${userMovieIds.length} movie IDs in your collections, but none matched our database. Try adding movies to get recommendations!`
+});
+        }
+
+        // Need at least 2 movies for meaningful recommendations
+        if (userMovies.length < 2) {
+            console.log('📝 User has too few movies for personalized recommendations');
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'insufficient_data',
+                message: `You have only ${userMovies.length} movie in your collections. Add more movies to get better personalized recommendations!`
+            });
+        }
+
+        // 4. Analyze user preferences (genres)
+        const genreCounts = {};
+        const totalGenres = userMovies.reduce((total, movie) => {
+            if (movie.genres && Array.isArray(movie.genres)) {
+                movie.genres.forEach(genre => {
+                    if (genre.name) {
+                        genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
+                        total++;
+                    }
+                });
+            }
+            return total;
+        }, 0);
+
+        // Get top genres (at least 20% preference)
+        const minThreshold = Math.max(1, Math.ceil(totalGenres * 0.2));
+        const preferredGenres = Object.entries(genreCounts)
+            .filter(([genre, count]) => count >= minThreshold)
+            .sort((a, b) => b[1] - a[1])
+            .map(([genre]) => genre);
+
+        console.log('🎭 User preferred genres:', preferredGenres);
+        console.log('📈 Genre counts:', genreCounts);
+
+        // 5. Find recommendations based on preferred genres
+        let recommendations = [];
+        
+        if (preferredGenres.length > 0) {
+            // Find movies with similar genres, excluding ones user already has
+            recommendations = await db.collection('Movie')
+                .find({
+                    tmdbId: { $nin: userMovieIds }, // Exclude movies user already has
+                    vote_average: { $gte: 3.5 }, // Only well-rated movies
+                    'genres.name': { $in: preferredGenres } // Match preferred genres
+                })
+                .sort({ vote_average: -1, popularity: -1 }) // Sort by rating and popularity
+                .limit(limit * 2) // Get more to shuffle from
+                .project({
+                    tmdbId: 1,
+                    title: 1,
+                    poster_path: 1,
+                    vote_average: 1,
+                    popularity: 1,
+                    genres: 1,
+                    release_date: 1,
+                    overview: 1
+                })
+                .toArray();
+        }
+
+        // 6. If still not enough recommendations, add popular movies
+        if (recommendations.length < limit) {
+            const additionalRecs = await db.collection('Movie')
+                .find({
+                    tmdbId: { $nin: userMovieIds },
+                    vote_average: { $gte: 4.0 }
+                })
+                .sort({ popularity: -1 })
+                .limit(limit - recommendations.length)
+                .project({
+                    tmdbId: 1,
+                    title: 1,
+                    poster_path: 1,
+                    vote_average: 1,
+                    popularity: 1,
+                    genres: 1,
+                    release_date: 1
+                })
+                .toArray();
+            
+            recommendations.push(...additionalRecs);
+        }
+
+        // 7. If still no recommendations found, return empty state
+        if (recommendations.length === 0) {
+            console.log('🎬 No suitable recommendations found based on user preferences');
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'no_matches',
+                message: 'No recommendations found based on your preferences. Try adding movies from different genres!'
+            });
+        }
+
+        // 8. Shuffle and limit final results
+        const shuffled = recommendations
+            .sort(() => 0.5 - Math.random())
+            .slice(0, limit);
+
+        console.log(`✅ Generated ${shuffled.length} personalized recommendations`);
+
+        res.status(200).json({
+            success: true,
+            count: shuffled.length,
+            data: shuffled,
+            type: 'personalized',
+            userPreferences: {
+                totalMoviesInCollections: userMovies.length,
+                preferredGenres: preferredGenres,
+                genreCounts: genreCounts
+            },
+            message: `Recommendations based on your ${userMovies.length} favorite movies`
+        });
+
+    } catch (error) {
+        console.error('❌ Error generating recommendations:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to generate recommendations'
+        });
+    }
+});
 // GET /api/movies/top/:limit - Get top movies by popularity
 app.get('/api/movies/top', async (req, res) => {
     try {
@@ -406,49 +602,6 @@ app.get('/api/movies/search/:query', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Search failed'
-        });
-    }
-});
-
-// GET /api/recommendations - Get movie recommendations
-app.get('/api/recommendations', async (req, res) => {
-    try {
-        const limit = Math.min(parseInt(req.query.limit) || 4, 20);
-        
-        // Get highly rated movies as recommendations
-        const recommendations = await db.collection('Movie')
-            .find({
-                vote_average: { $gte: 4.0 }
-            })
-            .sort({ vote_average: -1, popularity: -1 })
-            .limit(limit * 2)
-            .project({
-                tmdbId: 1,
-                title: 1,
-                poster_path: 1,
-                vote_average: 1,
-                popularity: 1,
-                vote_count: 1,
-                genres: 1,
-                release_date: 1
-            })
-            .toArray();
-        
-        // Shuffle and take requested amount
-        const shuffled = recommendations.sort(() => 0.5 - Math.random());
-        const result = shuffled.slice(0, limit);
-        
-        console.log(`🌟 Generated ${result.length} recommendations`);
-        res.status(200).json({
-            success: true,
-            count: result.length,
-            data: result
-        });
-    } catch (error) {
-        console.error('Error fetching recommendations:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch recommendations'
         });
     }
 });
