@@ -1,41 +1,16 @@
+const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+var userObj;
+var userId;
+var allCollectionName=[];
+
 document.addEventListener("DOMContentLoaded", function(){
+    checkUserLogin();
     buttonCreation();
-    document.querySelector('.sidebar').addEventListener('click', async function (e) {
-        const link = e.target.closest('.collectionType');
-
-        if (!link) return;
-
-        watchlistPage.style.display = "none";
-        addListPage.style.display = "none";
-        collectionPage.style.display = "none";
-        requestLogin.style.display = "none";
-        nothingInside.style.display = "none";
-        await loadingScreenPage();
-
-        let clickedText = link.textContent.trim();
-        let text = clickedText.toLowerCase().trim();
-        updatePageUrl(text);
-
-        console.log(isLoggedIn);
-        let userObj;
-        // console.log(userObj);
-        if (isLoggedIn) {
-            userObj = JSON.parse(isLoggedIn);
-            updateContent(userObj.userId, clickedText);
-        } else {
-            loadingScreen.style.display = 'none';
-            requestLogin.style.display = 'block';
-            console.log("No user is logged in.");
-        }
-
-        console.log("Displaying collection:", clickedText);
-    });
-
+    addSideBarEvent();
+    addListButtonEvent();
 })
 
-const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
-let allCollectionName=[];
-
+//Useless for now
 function getCollectionType(collection){
     const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
     const results = regex.exec(location.search);
@@ -48,12 +23,19 @@ function updatePageUrl(collectionName){
     window.history.replaceState({},'',url);
 }
 
+function checkUserLogin(){
+    if(isLoggedIn){
+        userObj = JSON.parse(isLoggedIn);
+        userId=userObj.userId;
+    }
+}
+
 async function buttonCreation(){
     const myListNav = document.querySelector(".my-lists-nav");
     myListNav.innerHTML="";
-    if(isLoggedIn){
-        const userObj = JSON.parse(isLoggedIn);
-        const userId=userObj.userId;
+    if(userId){
+        // const userObj = JSON.parse(isLoggedIn);
+        // const userId=userObj.userId;
         // console.log(userId);
         try {
             
@@ -88,6 +70,71 @@ async function buttonCreation(){
     }
 }
 
+function addSideBarEvent(){
+    document.querySelector('.sidebar').addEventListener('click', async function (e) {
+        const link = e.target.closest('.collectionType');
+
+        if (!link) return;
+
+        watchlistPage.style.display = "none";
+        addListPage.style.display = "none";
+        collectionPage.style.display = "none";
+        requestLogin.style.display = "none";
+        nothingInside.style.display = "none";
+        await loadingScreenPage();
+
+        let clickedText = link.textContent.trim();
+        let text = clickedText.toLowerCase().trim();
+        updatePageUrl(text);
+
+        console.log(isLoggedIn);
+        // let userObj;
+        // console.log(userObj);
+        if (userId) {
+            // userObj = JSON.parse(isLoggedIn);
+            updateContent(clickedText);
+        } else {
+            loadingScreen.style.display = 'none';
+            requestLogin.style.display = 'block';
+            console.log("No user is logged in.");
+        }
+
+        console.log("Displaying collection:", clickedText);
+    });
+}
+
+function addListButtonEvent(){
+    const createButton = document.getElementById("create-list-button");
+    createButton.addEventListener("click", async function(){
+        const collectionName = document.getElementById("collection-name").value.trim();
+        const collectionDescription = document.getElementById("collection-description").value.trim();
+        
+        if(collectionName.length==0){
+            alert("Please enter a collection name.")
+            return;
+        }
+        if(!checkDuplicateName(collectionName)){
+            alert("Collection existed. Please enter a different collection name.")
+            return;
+        }
+
+        await fetch('http://localhost:3000/createCollection', {
+        method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                collectionName,
+                collectionDescription
+            })
+        });
+
+        console.log(`${collectionName}  ${collectionDescription}`);
+        reloadAndNavigate(collectionName)
+        // await loadingScreenPage();
+
+    });
+}
+
 const watchlistPage = document.querySelector(".content-inner");
 const addListPage = document.querySelector(".add-collection-container");
 const collectionPage = document.querySelector(".collectionPage");
@@ -97,7 +144,7 @@ const loadingScreen = document.getElementById('loadingScreen');
 const requestLogin = document.getElementById('requestLogin');
 const nothingInside = document.getElementById("nothingInside");
 
-async function updateContent(userId,collectionName){
+async function updateContent(collectionName){
     if(userId&&collectionName){
         
         try {
@@ -162,7 +209,7 @@ function updateListItem(data){
         movieGrid.innerHTML = "";
         data.movies.forEach(movie => {
             const card=document.createElement("div");
-            card.className="movie-card";;
+            card.className="movie-card";
 
             const img=document.createElement("img");
             img.src = `${baseUrl}${movie.poster_path}`;
@@ -218,11 +265,11 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     updatePageUrl(text);
 
     console.log(isLoggedIn);
-    let userObj;
+    // let userObj;
     
-    if (isLoggedIn) {
-        userObj = JSON.parse(isLoggedIn);
-        addList(userObj.userId);
+    if (userId) {
+        // userObj = JSON.parse(isLoggedIn);
+        addList();
     } else {
         loadingScreen.style.display='none';
         requestLogin.style.display='block';
@@ -230,49 +277,14 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     } 
 
 });
-let createButtonEventAttached=false;
-function addList(userId){
+function addList(){
     addListPage.style.display="flex";
     loadingScreen.style.display='none';
-
     nameTextArea.value = "";
     descriptionTextArea.value = "";
     nameCharCount.textContent = "0/30";
     descCharCount.textContent = "0/100";
 
-    const createButton = document.getElementById("create-list-button");
-    if(!createButtonEventAttached){
-        createButton.addEventListener("click", async function(){
-            const collectionName = document.getElementById("collection-name").value.trim();
-            const collectionDescription = document.getElementById("collection-description").value.trim();
-            
-            if(collectionName.length==0){
-                alert("Please enter a collection name.")
-                return;
-            }
-            if(!checkDuplicateName(collectionName)){
-                alert("Collection existed. Please enter a different collection name.")
-                return;
-            }
-
-            await fetch('http://localhost:3000/createCollection', {
-            method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    collectionName,
-                    collectionDescription
-                })
-            });
-
-            console.log(`${collectionName}  ${collectionDescription}`);
-            reloadAndNavigate(collectionName)
-            // await loadingScreenPage();
-
-        });
-
-        createButtonEventAttached = true;
-    }
 }
 
 function checkDuplicateName(collectionName){

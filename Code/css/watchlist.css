@@ -288,11 +288,31 @@ textarea {
     background: #ffffff;
 }
 
+.collection-title-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.5rem;
+}
+
 #collection-title {
     /* font-size: 28px; */
     color: #4a4a4a;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0px;
     text-align: left;
+}
+
+.edit-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: black;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.edit-btn:hover {
+    color: #007BFF;
 }
 
 .collection-subtitle {
@@ -330,6 +350,7 @@ textarea {
     margin-bottom: 0rem;
 }
 
+/* Else */
 #loadingScreen{
     display: none; 
     text-align: center; 
