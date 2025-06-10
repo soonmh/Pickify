@@ -77,15 +77,15 @@
                 
                 <label for="collection-name">Name:</label>
                 <div class="textarea-container">
-                    <textarea type="text" id="collection-name" rows="1" placeholder="Enter collection name" maxlength="30"></textarea>
-                    <div id="name-char-count">0 / 30</div>
+                    <textarea type="text" class="collection-name" rows="1" placeholder="Enter collection name" maxlength="30"></textarea>
+                    <div class="name-char-count">0 / 30</div>
                 </div>
                 <!-- <input type="text" id="collection-name" placeholder="Enter collection name" /> -->
               
                 <label for="collection-description">Description:</label>
                 <div class="textarea-container">
-                    <textarea id="collection-description" rows="3" placeholder="Write a brief description..." maxlength="100"></textarea>
-                    <div id="desc-char-count">0 / 100</div>
+                    <textarea class="collection-description" rows="3" placeholder="Write a brief description..." maxlength="110"></textarea>
+                    <div class="desc-char-count">0 / 100</div>
                 </div>
                 <!-- <textarea id="collection-description" rows="5" placeholder="Write a brief description..." maxlength="100"></textarea> -->
               
@@ -94,7 +94,7 @@
             <div class="collectionPage">
                 <div class="collection-title-wrapper">
                     <h2 id="collection-title">Movies</h2>
-                    <button class="edit-btn" title="Edit Collection">
+                    <button id="edit-btn" title="Edit Collection">
                         <i class="fas fa-edit"></i>
                     </button>
                 </div>
@@ -104,11 +104,19 @@
                 <div class="analysis">
                     <div class="analysis-card">
                         <h4>ITEMS ON LIST</h4>
-                        <h2>2</h2>
+                        <h2 id="itemCount">2</h2>
                     </div>
                     <div class="analysis-card">
-                        <h4>AVERAGE SCORE</h4>
-                        <h2>75.5</h2>
+                        <h4>MUSIC COUNT</h4>
+                        <h2 id="musicCount">2</h2>
+                    </div>
+                    <div class="analysis-card">
+                        <h4>MOVIE COUNT</h4>
+                        <h2 id="movieCount">2</h2>
+                    </div>
+                    <div class="analysis-card">
+                        <h4>BOOK COUNT</h4>
+                        <h2 id="bookCount">2</h2>
                     </div>
                 </div>
                 <div class="collection-list"> 
@@ -122,6 +130,12 @@
                             </div>
                         </div> -->
                     </div>
+                    <div id="nothingInside" style="display: none; text-align: center;">
+                        <p>Nothing's here right now... </p>
+                        <i class="fas fa-frown fa-3x" style="color: #999;"></i>
+                        <p>Let’s head home and dig up something fun!</p>
+                        <button class="failureButton" onclick="window.location.href='homepage.html'">Go to Home</button>
+                    </div>
                 </div>
             </div>
             <div id="loadingScreen">
@@ -132,11 +146,91 @@
                 <p>Psst... you gotta log in to see the good stuff!</p>
                 <button class="failureButton" onclick="window.location.href='login.html'">Login</button>
             </div>
-            <div id="nothingInside" style="display: none; text-align: center;">
+            <!-- <div id="nothingInside" style="display: none; text-align: center;">
                 <p>Nothing's here right now... </p>
                 <i class="fas fa-frown fa-3x" style="color: #999;"></i>
                 <p>Let’s head home and dig up something fun!</p>
                 <button class="failureButton" onclick="window.location.href='homepage.html'">Go to Home</button>
+            </div> -->
+            <div class="editWatchlistPage">
+                <div class="editWatchlistPageHeader">
+                    <h2 class="header-title">
+                        Edit your Watchlist
+                    </h2>
+                    <button class="delete-watchlist-btn">
+                        Delete Watchlist
+                    </button>
+                </div>
+
+                <div class="form-content">
+                    <label for="collection-name">Name:</label>
+                    <div class="textarea-container">
+                        <textarea type="text" class="collection-name" rows="1" placeholder="Enter collection name" maxlength="30"></textarea>
+                        <div class="name-char-count">0 / 30</div>
+                    </div>
+                    <p class="info-text">* You can't change the name of this collection.</p>
+                
+                    <label for="collection-description">Description:</label>
+                    <div class="textarea-container">
+                        <textarea class="collection-description" rows="3" placeholder="Write a brief description..." maxlength="110"></textarea>
+                        <div class="desc-char-count">0 / 100</div>
+                    </div>
+                    <p class="info-text">* You can't change the description of this collection.</p>
+
+                    <div class="form-group">
+                        <h2 class="movies-title">Movies</h2>
+                        <!-- Dynamic -->
+                        <div class="movies-list-container">
+                            <!-- <div class="movie-item">
+                                <div class="movie-info">
+                                    <img src="https://placehold.co/80x120/e2e8f0/334155?text=Poster" alt="Movie Poster" class="movie-poster">
+                                    <div>
+                                        <p class="movie-name">Top Gun: Maverick</p>
+                                        <p class="movie-year">(2022)</p>
+                                    </div>
+                                </div>
+                                <button class="remove-movie-btn">Remove</button>
+                            </div>
+
+                            <div class="movie-item">
+                                <div class="movie-info">
+                                    <img src="https://placehold.co/80x120/e2e8f0/334155?text=Poster" alt="Movie Poster" class="movie-poster">
+                                    <div>
+                                        <p class="movie-name">Sonic The Hedgehog 2</p>
+                                        <p class="movie-year">(2022)</p>
+                                    </div>
+                                </div>
+                                <button class="remove-movie-btn">Remove</button>
+                            </div>
+
+                            <div class="movie-item">
+                                <div class="movie-info">
+                                    <img src="https://placehold.co/80x120/e2e8f0/334155?text=Poster" alt="Movie Poster" class="movie-poster">
+                                    <div>
+                                        <p class="movie-name">Fantastic Beasts: The Secrets of Dumbledore</p>
+                                        <p class="movie-year">(2022)</p>
+                                    </div>
+                                </div>
+                                <button class="remove-movie-btn">Remove</button>
+                            </div> -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="buttonContainer">
+                    <button class="save-changes-btn">
+                        Save Changes
+                    </button>
+                </div>
+            </div>
+            <div class="deletionComfirmPage">
+                <div class="comfirm-box">
+                    <p class="comfirm-text">Are you sure you want to delete this collection?</p>
+                    <div class="comfirm-buttons">
+                    <button class="cancel-btn">Cancel</button>
+                    <button class="delete-btn">Delete</button>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
