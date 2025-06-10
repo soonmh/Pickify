@@ -1,14 +1,14 @@
 .error-message {
-      color: #e53e3e;
-      font-size: 12px;
-      margin-top: -20px;
-      margin-bottom: 15px;
-      display: none;
-    }
+  color: #e53e3e;
+  font-size: 12px;
+  margin-top: -20px;
+  margin-bottom: 15px;
+  display: none;
+  }
 
-    .password-field {
-      margin-bottom: 0px;
-    }
+  .password-field {
+  margin-bottom: 0px;
+  }
     
     /* Success Modal Styles */
     .modal {
@@ -192,3 +192,120 @@
       color: #a0aec0;
       margin-top: 15px;
     }
+
+@keyframes shake {
+  0%, 100% { transform: translate(-50%, -50%); }
+  10%, 30%, 50%, 70%, 90% { transform: translate(-52%, -50%); }
+  20%, 40%, 60%, 80% { transform: translate(-48%, -50%); }
+}
+#captcha-box.shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Styles for Email Verification Modal */
+#email-verification-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  backdrop-filter: blur(3px);
+  transition: all 0.3s ease;
+}
+
+#email-verification-box {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.95);
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  z-index: 1001;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+  width: 300px;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+#email-verification-box.active {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+
+#email-verification-box h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2d3748;
+  margin-top: 0;
+  margin-bottom: 20px;
+}
+
+#email-verification-box p {
+  font-size: 14px;
+  color: #4a5568;
+  margin-bottom: 20px;
+}
+
+#verification-code-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  background-color: #f8fafc;
+  margin-bottom: 15px;
+  text-align: center;
+  letter-spacing: 5px;
+  font-weight: 600;
+}
+
+#verification-code-input:focus {
+  border-color: #8F94FB;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(143, 148, 251, 0.2);
+  background-color: #fff;
+}
+
+#verify-email-submit {
+  width: 100%;
+  background: linear-gradient(90deg, #8F94FB, #4e54c8);
+  color: #fff;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(79, 94, 230, 0.3);
+  margin-bottom: 10px;
+}
+
+#verify-email-submit:hover {
+  background: linear-gradient(90deg, #7a7ff8, #4348b8);
+  box-shadow: 0 6px 14px rgba(79, 94, 230, 0.4);
+  transform: translateY(-2px);
+}
+
+#verify-email-submit:active {
+  transform: translateY(0);
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #4e54c8;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.btn-link:hover {
+  color: #8F94FB;
+}
