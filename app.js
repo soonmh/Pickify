@@ -204,21 +204,97 @@ app.get('/userCollection', async (req, res) => {
             },
             { projection: { item: 1, collectionName: 1, description: 1 } }
         );
-        if (!collection) {
-            return res.status(404).json({ error: 'Collection not found' });
+        if (!collection || !collection.item) {
+            return res.status(404).json({ error: 'Collection not found or empty' });
         }
 
         // const movieIds = collection.item.map(id => parseInt(id));
         // console.log(collection.item);
 
-        const movieDetails = await db.collection('Movie')
-        .find({tmdbId: {$in: collection.item}})
-        .toArray();
-        // console.log(movieDetails);
+        const enrichedItems = [];
+
+        for (const entry of collection.item) {
+            let data = null;
+            // const itemId = typeof entry.itemId === 'string' ? entry.itemId : entry.itemId.toString();
+
+            if (entry.type === 'movie') {
+                data = await db.collection('Movie')
+                .findOne({ tmdbId: parseInt(entry.itemId) },
+                    {
+                        projection: {
+                            title: 1,
+                            poster_path: 1,
+                            release_date: 1,
+                            original_language: 1
+                        }
+                    }
+                );
+                const baseUrl = "https://image.tmdb.org/t/p/w342";
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: `${baseUrl}${data.poster_path}`,
+                        release_date: data.release_date,
+                        info: data.original_language
+                    };
+                }
+            } else if (entry.type === 'book') {
+                data = await db.collection('books')
+                .findOne({ _id: entry.itemId },
+                    {
+                        projection: {
+                            title: 1,
+                            image: 1,
+                            year: 1,
+                            author: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: data.image,
+                        release_date: data.year,
+                        info: data.author
+                    };
+                }
+            } else if (entry.type === 'music') {
+                data = await db.collection('Music')
+                .findOne({ id: entry.itemId },
+                    {
+                        projection: {
+                            name: 1,
+                            poster_url: 1,
+                            release: 1,
+                            duration_seconds: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.name,
+                        image: data.poster_url,
+                        release_date: data.release,
+                        info: `${data.duration_seconds}s`
+                    };
+                }
+            }
+            // console.log(entry.itemId);
+            // console.log(data);
+
+            if (data) {
+                enrichedItems.push({
+                    type: entry.type,
+                    objId: entry.objId,
+                    infomation: data
+                });
+            }
+        }
+
         res.status(200).json({
             collectionName: collection.collectionName,
             description: collection.description,
-            movies: movieDetails
+            items: enrichedItems
         });
 
     } catch (err) {
