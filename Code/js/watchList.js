@@ -222,7 +222,10 @@ function editListButtonEvent(){
                     index++;
                 });
             }
-            
+            if(!checkDuplicateName(nameTextAreaValue)){
+                alert("Collection existed. Please enter a different collection name.")
+                return;
+            }
             await saveChangeFunction(nameTextAreaValue,descriptionTextAreaValue,listToRemove);
         }
         // console.log(currentCollectionItem);
@@ -295,8 +298,7 @@ async function saveChangeFunction(nameTextAreaValue,descriptionTextAreaValue,lis
             alert('Collection edit successfully.');
             editListPage.style.display="none";
             await loadingScreenPage();
-            updateContent(nameTextAreaValue);
-            loadingScreen.style.display="none";
+            window.location.href = 'watchlist.html';
         } else {
             alert(result.message || 'Failed to edit the collection.');
         }
