@@ -222,6 +222,7 @@ function editListButtonEvent(){
                     index++;
                 });
             }
+            allCollectionName = allCollectionName.filter(name => name !== currentCollectionName);
             if(!checkDuplicateName(nameTextAreaValue)){
                 alert("Collection existed. Please enter a different collection name.")
                 return;
