@@ -2,6 +2,8 @@
  * Autocomplete functionality for search bar
  * Shows matching titles as dropdown while typing
  */
+
+
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('search-input');
     const searchContainer = document.querySelector('.search-input-container');
@@ -11,9 +13,22 @@ document.addEventListener('DOMContentLoaded', function() {
     autocompleteDropdown.className = 'autocomplete-dropdown';
     searchContainer.appendChild(autocompleteDropdown);
     
+    // Debounce function to limit API calls
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+    
     // Add event listeners
-    searchInput.addEventListener('input', handleSearchInput);
-    searchInput.addEventListener('focus', handleSearchInput);
+    searchInput.addEventListener('input', debounce(handleSearchInput, 300));
+    searchInput.addEventListener('focus', function() {
+        if (searchInput.value.trim().length > 0) {
+            handleSearchInput();
+        }
+    });
     
     // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
@@ -22,8 +37,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    function handleSearchInput(e) {
-        const query = searchInput.value.toLowerCase().trim();
+    function handleSearchInput() {
+        const query = searchInput.value.trim();
         
         // Clear dropdown
         autocompleteDropdown.innerHTML = '';
@@ -34,36 +49,48 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Find matching titles
-        const matches = findMatches(query);
+        // Show loading indicator
+        autocompleteDropdown.innerHTML = `
+            <div class="autocomplete-loading">
+                <div class="spinner-border spinner-border-sm" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <span>Loading suggestions...</span>
+            </div>
+        `;
+        autocompleteDropdown.style.display = 'block';
         
-        // Show dropdown if matches found
-        if (matches.length > 0) {
-            renderMatches(matches);
-            autocompleteDropdown.style.display = 'block';
-        } else {
-            autocompleteDropdown.style.display = 'none';
-        }
+        // Fetch suggestions from API
+        fetch(`${API_BASE_URL}/autocomplete?query=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                // Clear loading indicator
+                autocompleteDropdown.innerHTML = '';
+                
+                if (data.suggestions && data.suggestions.length > 0) {
+                    renderSuggestions(data.suggestions, query);
+                    autocompleteDropdown.style.display = 'block';
+                } else {
+                    autocompleteDropdown.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching autocomplete suggestions:', error);
+                autocompleteDropdown.style.display = 'none';
+            });
     }
     
-    function findMatches(query) {
-        // Return all items that contain the query in their title
-        return dummyData
-            .filter(item => item.title.toLowerCase().includes(query))
-            .slice(0, 6); // Limit to 6 results
-    }
-    
-    function renderMatches(matches) {
-        matches.forEach(item => {
-            const matchElement = document.createElement('div');
-            matchElement.className = 'autocomplete-item';
+    function renderSuggestions(suggestions, query) {
+        suggestions.forEach(item => {
+            const suggestionElement = document.createElement('div');
+            suggestionElement.className = 'autocomplete-item';
             
             // Get the item type icon
             const icon = getTypeIcon(item.type);
             
             // Highlight the matched part of the title
             const titleLower = item.title.toLowerCase();
-            const queryLower = searchInput.value.toLowerCase();
+            const queryLower = query.toLowerCase();
             const index = titleLower.indexOf(queryLower);
             let titleHtml = item.title;
             
@@ -75,14 +102,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
             
-            matchElement.innerHTML = `
+            suggestionElement.innerHTML = `
                 <div class="autocomplete-icon ${item.type}">${icon}</div>
                 <div class="autocomplete-title">${titleHtml}</div>
                 <div class="autocomplete-type">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</div>
             `;
             
             // Add click event to select this item
-            matchElement.addEventListener('click', function() {
+            suggestionElement.addEventListener('click', function() {
                 searchInput.value = item.title;
                 autocompleteDropdown.style.display = 'none';
                 
@@ -93,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            autocompleteDropdown.appendChild(matchElement);
+            autocompleteDropdown.appendChild(suggestionElement);
         });
     }
     

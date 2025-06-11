@@ -553,59 +553,6 @@ app.get('/api/books/top', async (req, res) => {
     }
 });
 
-// GET /api/movies/search/:query - Search movies
-app.get('/api/movies/search/:query', async (req, res) => {
-    try {
-        const { query } = req.params;
-        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-        
-        if (!query || query.trim().length < 2) {
-            return res.status(400).json({
-                success: false,
-                error: 'Query must be at least 2 characters long'
-            });
-        }
-        
-        const searchRegex = new RegExp(query.trim(), 'i');
-        const movies = await db.collection('Movie')
-            .find({
-                $or: [
-                    { title: searchRegex },
-                    { overview: searchRegex },
-                    { 'genres.name': searchRegex }
-                ]
-            })
-            .sort({ popularity: -1 })
-            .limit(limit)
-            .project({
-                tmdbId: 1,
-                title: 1,
-                poster_path: 1,
-                vote_average: 1,
-                popularity: 1,
-                vote_count: 1,
-                genres: 1,
-                release_date: 1,
-                overview: 1
-            })
-            .toArray();
-        
-        console.log(`🔍 Found ${movies.length} movies for "${query}"`);
-        res.status(200).json({
-            success: true,
-            query: query,
-            count: movies.length,
-            data: movies
-        });
-    } catch (error) {
-        console.error('Error searching movies:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Search failed'
-        });
-    }
-});
-
 // GET /api/health - Health check for frontend
 app.get('/api/health', (req, res) => {
     res.status(200).json({
@@ -614,4 +561,382 @@ app.get('/api/health', (req, res) => {
         message: 'Pickify Backend is running!',
         database: db ? 'Connected' : 'Disconnected'
     });
+});
+
+// Enhanced search API with better debugging - replace your existing search API
+app.get('/api/search', async (req, res) => {
+    try {
+        const { query, type, genre, sort = 'rating', page = 1, limit = 8 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+        
+        console.log(`[${new Date().toISOString()}] 🔍 Search Request:`);
+        console.log(`  Query: "${query}"`);
+        console.log(`  Type: ${type}`);
+        console.log(`  Genre: ${genre}`);
+        console.log(`  Sort: ${sort}`);
+        console.log(`  Page: ${pageNum}, Limit: ${limitNum}`);
+        
+        // Initialize results array and total count
+        let results = [];
+        let total = 0;
+        
+        // Define sort options
+        const sortOptions = {
+            rating: { 'vote_average': -1, 'rating': -1 },
+            views: { 'popularity': -1, 'views': -1 }
+        };
+        
+        // Build base filters
+        const buildFilter = (queryText, contentType, genreFilter) => {
+            const filter = {};
+            
+            // Add title search if query provided
+            if (queryText && queryText.trim() !== '') {
+                // Create case-insensitive regex for title search
+                const titleRegex = new RegExp(queryText, 'i');
+                
+                // For movies
+                if (contentType === 'all' || contentType === 'movie') {
+                    filter.title = titleRegex;
+                }
+                // For music
+                else if (contentType === 'music') {
+                    filter.name = titleRegex;
+                }
+                // For books
+                else if (contentType === 'book') {
+                    filter.title = titleRegex;
+                }
+            }
+            
+            // Add genre filter if provided and not 'all'
+            if (genreFilter && genreFilter !== 'all') {
+                if (contentType === 'movie') {
+                    // Use dot notation to filter on nested genre name in the array
+                    filter['genres.name'] = genreFilter;
+                    console.log(`  Movie genre filter: genres.name = "${genreFilter}"`);
+                } else {
+                    filter.genre = genreFilter;
+                    console.log(`  ${contentType} genre filter: genre = "${genreFilter}"`);
+                }
+            }
+            
+            return filter;
+        };
+        
+        // 1. Search based on content type
+        if (type === 'all' || !type) {
+            // Search in all collections
+            
+            // 1a. Search movies
+            const movieFilter = buildFilter(query, 'movie', genre);
+            console.log(`  Movie filter:`, JSON.stringify(movieFilter));
+            
+            const movies = await db.collection('Movie')
+                .find(movieFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${movies.length} movies`);
+                
+            // Transform movie data to match our unified format
+            const formattedMovies = movies.map(movie => {
+                // Extract primary genre (first in the list) or default to 'unknown'
+                const primaryGenre = movie.genres && movie.genres.length > 0 && movie.genres[0].name 
+                    ? movie.genres[0].name 
+                    : 'unknown';
+                    
+                // Get all genre names for display in details if needed
+                const allGenres = movie.genres 
+                    ? movie.genres.map(g => g.name).join(', ')
+                    : 'unknown';
+                
+                return {
+                    id: movie._id,
+                    tmdbId: movie.tmdbId,
+                    title: movie.title,
+                    type: 'movie',
+                    genre: primaryGenre,
+                    allGenres: allGenres,
+                    rating: movie.vote_average/2 || 0,
+                    views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)) || 0,
+                    image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png',
+                    director: movie.director || 'Unknown',
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+                    overview: movie.overview,
+                    lastUpdated: movie.lastUpdated,
+                    updatedBy: movie.updatedBy
+                };
+            });
+            
+            // 1b. Search music
+            const musicFilter = buildFilter(query, 'music', genre);
+            console.log(`  Music filter:`, JSON.stringify(musicFilter));
+            
+            const music = await db.collection('Music')
+                .find(musicFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${music.length} music tracks`);
+                
+            // Transform music data
+            const formattedMusic = music.map(track => ({
+                id: track._id,
+                title: track.name,
+                type: 'music',
+                genre: track.genre || 'unknown',
+                rating: track.popularity ? track.popularity / 20 : 4.5, // Convert popularity to 5-star scale
+                views: track.popularity * 10000 || 1000, // Create views from popularity
+                image: track.poster_url || './assests/musicposter.png',
+                artist: track.artists ? track.artists.join(', ') : 'Unknown',
+                year: track.release ? new Date(track.release).getFullYear() : 'Unknown'
+            }));
+            
+            // 1c. Search books
+            const bookFilter = buildFilter(query, 'book', genre);
+            console.log(`  Book filter:`, JSON.stringify(bookFilter));
+            
+            const books = await db.collection('books')
+                .find(bookFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${books.length} books`);
+                
+            // Transform book data
+            const formattedBooks = books.map(book => ({
+                id: book._id,
+                title: book.title,
+                type: 'book',
+                genre: book.genre || 'unknown',
+                rating: book.rating || 4.5,
+                views: book.views || 5000,
+                image: book.image ,
+                author: book.author || 'Unknown',
+                year: book.year || 'Unknown',
+                description: book.description
+            }));
+            
+            // Combine all results
+            results = [...formattedMovies, ...formattedMusic, ...formattedBooks];
+            
+        } else if (type === 'movie') {
+            // Search only in movies
+            const movieFilter = buildFilter(query, 'movie', genre);
+            console.log(`  Movie-only filter:`, JSON.stringify(movieFilter));
+            
+            const movies = await db.collection('Movie')
+                .find(movieFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${movies.length} movies`);
+                
+            results = movies.map(movie => {
+                // Extract primary genre (first in the list) or default to 'unknown'
+                const primaryGenre = movie.genres && movie.genres.length > 0 && movie.genres[0].name 
+                    ? movie.genres[0].name 
+                    : 'unknown';
+                    
+                // Get all genre names for display in details if needed
+                const allGenres = movie.genres 
+                    ? movie.genres.map(g => g.name).join(', ')
+                    : 'unknown';
+                
+                return {
+                    id: movie._id,
+                    tmdbId: movie.tmdbId,
+                    title: movie.title,
+                    type: 'movie',
+                    genre: primaryGenre,
+                    allGenres: allGenres,
+                    rating: movie.vote_average/2 || 0,
+                    views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)) || 0,
+                    image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png',
+                    director: movie.director || 'Unknown',
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+                    overview: movie.overview,
+                    lastUpdated: movie.lastUpdated,
+                    updatedBy: movie.updatedBy
+                };
+            });
+            
+        } else if (type === 'music') {
+            // Search only in music
+            const musicFilter = buildFilter(query, 'music', genre);
+            console.log(`  Music-only filter:`, JSON.stringify(musicFilter));
+            
+            const music = await db.collection('Music')
+                .find(musicFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${music.length} music tracks`);
+                
+            results = music.map(track => ({
+                id: track._id,
+                title: track.name,
+                type: 'music',
+                genre: track.genre || 'unknown',
+                rating: track.popularity ? track.popularity / 20 : 4.5,
+                views: track.popularity * 10000 || 1000,
+                image: track.poster_url || './assests/musicposter.png',
+                artist: track.artists ? track.artists.join(', ') : 'Unknown',
+                year: track.release ? new Date(track.release).getFullYear() : 'Unknown'
+            }));
+            
+        } else if (type === 'book') {
+            // Search only in books
+            const bookFilter = buildFilter(query, 'book', genre);
+            console.log(`  Book-only filter:`, JSON.stringify(bookFilter));
+            
+            const books = await db.collection('books')
+                .find(bookFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${books.length} books`);
+                
+            results = books.map(book => ({
+                id: book._id,
+                title: book.title,
+                type: 'book',
+                genre: book.genre || 'unknown',
+                rating: book.rating || 4.5,
+                views: book.views || 5000,
+                image: book.image || './assests/bookposter.png',
+                author: book.author || 'Unknown',
+                year: book.year || 'Unknown',
+                description: book.description
+            }));
+        }
+        
+        // Sort combined results
+        if (sort === 'rating') {
+            results.sort((a, b) => b.rating - a.rating);
+        } else if (sort === 'views') {
+            results.sort((a, b) => b.views - a.views);
+        }
+        
+        // Get total count
+        total = results.length;
+        
+        // Apply pagination after sorting
+        const paginatedResults = results.slice(skip, skip + limitNum);
+        
+        console.log(`[${new Date().toISOString()}] ✅ Search completed:`);
+        console.log(`  Total results: ${total}`);
+        console.log(`  Returned: ${paginatedResults.length} items (page ${pageNum})`);
+        console.log(`  Sample genres:`, paginatedResults.slice(0, 3).map(r => `${r.title}: ${r.genre}`));
+        
+        return res.status(200).json({
+            success: true,
+            total: total,
+            items: paginatedResults,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum)
+        });
+        
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Search error:`, error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to search content'
+        });
+    }
+});
+
+function formatViews(views) {
+        if (typeof views === 'string') {
+            return views;
+        }
+        if (views >= 1000000) {
+            return (views / 1000000).toFixed(1) + 'M';
+        }
+        if (views >= 1000) {
+            return (views / 1000).toFixed(1) + 'K';
+        }
+        return views.toString();
+    }
+
+// GET /api/autocomplete - Endpoint for search suggestions
+app.get('/api/autocomplete', async (req, res) => {
+    try {
+        const { query } = req.query;
+        const limit = 6; // Limit to 6 suggestions
+        
+        if (!query || query.trim() === '') {
+            return res.json({ suggestions: [] });
+        }
+        
+        console.log(`🔍 Getting autocomplete suggestions for "${query}"`);
+        
+        // Create case-insensitive regex for search
+        const searchRegex = new RegExp(query, 'i');
+        
+        // Search in all collections concurrently
+        const [movies, music, books] = await Promise.all([
+            // Search movies by title
+            db.collection('Movie')
+                .find({ title: searchRegex })
+                .limit(limit)
+                .project({ title: 1, poster_path: 1, vote_average: 1 })
+                .toArray(),
+                
+            // Search music by name
+            db.collection('Music')
+                .find({ name: searchRegex })
+                .limit(limit)
+                .project({ name: 1, artists: 1, poster_url: 1 })
+                .toArray(),
+                
+            // Search books by title
+            db.collection('books')
+                .find({ title: searchRegex })
+                .limit(limit)
+                .project({ title: 1, author: 1, image: 1 })
+                .toArray()
+        ]);
+        
+        // Format results to a common structure
+        const movieSuggestions = movies.map(movie => ({
+            id: movie._id,
+            title: movie.title,
+            type: 'movie',
+            image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png'
+        }));
+        
+        const musicSuggestions = music.map(track => ({
+            id: track._id,
+            title: track.name,
+            type: 'music',
+            image: track.poster_url || './assests/musicposter.png'
+        }));
+        
+        const bookSuggestions = books.map(book => ({
+            id: book._id,
+            title: book.title,
+            type: 'book',
+            image: book.image || './assests/bookposter.png'
+        }));
+        
+        // Combine and limit results
+        const allSuggestions = [...movieSuggestions, ...musicSuggestions, ...bookSuggestions]
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .slice(0, limit);
+            
+        console.log(`✅ Found ${allSuggestions.length} suggestions`);
+        
+        res.json({ suggestions: allSuggestions });
+        
+    } catch (error) {
+        console.error('❌ Autocomplete error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get suggestions'
+        });
+    }
 });
