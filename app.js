@@ -317,6 +317,76 @@ app.post('/createCollection', async (req, res) => {
     res.json({ success: true });
 });
 
+app.delete('/deleteCollection', async (req, res) => {
+    const { userId, currentCollectionName } = req.query;
+    // console.log(userId);
+    // console.log(currentCollectionName);
+    try {
+        const result = await db.collection('userCollection').deleteOne({
+            userId: new ObjectId(userId),
+            collectionName: currentCollectionName
+        });
+
+        if (result.deletedCount === 1) {
+            res.json({ success: true, message: 'Collection deleted successfully.' });
+        } else {
+            res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error deleting collection.', error });
+    }
+});
+
+app.delete('/editCollection', async (req, res) => {
+    const { userId, currentCollectionName, nameTextAreaValue, descriptionTextAreaValue, listToRemove} = req.query;
+    // console.log(userId);
+    // console.log(currentCollectionName);
+    try {
+        const objectIdArray = JSON.parse(listToRemove).map(id => new ObjectId(id));
+        // console.log(parsedListToRemove)
+        let filter = {
+            userId: new ObjectId(userId),
+            collectionName: currentCollectionName
+        };
+
+        const updateOps = {
+            $set: {
+                collectionName: nameTextAreaValue,
+                description: descriptionTextAreaValue
+            }
+        };
+
+        const updateResult = await db.collection('userCollection').updateOne(filter, updateOps);
+
+        if (updateResult.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+
+        filter = {
+            userId: new ObjectId(userId),
+            collectionName: nameTextAreaValue
+        };
+
+        if (Array.isArray(objectIdArray) && objectIdArray.length > 0) {
+            // console.log(objectIdArray)
+            await db.collection('userCollection').updateOne(
+                filter,
+                {
+                    $pull: {
+                        item: {
+                            objId: { $in: objectIdArray }
+                        }
+                    }
+                }
+            );
+        }
+
+        res.json({ success: true, message: 'Collection updated successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error editing collection.', error });
+    }
+});
+
 // GET /api/recommendation/:userId - Get personalized recommendations
 app.get('/api/recommendation/:userId', async (req, res) => {
     try {

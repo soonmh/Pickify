@@ -203,6 +203,28 @@ function editListButtonEvent(){
                 }
             }
         });
+        const saveChangeButton=editListPage.querySelector(".save-changes-btn");
+        saveChangeButton.onclick = async () => {
+            let nameTextAreaValue=nameTextArea.value.trim();
+            let descriptionTextAreaValue=descriptionTextArea.value.trim();
+            // console.log(nameTextAreaValue);
+            // console.log(descriptionTextAreaValue);
+            let listToRemove=[]
+            const moviesListContainer=editListPage.querySelector(".movies-list-container");
+            if (moviesListContainer.children.length !== 0) {
+                const movieItems = editListPage.querySelectorAll(".movie-item");
+                let index=0;
+                movieItems.forEach((movieItem)=>{
+                    const removeMovieButton = movieItem.querySelector(".remove-movie-btn");
+                    if(removeMovieButton.textContent==="Removed"){
+                        listToRemove.push(currentCollectionItem[index].objId);
+                    }
+                    index++;
+                });
+            }
+            
+            await saveChangeFunction(nameTextAreaValue,descriptionTextAreaValue,listToRemove);
+        }
         // console.log(currentCollectionItem);
     });
 }
@@ -224,7 +246,64 @@ function deleteCollectionButtonEvent(deleteCollectionButton){
 }
 
 async function collectionDeletion(){
-    
+    console.log(userId);
+    console.log(currentCollectionName);
+    try {
+        const response = await fetch(
+            `http://localhost:3000/deleteCollection?userId=${userId}&currentCollectionName=${encodeURIComponent(currentCollectionName)}`,
+            {
+                method: 'DELETE'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('Delete result:', result);
+
+        if (result.success) {
+            alert('Collection deleted successfully.');
+            window.location.href = 'watchlist.html';
+        } else {
+            alert(result.message || 'Failed to delete the collection.');
+        }
+
+    } catch (error) {
+        console.error('Error deleting collection:', error);
+    }
+}
+
+async function saveChangeFunction(nameTextAreaValue,descriptionTextAreaValue,listToRemove){
+    try {
+        const response = await fetch(
+            `http://localhost:3000/editCollection?userId=${userId}&currentCollectionName=${encodeURIComponent(currentCollectionName)}&nameTextAreaValue=${nameTextAreaValue}&descriptionTextAreaValue=${descriptionTextAreaValue}&listToRemove=${encodeURIComponent(JSON.stringify(listToRemove))}`,
+            {
+                method: 'DELETE'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const result = await response.json();
+        // console.log('Delete result:', result);
+
+        if (result.success) {
+            alert('Collection edit successfully.');
+            editListPage.style.display="none";
+            await loadingScreenPage();
+            updateContent(nameTextAreaValue);
+            loadingScreen.style.display="none";
+        } else {
+            alert(result.message || 'Failed to edit the collection.');
+        }
+
+    } catch (error) {
+        console.error('Error editing collection:', error);
+    }
 }
 
 function updateMovieInEditPage(){
