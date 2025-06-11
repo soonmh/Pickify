@@ -345,7 +345,7 @@ function getDummyData() {
             image: baseImageUrl,
             year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
             director: movie.director || '',
-            duration: movie.runtime || 0,
+            duration: movie.runtime || 1,
             description: movie.overview || ''
         };
     }

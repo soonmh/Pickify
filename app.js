@@ -679,6 +679,9 @@ app.get('/api/movies/top', async (req, res) => {
                 vote_count: 1,
                 genres: 1,
                 release_date: 1,
+                director : 1,
+                duration : 1,
+                runtime : 1,
                 overview: 1
             })
             .toArray();
