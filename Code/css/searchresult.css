@@ -494,3 +494,33 @@ nav[aria-label="Search results pages"] {
 .mb-3 {
     margin-bottom: 0.75rem !important;
 }
+
+/* Add these styles to your existing searchresult.css */
+
+.result-genre {
+    color: #666;
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.result-genre i {
+    margin-right: 0.25rem;
+    color: #007bff;
+}
+
+/* Style for disabled genre select */
+.disabled-select {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+.disabled-select:hover {
+    background-color: #f8f9fa;
+}
+
+/* Optional: Add some spacing between genre and meta */
+.result-genre + .result-meta {
+    margin-top: 0.5rem;
+}

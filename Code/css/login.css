@@ -45,42 +45,16 @@
     display: block;
 }
 
-/* Custom Google Button Styles - Similar to reference image */
-        .google-btn {
-            width: 100%;
-            background-color: #fff;
-            border: 1px solid #dadce0;
-            color: #3c4043;
-            border-radius: 4px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-bottom: 15px;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            height: 40px;
-        }
-        
-        .google-btn:hover {
-            background-color: #f8f9fa;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-        
-        .google-btn:active {
-            background-color: #f1f3f4;
-        }
-        
-        .google-btn img {
-            height: 18px;
-            margin-right: 10px;
-        }
-        
-        .google-btn-hidden {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
+/* In your auth.css or login.css */
+.social-login {
+    display: flex;
+    justify-content: center; /* Center the Google button */
+    margin-top: 20px; /* Add some space above it */
+    margin-bottom: 20px; /* Add some space below it */
+}
+
+/* If you need to make the button responsive within its container */
+.g_id_signin {
+    max-width: 100%; /* Ensure it doesn't overflow */
+    height: auto; /* Maintain aspect ratio */
+}
