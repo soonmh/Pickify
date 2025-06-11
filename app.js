@@ -11,7 +11,7 @@ const nodemailer = require('nodemailer');
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth:{
-        user: process.env.EMAIL_NAME,
+        user: process.env.EMAIL_NAME,   
         pass: process.env.EMAIL_APP_PASSWORD
     }
 })
@@ -27,6 +27,32 @@ connectToDb((err) => {
         db = getDb()
     }
 })
+
+// Function to create indexes
+async function createIndexes() {
+    if (!db) {
+        console.error("Database connection not established. Cannot create indexes.");
+        return;
+    }
+
+    try {
+        const userCollection = db.collection('User');
+
+        await userCollection.createIndex({ email: 1 }, { unique: true });
+        console.log("Index on 'email' created/ensured.");
+
+        await userCollection.createIndex({ name: 1 }, { unique: true });
+        console.log("Index on 'name' created/ensured.");
+
+        // Important: sparse: true for googleId means it won't index documents without this field.
+        await userCollection.createIndex({ googleId: 1 }, { unique: true, sparse: true });
+        console.log("Index on 'googleId' created/ensured.");
+
+        console.log("All indexes created successfully!");
+    } catch (error) {
+        console.error("Error creating indexes:", error);
+    }
+}
 
 app.get('/User', (req, res) => {
     let users = []
@@ -47,58 +73,178 @@ app.post('/login', async (req, res) =>{
     const { username, password } = req.body;
 
     const user = await db.collection('User').findOne({
-        $or: [{ name: username }, { email: username }]
+        $or: [{ name: new RegExp(`^${username}$`, 'i') }, { email: new RegExp(`^${username}$`, 'i') }] // Case-insensitive for login
     });
 
     if (!user) {
         return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-        return res.status(401).json({ success: false, error: 'Incorrect password' });
+    // Handle password comparison only if the user has a password (i.e., not a Google-only user)
+    if (user.password) {
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: 'Incorrect password' });
+        }
+    } else {
+        // If the user has no password (e.g., Google user), and they are trying to log in with a password, it's an error.
+        // Or you might want to prompt them to use Google login.
+        return res.status(401).json({ success: false, error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
+
 
     res.status(200).json({ 
         success: true, 
         message: 'Login successful', 
         user:{
-            userId: user._id,
+            userId: user._id, // Ensure _id is returned for collections
             email: user.email,
             name: user.name
         }
-        
     });
 });
 
+// ✅ MODIFIED: app.post('/User') to handle Google users (no password) and enforce uniqueness
 app.post('/User', async (req, res) => {
-    const user = req.body
+    const user = req.body; // user will now contain { name, email, picture, googleId } OR { name, email, password }
 
-    const hashPassword = await bcrypt.hash(user.password, saltRounds);
-    user.password = hashPassword;
-
-    db.collection('User')
-    .insertOne(user)
-    .then(result => {
-        res.status(201).json({ success: true, userId: result.insertedId });
-    })
-    .catch(err => {
-        res.status(500).json({success: false, error: 'Failed to create user'})
-    })
-})
-
-app.post('/VerificationCode', async (req,res) => {
-    const {userEmail}=req.body;
-    const code=generateVerificationCode();
-    try{
-        await sendVerificationEmail(userEmail,code);
-        res.status(200).json({success: true, message: 'Email sent successfully'});
-    }catch (error){
-        console.error('Failed to send email:', error);
-        res.status(500).json({success: false, error: 'Failed to send email'});
+    // Server-side duplicate check for email (case-insensitive)
+    const existingEmailUser = await db.collection('User').findOne({ email: new RegExp(`^${user.email}$`, 'i') });
+    if (existingEmailUser) {
+        return res.status(409).json({ success: false, error: 'Email address already registered.' });
     }
 
-})
+    // Server-side duplicate check for username (case-insensitive)
+    const existingUsernameUser = await db.collection('User').findOne({ name: new RegExp(`^${user.name}$`, 'i') });
+    if (existingUsernameUser) {
+        return res.status(409).json({ success: false, error: 'Username already taken.' });
+    }
+
+    // Hash password only if provided (for traditional signup)
+    if (user.password) {
+        const hashPassword = await bcrypt.hash(user.password, saltRounds);
+        user.password = hashPassword;
+    } else {
+        // If no password, ensure it's explicitly null or undefined, not stored as an empty string.
+        user.password = null; // Mark as null for Google users
+    }
+
+    try {
+        const result = await db.collection('User')
+            .insertOne(user);
+        res.status(201).json({ success: true, userId: result.insertedId });
+    } catch (err) {
+        console.error("Database insertion error:", err);
+        // Catch E11000 duplicate key error if unique index is violated (as a fallback)
+        if (err.code === 11000) {
+            if (err.keyPattern.email) {
+                return res.status(409).json({ success: false, error: 'Email address already registered.' });
+            }
+            if (err.keyPattern.name) {
+                return res.status(409).json({ success: false, error: 'Username already taken.' });
+            }
+        }
+        res.status(500).json({success: false, error: 'Failed to create user'})
+    }
+});
+
+// ✅ NEW ENDPOINT: Handle Google Login (if user already exists via Google)
+app.post('/googleLogin', async (req, res) => {
+    const { email, googleId } = req.body;
+
+    try {
+        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i'), googleId: googleId });
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Google user not found. Please register.' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Google login successful',
+            user: {
+                userId: user._id,
+                email: user.email,
+                name: user.name,
+                picture: user.picture // Include picture if you store it
+            }
+        });
+    } catch (err) {
+        console.error('Error in Google login:', err);
+        res.status(500).json({ success: false, error: 'Server error during Google login.' });
+    }
+});
+
+app.get('/checkEmailAvailability', async (req, res) => {
+    const { email } = req.query;
+    if (!email) {
+        return res.status(400).json({ error: 'Email parameter is required.' });
+    }
+    try {
+        const existingUser = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') }); // Case-insensitive check
+        res.status(200).json({ isAvailable: !existingUser });
+    } catch (err) {
+        console.error('Error checking email availability:', err);
+        res.status(500).json({ error: 'Server error checking email availability.' });
+    }
+});
+
+// New endpoint to check username availability
+app.get('/checkUsernameAvailability', async (req, res) => {
+    const { username } = req.query;
+    if (!username) {
+        return res.status(400).json({ error: 'Username parameter is required.' });
+    }
+    try {
+        const existingUser = await db.collection('User').findOne({ name: new RegExp(`^${username}$`, 'i') }); // Case-insensitive check
+        res.status(200).json({ isAvailable: !existingUser });
+    } catch (err) {
+        console.error('Error checking username availability:', err);
+        res.status(500).json({ error: 'Server error checking username availability.' });
+    }
+});
+
+const verificationCodes = {}; 
+
+app.post('/VerificationCode', async (req, res) => {
+    const { userEmail } = req.body;
+    const code = generateVerificationCode();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // Code expires in 10 minutes
+
+    verificationCodes[userEmail] = { code, expiry };
+    console.log(`Generated code for ${userEmail}: ${code}`);
+
+    try {
+        await sendVerificationEmail(userEmail, code);
+        res.status(200).json({ success: true, message: 'Email sent successfully' });
+    } catch (error) {
+        console.error('Failed to send email:', error);
+        res.status(500).json({ success: false, error: 'Failed to send email' });
+    }
+});
+
+app.post('/verifyCode', async (req, res) => {
+    const { email, code } = req.body;
+    const storedCodeData = verificationCodes[email];
+
+    if (!storedCodeData) {
+        return res.status(400).json({ success: false, error: 'No verification code found for this email. Please request a new one.' });
+    }
+
+    if (storedCodeData.expiry < new Date()) {
+        delete verificationCodes[email]; // Remove expired code
+        return res.status(400).json({ success: false, error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (storedCodeData.code !== code) {
+        return res.status(400).json({ success: false, error: 'Invalid verification code.' });
+    }
+
+    // Code is valid and not expired, delete it after successful verification
+    delete verificationCodes[email];
+    res.status(200).json({ success: true, message: 'Email verified successfully!' });
+});
+
 
 function generateVerificationCode(){
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -204,21 +350,97 @@ app.get('/userCollection', async (req, res) => {
             },
             { projection: { item: 1, collectionName: 1, description: 1 } }
         );
-        if (!collection) {
-            return res.status(404).json({ error: 'Collection not found' });
+        if (!collection || !collection.item) {
+            return res.status(404).json({ error: 'Collection not found or empty' });
         }
 
         // const movieIds = collection.item.map(id => parseInt(id));
         // console.log(collection.item);
 
-        const movieDetails = await db.collection('Movie')
-        .find({tmdbId: {$in: collection.item}})
-        .toArray();
-        // console.log(movieDetails);
+        const enrichedItems = [];
+
+        for (const entry of collection.item) {
+            let data = null;
+            // const itemId = typeof entry.itemId === 'string' ? entry.itemId : entry.itemId.toString();
+
+            if (entry.type === 'movie') {
+                data = await db.collection('Movie')
+                .findOne({ tmdbId: parseInt(entry.itemId) },
+                    {
+                        projection: {
+                            title: 1,
+                            poster_path: 1,
+                            release_date: 1,
+                            original_language: 1
+                        }
+                    }
+                );
+                const baseUrl = "https://image.tmdb.org/t/p/w342";
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: `${baseUrl}${data.poster_path}`,
+                        release_date: data.release_date,
+                        info: data.original_language
+                    };
+                }
+            } else if (entry.type === 'book') {
+                data = await db.collection('books')
+                .findOne({ _id: entry.itemId },
+                    {
+                        projection: {
+                            title: 1,
+                            image: 1,
+                            year: 1,
+                            author: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: data.image,
+                        release_date: data.year,
+                        info: data.author
+                    };
+                }
+            } else if (entry.type === 'music') {
+                data = await db.collection('Music')
+                .findOne({ id: entry.itemId },
+                    {
+                        projection: {
+                            name: 1,
+                            poster_url: 1,
+                            release: 1,
+                            duration_seconds: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.name,
+                        image: data.poster_url,
+                        release_date: data.release,
+                        info: `${data.duration_seconds}s`
+                    };
+                }
+            }
+            // console.log(entry.itemId);
+            // console.log(data);
+
+            if (data) {
+                enrichedItems.push({
+                    type: entry.type,
+                    objId: entry.objId,
+                    infomation: data
+                });
+            }
+        }
+
         res.status(200).json({
             collectionName: collection.collectionName,
             description: collection.description,
-            movies: movieDetails
+            items: enrichedItems
         });
 
     } catch (err) {

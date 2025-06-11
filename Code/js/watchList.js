@@ -1,41 +1,30 @@
+const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+var userObj;
+var userId;
+var allCollectionName=[];
+var currentCollectionName="";
+var currentCollectionDescription="";
+var currentCollectionItem=[];
+const watchlistPage = document.querySelector(".content-inner");
+const addListPage = document.querySelector(".add-collection-container");
+const collectionPage = document.querySelector(".collectionPage");
+// const collectionType = document.querySelectorAll(".collectionType");
+const editListPage = document.querySelector(".editWatchlistPage");
+const createCollection = document.querySelector(".create-btn");
+const loadingScreen = document.getElementById('loadingScreen');
+const requestLogin = document.getElementById('requestLogin');
+const nothingInside = document.getElementById("nothingInside");
+
 document.addEventListener("DOMContentLoaded", function(){
+    checkUserLogin();
     buttonCreation();
-    document.querySelector('.sidebar').addEventListener('click', async function (e) {
-        const link = e.target.closest('.collectionType');
-
-        if (!link) return;
-
-        watchlistPage.style.display = "none";
-        addListPage.style.display = "none";
-        collectionPage.style.display = "none";
-        requestLogin.style.display = "none";
-        nothingInside.style.display = "none";
-        await loadingScreenPage();
-
-        let clickedText = link.textContent.trim();
-        let text = clickedText.toLowerCase().trim();
-        updatePageUrl(text);
-
-        console.log(isLoggedIn);
-        let userObj;
-        // console.log(userObj);
-        if (isLoggedIn) {
-            userObj = JSON.parse(isLoggedIn);
-            updateContent(userObj.userId, clickedText);
-        } else {
-            loadingScreen.style.display = 'none';
-            requestLogin.style.display = 'block';
-            console.log("No user is logged in.");
-        }
-
-        console.log("Displaying collection:", clickedText);
-    });
-
+    addSideBarEvent();
+    addListButtonEvent();
+    editListButtonEvent();
+    countingWordEvent();
 })
 
-const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
-let allCollectionName=[];
-
+//Useless for now
 function getCollectionType(collection){
     const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
     const results = regex.exec(location.search);
@@ -48,12 +37,19 @@ function updatePageUrl(collectionName){
     window.history.replaceState({},'',url);
 }
 
+function checkUserLogin(){
+    if(isLoggedIn){
+        userObj = JSON.parse(isLoggedIn);
+        userId=userObj.userId;
+    }
+}
+
 async function buttonCreation(){
     const myListNav = document.querySelector(".my-lists-nav");
     myListNav.innerHTML="";
-    if(isLoggedIn){
-        const userObj = JSON.parse(isLoggedIn);
-        const userId=userObj.userId;
+    if(userId){
+        // const userObj = JSON.parse(isLoggedIn);
+        // const userId=userObj.userId;
         // console.log(userId);
         try {
             
@@ -88,16 +84,226 @@ async function buttonCreation(){
     }
 }
 
-const watchlistPage = document.querySelector(".content-inner");
-const addListPage = document.querySelector(".add-collection-container");
-const collectionPage = document.querySelector(".collectionPage");
-// const collectionType = document.querySelectorAll(".collectionType");
-const createCollection = document.querySelector(".create-btn");
-const loadingScreen = document.getElementById('loadingScreen');
-const requestLogin = document.getElementById('requestLogin');
-const nothingInside = document.getElementById("nothingInside");
+function addSideBarEvent(){
+    document.querySelector('.sidebar').addEventListener('click', async function (e) {
+        const link = e.target.closest('.collectionType');
 
-async function updateContent(userId,collectionName){
+        if (!link) return;
+
+        watchlistPage.style.display = "none";
+        addListPage.style.display = "none";
+        collectionPage.style.display = "none";
+        editListPage.style.display = "none";
+        requestLogin.style.display = "none";
+        nothingInside.style.display = "none";
+        await loadingScreenPage();
+
+        let clickedText = link.textContent.trim();
+        currentCollectionName=clickedText;
+        let text = clickedText.toLowerCase().trim();
+        updatePageUrl(text);
+
+        console.log(isLoggedIn);
+        // let userObj;
+        // console.log(userObj);
+        if (userId) {
+            // userObj = JSON.parse(isLoggedIn);
+            updateContent(clickedText);
+        } else {
+            loadingScreen.style.display = 'none';
+            requestLogin.style.display = 'block';
+            console.log("No user is logged in.");
+        }
+
+        console.log("Displaying collection:", clickedText);
+    });
+}
+
+function addListButtonEvent(){
+    const createButton = document.getElementById("create-list-button");
+    createButton.addEventListener("click", async function(){
+        const collectionName = document.querySelector(".collection-name").value.trim();
+        const collectionDescription = document.querySelector(".collection-description").value.trim();
+        
+        if(collectionName.length==0){
+            alert("Please enter a collection name.")
+            return;
+        }
+        if(!checkDuplicateName(collectionName)){
+            alert("Collection existed. Please enter a different collection name.")
+            return;
+        }
+
+        await fetch('http://localhost:3000/createCollection', {
+        method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                collectionName,
+                collectionDescription
+            })
+        });
+
+        console.log(`${collectionName}  ${collectionDescription}`);
+        reloadAndNavigate(collectionName)
+        // await loadingScreenPage();
+
+    });
+}
+
+
+const nameTextAreas = document.querySelectorAll(".collection-name");
+const descriptionTextAreas = document.querySelectorAll(".collection-description");
+const nameCharCounts = document.querySelectorAll(".name-char-count");
+const descCharCounts = document.querySelectorAll(".desc-char-count");
+
+function editListButtonEvent(){
+    const nameTextArea = editListPage.querySelector(".collection-name");
+    const descriptionTextArea = editListPage.querySelector(".collection-description");
+    const nameCharCount = editListPage.querySelector(".name-char-count");
+    const descCharCount = editListPage.querySelector(".desc-char-count");
+    const infoText = document.getElementsByClassName("info-text");
+    const deleteCollectionButton = editListPage.querySelector(".delete-watchlist-btn");
+    const editButton=document.getElementById("edit-btn");
+    editButton.addEventListener("click", async function(){
+        collectionPage.style.display = "none";
+        // infoText.style.display = "none";
+        await loadingScreenPage();
+        loadingScreen.style.display="none";
+        editListPage.style.display = "flex";
+        nameTextArea.value=currentCollectionName;
+        descriptionTextArea.value=currentCollectionDescription;
+        nameCharCount.textContent=`${nameTextArea.value.length}/30`;
+        descCharCount.textContent=`${descriptionTextArea.value.length}/110`;
+        if(currentCollectionName=="Favourite"||currentCollectionName=="Watch Later"){
+            for (let i = 0; i < infoText.length; i++) {
+                infoText[i].style.display = "block";
+            }
+            nameTextArea.readOnly = true;
+            descriptionTextArea.readOnly = true;
+            deleteCollectionButton.style.display="none";
+            // deleteCollectionButtonEvent(deleteCollectionButton);
+        }else{
+            for (let i = 0; i < infoText.length; i++) {
+                infoText[i].style.display = "none";
+            }
+            nameTextArea.readOnly = false;
+            descriptionTextArea.readOnly = false;
+            deleteCollectionButton.style.display="block";
+            deleteCollectionButtonEvent(deleteCollectionButton);
+        }
+        updateMovieInEditPage();
+        const removeMovieButtons=editListPage.querySelectorAll(".remove-movie-btn");
+        removeMovieButtons.forEach(removeMovieButton => {
+            removeMovieButton.onclick = () => {
+                if(removeMovieButton.textContent=="Remove"){
+                    removeMovieButton.textContent="Removed";
+                }else{
+                    removeMovieButton.textContent="Remove";
+                }
+            }
+        });
+        // console.log(currentCollectionItem);
+    });
+}
+
+function deleteCollectionButtonEvent(deleteCollectionButton){
+    const deletionComfirmPage=document.querySelector(".deletionComfirmPage");
+    deleteCollectionButton.addEventListener('click', () => {
+        deletionComfirmPage.style.display="flex";
+        const buttonCancel=deletionComfirmPage.querySelector(".cancel-btn");
+        const buttonDelete=deletionComfirmPage.querySelector(".delete-btn");
+        buttonCancel.onclick = () => {
+            deletionComfirmPage.style.display = "none";
+        };
+
+        buttonDelete.onclick = async () => {
+            await collectionDeletion();
+        };
+    });
+}
+
+async function collectionDeletion(){
+    
+}
+
+function updateMovieInEditPage(){
+    const moviesListContainer = editListPage.querySelector(".movies-list-container");
+    moviesListContainer.innerHTML="";
+    if(currentCollectionItem && currentCollectionItem.length > 0){
+        currentCollectionItem.forEach(item => {
+            // console.log(item);
+            const movieItem=document.createElement("div");
+            movieItem.className="movie-item";
+
+            const movieInfo=document.createElement("div");
+            movieInfo.className="movie-info";
+
+            const buttonRemove=document.createElement("button");
+            buttonRemove.className="remove-movie-btn";
+            buttonRemove.textContent="Remove";
+
+            const moviePoster=document.createElement("img");
+            moviePoster.className="movie-poster";
+            moviePoster.src=item.infomation.image;
+            moviePoster.alt="Movie Poster";
+
+            const movieCard=document.createElement("div");
+
+            const movieName=document.createElement("p");
+            movieName.className="movie-name";
+            movieName.textContent=item.infomation.title;
+
+            movieCard.appendChild(movieName);
+            movieInfo.appendChild(moviePoster);
+            movieInfo.appendChild(movieCard);
+            movieItem.appendChild(movieInfo);
+            movieItem.appendChild(buttonRemove);
+            moviesListContainer.appendChild(movieItem);
+
+        });
+    }else{
+        const emptyMessage = document.createElement("div");
+        emptyMessage.className = "empty-movie-message";
+        emptyMessage.textContent = "Nothing inside yet.";
+        moviesListContainer.appendChild(emptyMessage);
+    }
+}
+
+function countingWordEvent(){
+
+    // nameTextArea.addEventListener('input', () => {
+    //     nameTextArea.value = nameTextArea.value.replace(/[\r\n]+/g, ' ');
+    //     nameCharCount.textContent = `${nameTextArea.value.length}/30`;
+    // });
+
+    // descriptionTextArea.addEventListener('input', () => {
+    //     descriptionTextArea.value = descriptionTextArea.value.replace(/[\r\n]+/g, ' ');
+    //     descCharCount.textContent = `${descriptionTextArea.value.length}/100`;
+    // });
+
+    nameTextAreas.forEach((textarea, i) => {
+        const counter = nameCharCounts[i];
+        if (!counter) return;
+
+        textarea.addEventListener('input', () => {
+            textarea.value = textarea.value.replace(/[\r\n]+/g, ' ');
+            counter.textContent = `${textarea.value.length}/30`;
+        });
+    });
+
+    descriptionTextAreas.forEach((textarea, i) => {
+        const counter = descCharCounts[i];
+        if (!counter) return;
+
+        textarea.addEventListener('input', () => {
+            textarea.value = textarea.value.replace(/[\r\n]+/g, ' ');
+            counter.textContent = `${textarea.value.length}/110`;
+        });
+    });
+}
+
+async function updateContent(collectionName){
     if(userId&&collectionName){
         
         try {
@@ -116,6 +322,9 @@ async function updateContent(userId,collectionName){
             console.log('Collection Name:', data.collectionName);
             console.log('Description:', data.description);
             console.log('Movies:');
+            console.log(data.items);
+            currentCollectionDescription=data.description;
+            currentCollectionItem=data.items;
             updateListItem(data);
             
 
@@ -147,26 +356,46 @@ function updateTitleAndDescription(title,description){
     collectionDescription.textContent=description;
 }
 
-function calculateAndUpdate(data){
-    const itemCount = document.querySelector(".analysis-card h2");
-    itemCount.textContent=data.movies.length;
+function calculateAndUpdate(typeCount){
+    const itemCount = document.querySelector("#itemCount");
+    const musicCount = document.querySelector("#musicCount");
+    const movieCount = document.querySelector("#movieCount");
+    const bookCount = document.querySelector("#bookCount");
+
+    const total = Object.values(typeCount).reduce((sum, val) => sum + val, 0);
+    itemCount.textContent=total;
+    musicCount.textContent=typeCount["music"] || 0;
+    movieCount.textContent=typeCount["movie"] || 0;
+    bookCount.textContent=typeCount["book"] || 0;
 }
 
 function updateListItem(data){
-    if(data.movies.length>0){
-        collectionPage.style.display='flex'
-        updateTitleAndDescription(data.collectionName,data.description);
-        calculateAndUpdate(data);
-        const movieGrid=document.querySelector(".collection-list .movie-grid");
-        const baseUrl = "https://image.tmdb.org/t/p/w342";
-        movieGrid.innerHTML = "";
-        data.movies.forEach(movie => {
+    collectionPage.style.display='flex'
+    updateTitleAndDescription(data.collectionName,data.description);
+    const movieGrid=document.querySelector(".collection-list .movie-grid");
+    movieGrid.innerHTML = "";
+    const analysisCard=collectionPage.querySelector(".analysis");
+    if(data.items.length>0){
+        analysisCard.style.display="flex";
+        // collectionPage.style.display='flex'
+        // updateTitleAndDescription(data.collectionName,data.description);
+        // const baseUrl = "https://image.tmdb.org/t/p/w342";
+        const typeCount={};
+        data.items.forEach(item => {
+            const type = item.type;
+            if (!typeCount[type]) {
+                typeCount[type] = 0;
+            }
+
+            // Increment the count
+            typeCount[type] += 1;
+
             const card=document.createElement("div");
-            card.className="movie-card";;
+            card.className="movie-card";
 
             const img=document.createElement("img");
-            img.src = `${baseUrl}${movie.poster_path}`;
-            img.alt = movie.title;
+            img.src = item.infomation.image;
+            img.alt = item.infomation.title;
 
             const infoDiv=document.createElement("div");
             infoDiv.className="info";
@@ -174,17 +403,17 @@ function updateListItem(data){
             const languageDiv=document.createElement("div");
             languageDiv.className="language";
             const releaseDate=document.createElement("p");
-            releaseDate.textContent=movie.release_date;
+            releaseDate.textContent=item.infomation.release_date;
             releaseDate.style.color="#C2D4ED";
             releaseDate.style.fontWeight="bold";
             const language=document.createElement("p");
-            language.textContent=movie.original_language.toUpperCase();
+            language.textContent=item.type.toUpperCase();
             language.style.color="#8CA2D1";
             language.style.fontWeight="bold";
             
             const titleDiv=document.createElement("div");
             titleDiv.className="title";
-            titleDiv.textContent=movie.title;
+            titleDiv.textContent=item.infomation.title;
 
             languageDiv.appendChild(releaseDate);
             languageDiv.appendChild(language);
@@ -194,7 +423,9 @@ function updateListItem(data){
             card.appendChild(infoDiv);
             movieGrid.appendChild(card);
         });
+        calculateAndUpdate(typeCount);
     }else {
+        analysisCard.style.display="none";
         nothingInside.style.display="block";
     }
 }
@@ -208,6 +439,7 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     watchlistPage.style.display="none";
     addListPage.style.display="none";
     collectionPage.style.display="none";
+    editListPage.style.display="none";
     requestLogin.style.display="none";
     nothingInside.style.display="none";
     await loadingScreenPage();
@@ -218,11 +450,11 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     updatePageUrl(text);
 
     console.log(isLoggedIn);
-    let userObj;
+    // let userObj;
     
-    if (isLoggedIn) {
-        userObj = JSON.parse(isLoggedIn);
-        addList(userObj.userId);
+    if (userId) {
+        // userObj = JSON.parse(isLoggedIn);
+        addList();
     } else {
         loadingScreen.style.display='none';
         requestLogin.style.display='block';
@@ -230,49 +462,19 @@ document.querySelector('.sidebar').addEventListener('click', async function (e) 
     } 
 
 });
-let createButtonEventAttached=false;
-function addList(userId){
+
+function addList(){
     addListPage.style.display="flex";
     loadingScreen.style.display='none';
+    nameTextAreas.forEach((textarea, i) => {
+        textarea.value = "";
+        if (nameCharCounts[i]) nameCharCounts[i].textContent = "0 / 30";
+    });
 
-    nameTextArea.value = "";
-    descriptionTextArea.value = "";
-    nameCharCount.textContent = "0/30";
-    descCharCount.textContent = "0/100";
-
-    const createButton = document.getElementById("create-list-button");
-    if(!createButtonEventAttached){
-        createButton.addEventListener("click", async function(){
-            const collectionName = document.getElementById("collection-name").value.trim();
-            const collectionDescription = document.getElementById("collection-description").value.trim();
-            
-            if(collectionName.length==0){
-                alert("Please enter a collection name.")
-                return;
-            }
-            if(!checkDuplicateName(collectionName)){
-                alert("Collection existed. Please enter a different collection name.")
-                return;
-            }
-
-            await fetch('http://localhost:3000/createCollection', {
-            method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    userId,
-                    collectionName,
-                    collectionDescription
-                })
-            });
-
-            console.log(`${collectionName}  ${collectionDescription}`);
-            reloadAndNavigate(collectionName)
-            // await loadingScreenPage();
-
-        });
-
-        createButtonEventAttached = true;
-    }
+    descriptionTextAreas.forEach((textarea, i) => {
+        textarea.value = "";
+        if (descCharCounts[i]) descCharCounts[i].textContent = "0 / 110";
+    });
 }
 
 function checkDuplicateName(collectionName){
@@ -299,17 +501,3 @@ async function reloadAndNavigate(collectionName){
         }
     }, 100);
 }
-
-const nameTextArea = document.getElementById("collection-name");
-const descriptionTextArea = document.getElementById("collection-description");
-const nameCharCount = document.getElementById("name-char-count");
-const descCharCount = document.getElementById("desc-char-count");
-
-nameTextArea.addEventListener('input', () => {
-    nameTextArea.value = nameTextArea.value.replace(/[\r\n]+/g, ' ');
-    nameCharCount.textContent = `${nameTextArea.value.length}/30`;
-});
-descriptionTextArea.addEventListener('input', () => {
-    descriptionTextArea.value = descriptionTextArea.value.replace(/[\r\n]+/g, ' ');
-    descCharCount.textContent = `${descriptionTextArea.value.length}/100`
-});
