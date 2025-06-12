@@ -533,6 +533,63 @@ app.delete('/editCollection', async (req, res) => {
     }
 });
 
+app.post('/addToCollection', async (req, res) => {
+    const { userId, collectionName, itemId, type } = req.query;
+
+    if (!userId || !collectionName || !itemId || !type) {
+        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    try {
+        let finalItemId = itemId;
+        if (type === 'book') {
+            try {
+                finalItemId = new ObjectId(itemId);
+            } catch (e) {
+                return res.status(400).json({ success: false, message: 'Invalid ObjectId for book type.' });
+            }
+        }
+
+        const filter = {
+            userId: new ObjectId(userId),
+            collectionName: collectionName
+        };
+
+        const collection = await db.collection('userCollection').findOne(filter);
+        if (!collection) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+        
+        const isDuplicate = collection.item.some(entry => 
+            entry.itemId?.toString() === finalItemId.toString()
+        );
+
+        if (isDuplicate) {
+            return res.status(400).json({ success: false, message: 'Item already exists in the collection.' });
+        }
+        const update = {
+            $push: {
+                item: {
+                    objId: new ObjectId(),
+                    itemId: finalItemId,
+                    type: type
+                }
+            }
+        };
+
+        const result = await db.collection('userCollection').updateOne(filter, update);
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+
+        res.json({ success: true, message: 'Item added successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error adding item.', error });
+    }
+});
+
 // GET /api/recommendation/:userId - Get personalized recommendations
 app.get('/api/recommendation/:userId', async (req, res) => {
     try {

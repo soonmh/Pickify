@@ -22,7 +22,16 @@ document.addEventListener("DOMContentLoaded", function(){
     addListButtonEvent();
     editListButtonEvent();
     countingWordEvent();
+    // testingFunction();
 })
+
+// function testingFunction(){
+//     const currentUserId = userId;
+//     const collectionName = 'Watch Later';
+//     const itemId = '3siw6WPG2jmb6xLleIe39c';
+//     const type = 'music';
+//     addItemFunction(currentUserId,collectionName,itemId,type);
+// }
 
 //Useless for now
 function getCollectionType(collection){
@@ -583,3 +592,34 @@ async function reloadAndNavigate(collectionName){
         }
     }, 100);
 }
+
+// async function addItemFunction(userId,collectionName,itemId,type){
+//     if (userId && collectionName && itemId && type) {
+//         try {
+//             const response = await fetch(
+//                 `http://localhost:3000/addToCollection?userId=${userId}&collectionName=${encodeURIComponent(collectionName)}&itemId=${encodeURIComponent(itemId)}&type=${encodeURIComponent(type)}`,
+//                 {
+//                     method: 'POST'
+//                 }
+//             );
+
+//             if (!response.ok) {
+//                 throw new Error(`Server responded with status ${response.status}`);
+//             }
+
+//             const data = await response.json();
+
+//             if (!response.ok) {
+//                 // Show detailed message from server
+//                 console.error('Server error:', data.message || 'Unknown error');
+//                 alert(`Failed to add: ${data.message || 'Unknown server error'}`);
+//                 return;
+//             }
+
+//             console.log('Add to Collection response:', data);
+
+//         } catch (error) {
+//             console.error('Error adding item to collection:', error);
+//         }
+//     }
+// }
