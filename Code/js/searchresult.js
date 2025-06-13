@@ -1,394 +1,39 @@
-const dummyData = [
-    {
-        id: 1,
-        title: "The Midnight Library",
-        type: "book",
-        genre: "fantasy",
-        rating: 4.8,
-        views: 12400,
-        image: "./assests/MidnightLibrary.png",
-        author: "Matt Haig",
-        year: 2020
-    },
-    {
-        id: 2,
-        title: "Inception",
-        type: "movie",
-        genre: "sci-fi",
-        rating: 4.9,
-        views: 15000000,
-        image: "./assests/Inception.png",
-        director: "Christopher Nolan",
-        year: 2010
-    },
-    {
-        id: 3,
-        title: "The Dark Knight",
-        type: "movie",
-        genre: "action",
-        rating: 4.9,
-        views: 1500000,
-        image: "./assests/TheDarkKnight.png",
-        director: "Christopher Nolan",
-        year: 2008
-    },
-    {
-    
-        id: 4,
-        title: "Interstellar",
-        type: "movie",
-        genre: "sci-fi",
-        rating: 4.7,
-        views: 1100000,
-        image: "./assests/Interstellar.png",
-        director: "Christopher Nolan",
-        year: 2014
-    },
-    {
-        id: 5,
-        title: "Fight Club",
-        type: "movie",
-        genre: "drama",
-        rating: 4.8,
-        views: 800000,
-        image: "./assests/FightClub.png",
-        director: "David Fincher",
-        year: 1999
-    },
-    {
-        id: 6,
-        title: "Pulp Fiction",
-        type: "movie",
-        genre: "crime",
-        rating: 4.6,
-        views: 900000,
-        image: "./assests/PulpFiction.png",
-        director: "Quentin Tarantino",
-        year: 1994
-    },
-    {
-        id: 7,
-        title: "Blinding Lights",
-        type: "music",
-        genre: "pop",
-        rating: 4.9,
-        views: 2000000,
-        image: "./assests/BlindingLights.png",
-        artist: "The Weeknd",
-        year: 2020
-    },
-    {
-        id: 8,
-        title: "Shape of You",
-        type: "music",
-        genre: "pop",
-        rating: 4.8,
-        views: 1800000,
-        image: "./assests/ShapeOfYou.png",
-        artist: "Ed Sheeran",
-        year: 2017
-    },
-    {
-        id: 9,
-        title: "Rolling in the Deep",
-        type: "music",
-        genre: "soul",
-        rating: 4.7,
-        views: 1500000,
-        image: "./assests/RollingInTheDeep.png",
-        artist: "Adele",
-        year: 2011
-    },
-    {
-        id: 10,
-        title: "Bohemian Rhapsody",
-        type: "music",
-        genre: "rock",
-        rating: 4.9,
-        views: 1900000,
-        image: "./assests/BohemianRhapsody.png",
-        artist: "Queen",
-        year: 1975
-    },
-    {
-        id: 11,
-        title: "Atomic Habits",
-        type: "book",
-        genre: "self-help",
-        rating: 4.8,
-        views: 600000,
-        image: "./assests/AtomicHabits.png",
-        author: "James Clear",
-        year: 2018
-    },
-    {
-        id: 12,
-        title: "The Alchemist",
-        type: "book",
-        genre: "fantasy",
-        rating: 4.9,
-        views: 700000,
-        image: "./assests/TheAlchemist.png",
-        author: "Paulo Coelho",
-        year: 1988
-    },
-    {
-        id: 13,
-        title: "1984",
-        type: "book",
-        genre: "dystopian",
-        rating: 4.8,
-        views: 650000,
-        image: "./assests/1984.png",
-        author: "George Orwell",
-        year: 1949
-    },
-    {
-        id: 14,
-        title: "The Matrix",
-        type: "movie",
-        genre: "action",
-        rating: 4.8,
-        views: 1000000,
-        image: "./assests/TheMatrix.png",
-        director: "George Orwell",
-        year: 1949
-    },
-    {
-        id: 15,
-        title: "Forrest Gump",
-        type: "movie",
-        genre: "dystopian",
-        rating: 4.9,
-        views: 1300000,
-        image: "./assests/ForrestGump.png",
-        director: "George Orwell",
-        year: 1949
-    },
-    {
-        id: 16,
-        title: "The Shawshank Redemption",
-        type: "movie",
-        genre: "drama",
-        rating: 4.9,
-        views: 1600000,
-        image: "./assests/ShawshankRedemption.png",
-        director: "Frank Darabont",
-        year: 1994
-    },
-    {
-        id: 17,
-        title: "The Godfather",
-        type: "movie",
-        genre: "drama",
-        rating: 4.9,
-        views: 1700000,
-        image: "./assests/TheGodfather.png",
-        director: "Frank Darabont",
-        year: 1994
-    },
-    {
-        id: 18,
-        title: "Avengers: Endgame",
-        type: "movie",
-        genre: "action",
-        rating: 4.7,
-        views: 2100000,
-        image: "./assests/movieposter.png",
-        director: "Frank Darabont",
-        year: 1994
-    },
-    {
-        id: 19,
-        title: "Someone Like You",
-        type: "music",
-        genre: "pop",
-        rating: 4.8,
-        views: 1600000,
-        image: "./assests/SomeoneLikeYou.png",
-        artist: "Adele",
-        year: 2017
-    },
-    {
-        id: 20,
-        title: "Let It Be",
-        type: "music",
-        genre: "pop",
-        rating: 4.8,
-        views: 1700000,
-        image: "./assests/LetItBe.png",
-        artist: "Frank Darabont",
-        year: 1994
-    },
-    {
-        id: 21,
-        title: "Bad Guy",
-        type: "music",
-        genre: "pop",
-        rating: 4.6,
-        views: 1400000,
-        image: "./assests/badguy.png",
-        artist: "Billie Eilish",
-        year: 2020
-    },
-    {
-        id: 22,
-        title: "Hotel California",
-        type: "music",
-        genre: "pop",
-        rating: 4.9,
-        views: 1900000,
-        image: "./assests/HotelCalifornia.png",
-        artist: "Hey",
-        year: 2020
-    },
-    {
-        id: 23,
-        title: "Hey Jude",
-        type: "music",
-        genre: "pop",
-        rating: 4.9,
-        views: 2000000,
-        image: "./assests/HeyJude.png",
-        artist: "Beatles",
-        year: 2020
-    },
-    {
-        id: 24,
-        title: "Stairway to Heaven",
-        type: "music",
-        genre: "hip-hop",
-        rating: 4.8,
-        views: 1800000,
-        image: "./assests/StairwayToHeaven.png",
-        artist: "Beatles",
-        year: 2020
-    },
-    {
-        id: 25,
-        title: "To Kill a Mockingbird",
-        type: "book",
-        genre: "self help",
-        rating: 4.8,
-        views: 800000,
-        image: "./assests/ToKillAMockingbird.png",
-        author: "123",
-        year: 2020
-    },
-    {
-        id: 26,
-        title: "The Great Gatsby",
-        type: "book",
-        genre: "classic",
-        rating: 4.8,
-        views: 550000,
-        image: "./assests/TheGreatGatsby.png",
-        author: "123",
-        year: 2020
-    },
-    {
-        id: 27,
-        title: "The Catcher in the Rye",
-        type: "book",
-        genre: "memoir",
-        rating: 4.8,
-        views: 1800000,
-        image: "./assests/TheCatcherInTheRye.png",
-        author: "123",
-        year: 2020
-    },
-    {
-        id: 28,
-        title: "Sapiens",
-        type: "book",
-        genre: "sci-fi",
-        rating: 4.8,
-        views: 500000,
-        image: "./assests/Sapiens.png",
-        author: "123",
-        year: 2020
-    },
-    {
-        id: 29,
-        title: "Harry Potter and the Philosopher's Stone",
-        type: "book",
-        genre: "non-fiction",
-        rating: 4.9,
-        views: 1000000,
-        image: "./assests/HarryPotter1.png",
-        author: "123",
-        year: 2020
-    },
-    {
-        id: 30,
-        title: "Pride and Prejudice",
-        type: "book",
-        genre: "classic",
-        rating: 4.8,
-        views: 750000,
-        image: "./assests/PrideAndPrejudice .png",
-        author: "123",
-        year: 2020
-    }
-];
+const API_BASE_URL = 'http://localhost:3000/api';
 
-
-// Dummy user watchlist data (this would come from the backend in a real implementation)
-const userWatchlist = [
-    {
-        id: 13,
-        title: "The Dark Knight",
-        type: "movie",
-        genre: "action"
-    },
-    {
-        id: 6,
-        title: "Kendrick Lamar - To Pimp a Butterfly",
-        type: "music",
-        genre: "hip-hop"
-    },
-    {
-        id: 15,
-        title: "The Silent Patient",
-        type: "book",
-        genre: "thriller"
-    }
-];
-
-// Genre options by entertainment type
+// Genre options by entertainment type - Updated to match your actual data
 const genresByType = {
     book: [
         {value: 'all', label: 'All Book Genres'},
-        {value: 'fantasy', label: 'Fantasy'},
-        {value: 'sci-fi', label: 'Science Fiction'},
-        {value: 'thriller', label: 'Thriller'},
-        {value: 'classic', label: 'Classic Literature'},
-        {value: 'memoir', label: 'Memoir'},
-        {value: 'non-fiction', label: 'Non-Fiction'},
-        {value: 'fiction', label: 'Fiction'},
-        {value: 'self-help', label: 'Self-Help'}
+        {value: 'Fiction', label: 'Fiction'},
+        {value: 'Economics', label: 'Economics'},
+        {value: 'Literary', label: 'Literary'},
+        {value: 'Self-help', label: 'Self-help'},
+        {value: 'Reference', label: 'Reference'},
+        {value: 'Other', label: 'Other'},
+        {value: 'Juvenile', label: 'Juvenile'},
+        {value: 'Dating', label: 'Dating'},
+        {value: 'Fantasy', label: 'Fantasy'},
+        {value: 'Romance', label: 'Romance'}
     ],
     movie: [
         {value: 'all', label: 'All Movie Genres'},
-        {value: 'action', label: 'Action'},
-        {value: 'sci-fi', label: 'Science Fiction'},
-        {value: 'drama', label: 'Drama'},
-        {value: 'thriller', label: 'Thriller'},
-        {value: 'animation', label: 'Animation'},
-        {value: 'comedy', label: 'Comedy'},
-        {value: 'horror', label: 'Horror'},
-        {value: 'romance', label: 'Romance'}
+        {value: 'Action', label: 'Action'},                    // Fixed: capitalized
+        {value: 'Science Fiction', label: 'Science Fiction'},  // Fixed: full name
+        {value: 'Drama', label: 'Drama'},                      // Fixed: capitalized
+        {value: 'Thriller', label: 'Thriller'},                // Fixed: capitalized
+        {value: 'Animation', label: 'Animation'},              // Fixed: capitalized
+        {value: 'Comedy', label: 'Comedy'},                    // Fixed: capitalized
+        {value: 'Horror', label: 'Horror'},                    // Fixed: capitalized
+        {value: 'Romance', label: 'Romance'}                   // Fixed: capitalized
     ],
     music: [
         {value: 'all', label: 'All Music Genres'},
-        {value: 'pop', label: 'Pop'},
-        {value: 'rock', label: 'Rock'},
-        {value: 'hip-hop', label: 'Hip-Hop'},
-        {value: 'r&b', label: 'R&B'},
-        {value: 'jazz', label: 'Jazz'},
-        {value: 'classical', label: 'Classical'},
-        {value: 'country', label: 'Country'},
-        {value: 'electronic', label: 'Electronic'}
+        {value: 'Pop', label: 'Pop'},
+        {value: 'Rock', label: 'Rock'},
+        {value: 'Hip hop', label: 'Hip-Hop'},                  // Fixed: actual value from your data
+        {value: 'Jazz', label: 'Jazz'},
+        {value: 'Classical', label: 'Classical'},
+        {value: 'Lofi', label: 'Lo-Fi'}
     ]
 };
 
@@ -408,7 +53,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const pagination = document.querySelector('.pagination');
     
     // State variables
-    let currentData = [...dummyData];
+    let currentData = [];
     let currentPage = 1;
     const itemsPerPage = 8;
     let currentFilters = {
@@ -417,21 +62,26 @@ document.addEventListener('DOMContentLoaded', function() {
         genre: 'all'
     };
     let currentSort = 'rating'; // Default sort
+    let totalResults = 0;
     
     // If there's a query parameter in the URL, set it as the search input value
     // and apply search immediately
     if (queryFromURL) {
         searchInput.value = queryFromURL;
-        currentFilters.search = queryFromURL.toLowerCase().trim();
+        currentFilters.search = queryFromURL;
         // Apply the search filter right away
-        applyFiltersAndSort();
-        initializeGenreDropdown()
+        fetchSearchResults();
+        initializeGenreDropdown();
     } else {
-        renderResults();
-        updateResultsCount();
-        renderPagination();
+        // Show initial state with a message
+        resultsContainer.innerHTML = `
+            <div class="col-12 text-center my-5">
+                <h4>Start searching for content</h4>
+                <p>Use the search bar above to find movies, music, and books</p>
+            </div>
+        `;
+        initializeGenreDropdown();
     }
-    
     
     // Initialize the genre dropdown (disabled by default)
     function initializeGenreDropdown() {
@@ -479,7 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentSort = this.getAttribute('data-sort');
             currentPage = 1;
-            applyFiltersAndSort();
+            fetchSearchResults();
         });
     });
     
@@ -516,9 +166,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Search handler
     function handleSearch() {
-        currentFilters.search = searchInput.value.toLowerCase().trim();
+        currentFilters.search = searchInput.value.trim();
         currentPage = 1;
-        applyFiltersAndSort();
+        fetchSearchResults();
     }
     
     // Filter handler
@@ -526,57 +176,87 @@ document.addEventListener('DOMContentLoaded', function() {
         currentFilters.type = typeFilter.value;
         currentFilters.genre = genreFilter.value;
         currentPage = 1;
-        applyFiltersAndSort();
+        fetchSearchResults();
     }
     
-    // Apply filters and sort
-    function applyFiltersAndSort() {
-        // Filter data
-        let filteredData = dummyData.filter(item => {
-            // Search filter
-            if (currentFilters.search && !item.title.toLowerCase().includes(currentFilters.search)) {
-                return false;
-            }
-            
-            // Type filter
-            if (currentFilters.type !== 'all' && item.type !== currentFilters.type) {
-                return false;
-            }
-            
-            // Genre filter (only apply if genre is not 'all' and we're filtering by a specific type)
-            if (currentFilters.type !== 'all' && currentFilters.genre !== 'all' && item.genre !== currentFilters.genre) {
-                return false;
-            }
-            
-            return true;
-        });
+    // Fetch search results from API
+    function fetchSearchResults() {
+        // Show loading state
+        resultsContainer.innerHTML = `
+            <div class="col-12 text-center my-5">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Loading results...</p>
+            </div>
+        `;
         
-        // Sort data
-        filteredData.sort((a, b) => {
-            if (currentSort === 'rating') {
-                return b.rating - a.rating;
-            } else if (currentSort === 'views') {
-                return b.views - a.views;
-            }
-            return 0;
-        });
+        // Build query parameters
+        const queryParams = new URLSearchParams();
         
-        currentData = filteredData;
-        renderResults();
-        updateResultsCount();
-        renderPagination();
+        // Add search term if present
+        if (currentFilters.search) {
+            queryParams.append('query', currentFilters.search);
+        }
+        
+        // Add type filter if not 'all'
+        if (currentFilters.type !== 'all') {
+            queryParams.append('type', currentFilters.type);
+        }
+        
+        // Add genre filter if not 'all' and a specific type is selected
+        if (currentFilters.type !== 'all' && currentFilters.genre !== 'all') {
+            queryParams.append('genre', currentFilters.genre);
+        }
+        
+        // Add sort parameter
+        queryParams.append('sort', currentSort);
+        
+        // Add pagination parameters
+        queryParams.append('page', currentPage);
+        queryParams.append('limit', itemsPerPage);
+        
+        // Debug: Log the query being sent
+        console.log('Search query params:', queryParams.toString());
+        
+        // Make the API call
+        fetch(`${API_BASE_URL}/search?${queryParams.toString()}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Update state with fetched data
+                    currentData = data.items;
+                    totalResults = data.total;
+                    
+                    // Render the results
+                    renderResults();
+                    updateResultsCount();
+                    renderPagination();
+                } else {
+                    throw new Error(data.error || 'Error fetching search results');
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching data:', error);
+                resultsContainer.innerHTML = `
+                    <div class="col-12 text-center my-5">
+                        <h4>Error loading results</h4>
+                        <p>Please try again later</p>
+                    </div>
+                `;
+            });
     }
     
-    // Render results
+    // Render results - Updated to show genre information
     function renderResults() {
         resultsContainer.innerHTML = '';
         
-        // Calculate pagination slicing
-        const startIndex = (currentPage - 1) * itemsPerPage;
-        const endIndex = startIndex + itemsPerPage;
-        const paginatedData = currentData.slice(startIndex, endIndex);
-        
-        if (paginatedData.length === 0) {
+        if (currentData.length === 0) {
             resultsContainer.innerHTML = `
                 <div class="col-12 text-center my-5">
                     <h4>No results found</h4>
@@ -586,20 +266,37 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        paginatedData.forEach(item => {
+        currentData.forEach(item => {
             const col = document.createElement('div');
             col.className = 'col';
             col.setAttribute('data-id', item.id);
             
+            // Determine additional info based on type
+            let additionalInfo = '';
+            if (item.type === 'book' && item.author) {
+                additionalInfo = `<div class="result-author">by ${item.author}</div>`;
+            } else if (item.type === 'movie' && item.director) {
+                additionalInfo = `<div class="result-director">by ${item.director}</div>`;
+            } else if (item.type === 'music' && item.artist) {
+                additionalInfo = `<div class="result-artist">by ${item.artist}</div>`;
+            }
+            
+            // Add genre display
+            const genreDisplay = item.genre && item.genre !== 'unknown' ? item.genre : 'No Genre';
+            
             col.innerHTML = `
                 <div class="result-card">
-                    <img src="${item.image}" class="result-img" alt="${item.title}">
+                    <img src="${item.image}" class="result-img" alt="${item.title}" onerror="this.src='./assests/placeholder.png'">
                     <div class="result-body">
                         <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
                         <h5 class="result-title">${item.title}</h5>
+                        ${additionalInfo}
+                        <div class="result-genre">
+                            <i class="fas fa-tag"></i> ${genreDisplay}
+                        </div>
                         <div class="result-meta">
                             <div class="result-rating">
-                                <i class="fas fa-star"></i> ${item.rating.toFixed(1)}
+                                <i class="fas fa-star"></i> ${typeof item.rating === 'number' ? item.rating.toFixed(1) : '0.0'}
                             </div>
                             <div class="result-views">
                                 <i class="fas fa-eye"></i> ${formatNumber(item.views)}
@@ -611,8 +308,19 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Add click event to each card
             col.addEventListener('click', () => {
-                // This will be replaced with actual navigation when backend is integrated
-                alert(`You clicked on ${item.title}. In the final version, this will navigate to the detail page.`);
+                // Navigate to detail page based on content type
+                let detailUrl;
+                if (item.type === 'movie') {
+                    detailUrl = `/movie-details.html?id=${item.tmdbId || item.id}`;
+                } else if (item.type === 'music') {
+                    detailUrl = `/music-details.html?id=${item.id}`;
+                } else if (item.type === 'book') {
+                    detailUrl = `/book-details.html?id=${item.id}`;
+                }
+                
+                if (detailUrl) {
+                    window.location.href = detailUrl;
+                }
             });
             
             resultsContainer.appendChild(col);
@@ -621,12 +329,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update results count
     function updateResultsCount() {
-        resultsNumberSpan.textContent = currentData.length;
+        resultsNumberSpan.textContent = totalResults;
     }
     
     // Render pagination
     function renderPagination() {
-        const pageCount = Math.ceil(currentData.length / itemsPerPage);
+        const pageCount = Math.ceil(totalResults / itemsPerPage);
         let paginationHTML = '';
         
         // Previous button
@@ -636,11 +344,55 @@ document.addEventListener('DOMContentLoaded', function() {
             </li>
         `;
         
+        // Page numbers (show maximum 5 page numbers)
+        const maxPages = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
+        let endPage = Math.min(pageCount, startPage + maxPages - 1);
+        
+        // Adjust startPage if we're near the end
+        if (endPage - startPage + 1 < maxPages) {
+            startPage = Math.max(1, endPage - maxPages + 1);
+        }
+        
+        // First page
+        if (startPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1">1</a>
+                </li>
+            `;
+            
+            if (startPage > 2) {
+                paginationHTML += `
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">...</a>
+                    </li>
+                `;
+            }
+        }
+        
         // Page numbers
-        for (let i = 1; i <= pageCount; i++) {
+        for (let i = startPage; i <= endPage; i++) {
             paginationHTML += `
                 <li class="page-item ${currentPage === i ? 'active' : ''}">
                     <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Last page
+        if (endPage < pageCount) {
+            if (endPage < pageCount - 1) {
+                paginationHTML += `
+                    <li class="page-item disabled">
+                        <a class="page-link" href="#">...</a>
+                    </li>
+                `;
+            }
+            
+            paginationHTML += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pageCount}">${pageCount}</a>
                 </li>
             `;
         }
@@ -658,11 +410,14 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.page-link').forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
+                if (this.parentElement.classList.contains('disabled')) {
+                    return;
+                }
+                
                 const pageNum = parseInt(this.getAttribute('data-page'));
                 if (pageNum >= 1 && pageNum <= pageCount) {
                     currentPage = pageNum;
-                    renderResults();
-                    renderPagination();
+                    fetchSearchResults();
                     // Scroll back to top of results
                     window.scrollTo({
                         top: document.querySelector('.search-container').offsetTop,
@@ -675,6 +430,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Helper function to format numbers (e.g., 12000 -> 12k)
     function formatNumber(num) {
+        if (!num) return '0';
+        
         if (num >= 1000000) {
             return (num / 1000000).toFixed(1) + 'M';
         }

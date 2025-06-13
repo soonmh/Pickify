@@ -26,7 +26,7 @@ const upload = multer({ storage: storage });
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth:{
-        user: process.env.EMAIL_NAME,
+        user: process.env.EMAIL_NAME,   
         pass: process.env.EMAIL_APP_PASSWORD
     }
 })
@@ -42,6 +42,32 @@ connectToDb((err) => {
         db = getDb()
     }
 })
+
+// Function to create indexes
+async function createIndexes() {
+    if (!db) {
+        console.error("Database connection not established. Cannot create indexes.");
+        return;
+    }
+
+    try {
+        const userCollection = db.collection('User');
+
+        await userCollection.createIndex({ email: 1 }, { unique: true });
+        console.log("Index on 'email' created/ensured.");
+
+        await userCollection.createIndex({ name: 1 }, { unique: true });
+        console.log("Index on 'name' created/ensured.");
+
+        // Important: sparse: true for googleId means it won't index documents without this field.
+        await userCollection.createIndex({ googleId: 1 }, { unique: true, sparse: true });
+        console.log("Index on 'googleId' created/ensured.");
+
+        console.log("All indexes created successfully!");
+    } catch (error) {
+        console.error("Error creating indexes:", error);
+    }
+}
 
 app.get('/User', (req, res) => {
     let users = []
@@ -62,16 +88,23 @@ app.post('/login', async (req, res) =>{
     const { username, password } = req.body;
 
     const user = await db.collection('User').findOne({
-        $or: [{ name: username }, { email: username }]
+        $or: [{ name: new RegExp(`^${username}$`, 'i') }, { email: new RegExp(`^${username}$`, 'i') }] // Case-insensitive for login
     });
 
     if (!user) {
         return res.status(404).json({ success: false, error: 'User not found' });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-        return res.status(401).json({ success: false, error: 'Incorrect password' });
+    // Handle password comparison only if the user has a password (i.e., not a Google-only user)
+    if (user.password) {
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: 'Incorrect password' });
+        }
+    } else {
+        // If the user has no password (e.g., Google user), and they are trying to log in with a password, it's an error.
+        // Or you might want to prompt them to use Google login.
+        return res.status(401).json({ success: false, error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
     res.status(200).json({ 
         success: true, 
@@ -84,34 +117,147 @@ app.post('/login', async (req, res) =>{
     });
 });
 
+// ✅ MODIFIED: app.post('/User') to handle Google users (no password) and enforce uniqueness
 app.post('/User', async (req, res) => {
-    const user = req.body
+    const user = req.body; // user will now contain { name, email, picture, googleId } OR { name, email, password }
 
-    const hashPassword = await bcrypt.hash(user.password, saltRounds);
-    user.password = hashPassword;
-
-    db.collection('User')
-    .insertOne(user)
-    .then(result => {
-        res.status(201).json({ success: true, userId: result.insertedId });
-    })
-    .catch(err => {
-        res.status(500).json({success: false, error: 'Failed to create user'})
-    })
-})
-
-app.post('/VerificationCode', async (req,res) => {
-    const {userEmail}=req.body;
-    const code=generateVerificationCode();
-    try{
-        await sendVerificationEmail(userEmail,code);
-        res.status(200).json({success: true, message: 'Email sent successfully'});
-    }catch (error){
-        console.error('Failed to send email:', error);
-        res.status(500).json({success: false, error: 'Failed to send email'});
+    // Server-side duplicate check for email (case-insensitive)
+    const existingEmailUser = await db.collection('User').findOne({ email: new RegExp(`^${user.email}$`, 'i') });
+    if (existingEmailUser) {
+        return res.status(409).json({ success: false, error: 'Email address already registered.' });
     }
 
-})
+    // Server-side duplicate check for username (case-insensitive)
+    const existingUsernameUser = await db.collection('User').findOne({ name: new RegExp(`^${user.name}$`, 'i') });
+    if (existingUsernameUser) {
+        return res.status(409).json({ success: false, error: 'Username already taken.' });
+    }
+
+    // Hash password only if provided (for traditional signup)
+    if (user.password) {
+        const hashPassword = await bcrypt.hash(user.password, saltRounds);
+        user.password = hashPassword;
+    } else {
+        // If no password, ensure it's explicitly null or undefined, not stored as an empty string.
+        user.password = null; // Mark as null for Google users
+    }
+
+    try {
+        const result = await db.collection('User')
+            .insertOne(user);
+        res.status(201).json({ success: true, userId: result.insertedId });
+    } catch (err) {
+        console.error("Database insertion error:", err);
+        // Catch E11000 duplicate key error if unique index is violated (as a fallback)
+        if (err.code === 11000) {
+            if (err.keyPattern.email) {
+                return res.status(409).json({ success: false, error: 'Email address already registered.' });
+            }
+            if (err.keyPattern.name) {
+                return res.status(409).json({ success: false, error: 'Username already taken.' });
+            }
+        }
+        res.status(500).json({success: false, error: 'Failed to create user'})
+    }
+});
+
+// ✅ NEW ENDPOINT: Handle Google Login (if user already exists via Google)
+app.post('/googleLogin', async (req, res) => {
+    const { email, googleId } = req.body;
+
+    try {
+        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i'), googleId: googleId });
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'Google user not found. Please register.' });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Google login successful',
+            user: {
+                userId: user._id,
+                email: user.email,
+                name: user.name,
+                picture: user.picture // Include picture if you store it
+            }
+        });
+    } catch (err) {
+        console.error('Error in Google login:', err);
+        res.status(500).json({ success: false, error: 'Server error during Google login.' });
+    }
+});
+
+app.get('/checkEmailAvailability', async (req, res) => {
+    const { email } = req.query;
+    if (!email) {
+        return res.status(400).json({ error: 'Email parameter is required.' });
+    }
+    try {
+        const existingUser = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') }); // Case-insensitive check
+        res.status(200).json({ isAvailable: !existingUser });
+    } catch (err) {
+        console.error('Error checking email availability:', err);
+        res.status(500).json({ error: 'Server error checking email availability.' });
+    }
+});
+
+// New endpoint to check username availability
+app.get('/checkUsernameAvailability', async (req, res) => {
+    const { username } = req.query;
+    if (!username) {
+        return res.status(400).json({ error: 'Username parameter is required.' });
+    }
+    try {
+        const existingUser = await db.collection('User').findOne({ name: new RegExp(`^${username}$`, 'i') }); // Case-insensitive check
+        res.status(200).json({ isAvailable: !existingUser });
+    } catch (err) {
+        console.error('Error checking username availability:', err);
+        res.status(500).json({ error: 'Server error checking username availability.' });
+    }
+});
+
+const verificationCodes = {}; 
+
+app.post('/VerificationCode', async (req, res) => {
+    const { userEmail } = req.body;
+    const code = generateVerificationCode();
+    const expiry = new Date(Date.now() + 10 * 60 * 1000); // Code expires in 10 minutes
+
+    verificationCodes[userEmail] = { code, expiry };
+    console.log(`Generated code for ${userEmail}: ${code}`);
+
+    try {
+        await sendVerificationEmail(userEmail, code);
+        res.status(200).json({ success: true, message: 'Email sent successfully' });
+    } catch (error) {
+        console.error('Failed to send email:', error);
+        res.status(500).json({ success: false, error: 'Failed to send email' });
+    }
+});
+
+app.post('/verifyCode', async (req, res) => {
+    const { email, code } = req.body;
+    const storedCodeData = verificationCodes[email];
+
+    if (!storedCodeData) {
+        return res.status(400).json({ success: false, error: 'No verification code found for this email. Please request a new one.' });
+    }
+
+    if (storedCodeData.expiry < new Date()) {
+        delete verificationCodes[email]; // Remove expired code
+        return res.status(400).json({ success: false, error: 'Verification code has expired. Please request a new one.' });
+    }
+
+    if (storedCodeData.code !== code) {
+        return res.status(400).json({ success: false, error: 'Invalid verification code.' });
+    }
+
+    // Code is valid and not expired, delete it after successful verification
+    delete verificationCodes[email];
+    res.status(200).json({ success: true, message: 'Email verified successfully!' });
+});
+
 
 function generateVerificationCode(){
     return Math.floor(100000 + Math.random() * 900000).toString();
@@ -217,21 +363,97 @@ app.get('/userCollection', async (req, res) => {
             },
             { projection: { item: 1, collectionName: 1, description: 1 } }
         );
-        if (!collection) {
-            return res.status(404).json({ error: 'Collection not found' });
+        if (!collection || !collection.item) {
+            return res.status(404).json({ error: 'Collection not found or empty' });
         }
 
         // const movieIds = collection.item.map(id => parseInt(id));
         // console.log(collection.item);
 
-        const movieDetails = await db.collection('Movie')
-        .find({tmdbId: {$in: collection.item}})
-        .toArray();
-        // console.log(movieDetails);
+        const enrichedItems = [];
+
+        for (const entry of collection.item) {
+            let data = null;
+            // const itemId = typeof entry.itemId === 'string' ? entry.itemId : entry.itemId.toString();
+
+            if (entry.type === 'movie') {
+                data = await db.collection('Movie')
+                .findOne({ tmdbId: parseInt(entry.itemId) },
+                    {
+                        projection: {
+                            title: 1,
+                            poster_path: 1,
+                            release_date: 1,
+                            original_language: 1
+                        }
+                    }
+                );
+                const baseUrl = "https://image.tmdb.org/t/p/w342";
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: `${baseUrl}${data.poster_path}`,
+                        release_date: data.release_date,
+                        info: data.original_language
+                    };
+                }
+            } else if (entry.type === 'book') {
+                data = await db.collection('books')
+                .findOne({ _id: entry.itemId },
+                    {
+                        projection: {
+                            title: 1,
+                            image: 1,
+                            year: 1,
+                            author: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.title,
+                        image: data.image,
+                        release_date: data.year,
+                        info: data.author
+                    };
+                }
+            } else if (entry.type === 'music') {
+                data = await db.collection('Music')
+                .findOne({ id: entry.itemId },
+                    {
+                        projection: {
+                            name: 1,
+                            poster_url: 1,
+                            release: 1,
+                            duration_seconds: 1
+                        }
+                    }
+                );
+                if (data) {
+                    data = {
+                        title: data.name,
+                        image: data.poster_url,
+                        release_date: data.release,
+                        info: `${data.duration_seconds}s`
+                    };
+                }
+            }
+            // console.log(entry.itemId);
+            // console.log(data);
+
+            if (data) {
+                enrichedItems.push({
+                    type: entry.type,
+                    objId: entry.objId,
+                    infomation: data
+                });
+            }
+        }
+
         res.status(200).json({
             collectionName: collection.collectionName,
             description: collection.description,
-            movies: movieDetails
+            items: enrichedItems
         });
 
     } catch (err) {
@@ -252,6 +474,133 @@ app.post('/createCollection', async (req, res) => {
 
     await db.collection('userCollection').insertOne(collection);
     res.json({ success: true });
+});
+
+app.delete('/deleteCollection', async (req, res) => {
+    const { userId, currentCollectionName } = req.query;
+    // console.log(userId);
+    // console.log(currentCollectionName);
+    try {
+        const result = await db.collection('userCollection').deleteOne({
+            userId: new ObjectId(userId),
+            collectionName: currentCollectionName
+        });
+
+        if (result.deletedCount === 1) {
+            res.json({ success: true, message: 'Collection deleted successfully.' });
+        } else {
+            res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error deleting collection.', error });
+    }
+});
+
+app.delete('/editCollection', async (req, res) => {
+    const { userId, currentCollectionName, nameTextAreaValue, descriptionTextAreaValue, listToRemove} = req.query;
+    // console.log(userId);
+    // console.log(currentCollectionName);
+    try {
+        const objectIdArray = JSON.parse(listToRemove).map(id => new ObjectId(id));
+        // console.log(parsedListToRemove)
+        let filter = {
+            userId: new ObjectId(userId),
+            collectionName: currentCollectionName
+        };
+
+        const updateOps = {
+            $set: {
+                collectionName: nameTextAreaValue,
+                description: descriptionTextAreaValue
+            }
+        };
+
+        const updateResult = await db.collection('userCollection').updateOne(filter, updateOps);
+
+        if (updateResult.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+
+        filter = {
+            userId: new ObjectId(userId),
+            collectionName: nameTextAreaValue
+        };
+
+        if (Array.isArray(objectIdArray) && objectIdArray.length > 0) {
+            // console.log(objectIdArray)
+            await db.collection('userCollection').updateOne(
+                filter,
+                {
+                    $pull: {
+                        item: {
+                            objId: { $in: objectIdArray }
+                        }
+                    }
+                }
+            );
+        }
+
+        res.json({ success: true, message: 'Collection updated successfully.' });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Error editing collection.', error });
+    }
+});
+
+app.post('/addToCollection', async (req, res) => {
+    const { userId, collectionName, itemId, type } = req.query;
+
+    if (!userId || !collectionName || !itemId || !type) {
+        return res.status(400).json({ success: false, message: 'Missing required fields.' });
+    }
+
+    try {
+        let finalItemId = itemId;
+        if (type === 'book') {
+            try {
+                finalItemId = new ObjectId(itemId);
+            } catch (e) {
+                return res.status(400).json({ success: false, message: 'Invalid ObjectId for book type.' });
+            }
+        }
+
+        const filter = {
+            userId: new ObjectId(userId),
+            collectionName: collectionName
+        };
+
+        const collection = await db.collection('userCollection').findOne(filter);
+        if (!collection) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+        
+        const isDuplicate = collection.item.some(entry => 
+            entry.itemId?.toString() === finalItemId.toString()
+        );
+
+        if (isDuplicate) {
+            return res.status(400).json({ success: false, message: 'Item already exists in the collection.' });
+        }
+        const update = {
+            $push: {
+                item: {
+                    objId: new ObjectId(),
+                    itemId: finalItemId,
+                    type: type
+                }
+            }
+        };
+
+        const result = await db.collection('userCollection').updateOne(filter, update);
+
+        if (result.matchedCount === 0) {
+            return res.status(404).json({ success: false, message: 'Collection not found.' });
+        }
+
+        res.json({ success: true, message: 'Item added successfully.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error adding item.', error });
+    }
 });
 
 // GET /api/recommendation/:userId - Get personalized recommendations
@@ -470,6 +819,9 @@ app.get('/api/movies/top', async (req, res) => {
                 vote_count: 1,
                 genres: 1,
                 release_date: 1,
+                director : 1,
+                duration : 1,
+                runtime : 1,
                 overview: 1
             })
             .toArray();
@@ -562,59 +914,6 @@ app.get('/api/books/top', async (req, res) => {
         return res.status(500).json({
             success: false,
             error: 'Failed to fetch top books'
-        });
-    }
-});
-
-// GET /api/movies/search/:query - Search movies
-app.get('/api/movies/search/:query', async (req, res) => {
-    try {
-        const { query } = req.params;
-        const limit = Math.min(parseInt(req.query.limit) || 20, 100);
-        
-        if (!query || query.trim().length < 2) {
-            return res.status(400).json({
-                success: false,
-                error: 'Query must be at least 2 characters long'
-            });
-        }
-        
-        const searchRegex = new RegExp(query.trim(), 'i');
-        const movies = await db.collection('Movie')
-            .find({
-                $or: [
-                    { title: searchRegex },
-                    { overview: searchRegex },
-                    { 'genres.name': searchRegex }
-                ]
-            })
-            .sort({ popularity: -1 })
-            .limit(limit)
-            .project({
-                tmdbId: 1,
-                title: 1,
-                poster_path: 1,
-                vote_average: 1,
-                popularity: 1,
-                vote_count: 1,
-                genres: 1,
-                release_date: 1,
-                overview: 1
-            })
-            .toArray();
-        
-        console.log(`🔍 Found ${movies.length} movies for "${query}"`);
-        res.status(200).json({
-            success: true,
-            query: query,
-            count: movies.length,
-            data: movies
-        });
-    } catch (error) {
-        console.error('Error searching movies:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Search failed'
         });
     }
 });
@@ -977,5 +1276,383 @@ app.post('/user/getPassword', async (req, res) => {
         console.error('Error in /user/getPassword:', err);
         // Send a more generic error message to the client for security
         res.status(500).json({success: false, error: 'Server error during password verification.'});
+    }
+});
+
+// Enhanced search API with better debugging - replace your existing search API
+app.get('/api/search', async (req, res) => {
+    try {
+        const { query, type, genre, sort = 'rating', page = 1, limit = 8 } = req.query;
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+        
+        console.log(`[${new Date().toISOString()}] 🔍 Search Request:`);
+        console.log(`  Query: "${query}"`);
+        console.log(`  Type: ${type}`);
+        console.log(`  Genre: ${genre}`);
+        console.log(`  Sort: ${sort}`);
+        console.log(`  Page: ${pageNum}, Limit: ${limitNum}`);
+        
+        // Initialize results array and total count
+        let results = [];
+        let total = 0;
+        
+        // Define sort options
+        const sortOptions = {
+            rating: { 'vote_average': -1, 'rating': -1 },
+            views: { 'popularity': -1, 'views': -1 }
+        };
+        
+        // Build base filters
+        const buildFilter = (queryText, contentType, genreFilter) => {
+            const filter = {};
+            
+            // Add title search if query provided
+            if (queryText && queryText.trim() !== '') {
+                // Create case-insensitive regex for title search
+                const titleRegex = new RegExp(queryText, 'i');
+                
+                // For movies
+                if (contentType === 'all' || contentType === 'movie') {
+                    filter.title = titleRegex;
+                }
+                // For music
+                else if (contentType === 'music') {
+                    filter.name = titleRegex;
+                }
+                // For books
+                else if (contentType === 'book') {
+                    filter.title = titleRegex;
+                }
+            }
+            
+            // Add genre filter if provided and not 'all'
+            if (genreFilter && genreFilter !== 'all') {
+                if (contentType === 'movie') {
+                    // Use dot notation to filter on nested genre name in the array
+                    filter['genres.name'] = genreFilter;
+                    console.log(`  Movie genre filter: genres.name = "${genreFilter}"`);
+                } else {
+                    filter.genre = genreFilter;
+                    console.log(`  ${contentType} genre filter: genre = "${genreFilter}"`);
+                }
+            }
+            
+            return filter;
+        };
+        
+        // 1. Search based on content type
+        if (type === 'all' || !type) {
+            // Search in all collections
+            
+            // 1a. Search movies
+            const movieFilter = buildFilter(query, 'movie', genre);
+            console.log(`  Movie filter:`, JSON.stringify(movieFilter));
+            
+            const movies = await db.collection('Movie')
+                .find(movieFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${movies.length} movies`);
+                
+            // Transform movie data to match our unified format
+            const formattedMovies = movies.map(movie => {
+                // Extract primary genre (first in the list) or default to 'unknown'
+                const primaryGenre = movie.genres && movie.genres.length > 0 && movie.genres[0].name 
+                    ? movie.genres[0].name 
+                    : 'unknown';
+                    
+                // Get all genre names for display in details if needed
+                const allGenres = movie.genres 
+                    ? movie.genres.map(g => g.name).join(', ')
+                    : 'unknown';
+                
+                return {
+                    id: movie._id,
+                    tmdbId: movie.tmdbId,
+                    title: movie.title,
+                    type: 'movie',
+                    genre: primaryGenre,
+                    allGenres: allGenres,
+                    rating: movie.vote_average/2 || 0,
+                    views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)) || 0,
+                    image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png',
+                    director: movie.director || 'Unknown',
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+                    overview: movie.overview,
+                    lastUpdated: movie.lastUpdated,
+                    updatedBy: movie.updatedBy
+                };
+            });
+            
+            // 1b. Search music
+            const musicFilter = buildFilter(query, 'music', genre);
+            console.log(`  Music filter:`, JSON.stringify(musicFilter));
+            
+            const music = await db.collection('Music')
+                .find(musicFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${music.length} music tracks`);
+                
+            // Transform music data
+            const formattedMusic = music.map(track => ({
+                id: track._id,
+                title: track.name,
+                type: 'music',
+                genre: track.genre || 'unknown',
+                rating: track.popularity ? track.popularity / 20 : 4.5, // Convert popularity to 5-star scale
+                views: track.popularity * 10000 || 1000, // Create views from popularity
+                image: track.poster_url || './assests/musicposter.png',
+                artist: track.artists ? track.artists.join(', ') : 'Unknown',
+                year: track.release ? new Date(track.release).getFullYear() : 'Unknown'
+            }));
+            
+            // 1c. Search books
+            const bookFilter = buildFilter(query, 'book', genre);
+            console.log(`  Book filter:`, JSON.stringify(bookFilter));
+            
+            const books = await db.collection('books')
+                .find(bookFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${books.length} books`);
+                
+            // Transform book data
+            const formattedBooks = books.map(book => ({
+                id: book._id,
+                title: book.title,
+                type: 'book',
+                genre: book.genre || 'unknown',
+                rating: book.rating || 4.5,
+                views: book.views || 5000,
+                image: book.image ,
+                author: book.author || 'Unknown',
+                year: book.year || 'Unknown',
+                description: book.description
+            }));
+            
+            // Combine all results
+            results = [...formattedMovies, ...formattedMusic, ...formattedBooks];
+            
+        } else if (type === 'movie') {
+            // Search only in movies
+            const movieFilter = buildFilter(query, 'movie', genre);
+            console.log(`  Movie-only filter:`, JSON.stringify(movieFilter));
+            
+            const movies = await db.collection('Movie')
+                .find(movieFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${movies.length} movies`);
+                
+            results = movies.map(movie => {
+                // Extract primary genre (first in the list) or default to 'unknown'
+                const primaryGenre = movie.genres && movie.genres.length > 0 && movie.genres[0].name 
+                    ? movie.genres[0].name 
+                    : 'unknown';
+                    
+                // Get all genre names for display in details if needed
+                const allGenres = movie.genres 
+                    ? movie.genres.map(g => g.name).join(', ')
+                    : 'unknown';
+                
+                return {
+                    id: movie._id,
+                    tmdbId: movie.tmdbId,
+                    title: movie.title,
+                    type: 'movie',
+                    genre: primaryGenre,
+                    allGenres: allGenres,
+                    rating: movie.vote_average/2 || 0,
+                    views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)) || 0,
+                    image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png',
+                    director: movie.director || 'Unknown',
+                    year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+                    overview: movie.overview,
+                    lastUpdated: movie.lastUpdated,
+                    updatedBy: movie.updatedBy
+                };
+            });
+            
+        } else if (type === 'music') {
+            // Search only in music
+            const musicFilter = buildFilter(query, 'music', genre);
+            console.log(`  Music-only filter:`, JSON.stringify(musicFilter));
+            
+            const music = await db.collection('Music')
+                .find(musicFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${music.length} music tracks`);
+                
+            results = music.map(track => ({
+                id: track._id,
+                title: track.name,
+                type: 'music',
+                genre: track.genre || 'unknown',
+                rating: track.popularity ? track.popularity / 20 : 4.5,
+                views: track.popularity * 10000 || 1000,
+                image: track.poster_url || './assests/musicposter.png',
+                artist: track.artists ? track.artists.join(', ') : 'Unknown',
+                year: track.release ? new Date(track.release).getFullYear() : 'Unknown'
+            }));
+            
+        } else if (type === 'book') {
+            // Search only in books
+            const bookFilter = buildFilter(query, 'book', genre);
+            console.log(`  Book-only filter:`, JSON.stringify(bookFilter));
+            
+            const books = await db.collection('books')
+                .find(bookFilter)
+                .sort(sortOptions[sort])
+                .toArray();
+                
+            console.log(`  Found ${books.length} books`);
+                
+            results = books.map(book => ({
+                id: book._id,
+                title: book.title,
+                type: 'book',
+                genre: book.genre || 'unknown',
+                rating: book.rating || 4.5,
+                views: book.views || 5000,
+                image: book.image || './assests/bookposter.png',
+                author: book.author || 'Unknown',
+                year: book.year || 'Unknown',
+                description: book.description
+            }));
+        }
+        
+        // Sort combined results
+        if (sort === 'rating') {
+            results.sort((a, b) => b.rating - a.rating);
+        } else if (sort === 'views') {
+            results.sort((a, b) => b.views - a.views);
+        }
+        
+        // Get total count
+        total = results.length;
+        
+        // Apply pagination after sorting
+        const paginatedResults = results.slice(skip, skip + limitNum);
+        
+        console.log(`[${new Date().toISOString()}] ✅ Search completed:`);
+        console.log(`  Total results: ${total}`);
+        console.log(`  Returned: ${paginatedResults.length} items (page ${pageNum})`);
+        console.log(`  Sample genres:`, paginatedResults.slice(0, 3).map(r => `${r.title}: ${r.genre}`));
+        
+        return res.status(200).json({
+            success: true,
+            total: total,
+            items: paginatedResults,
+            page: pageNum,
+            pages: Math.ceil(total / limitNum)
+        });
+        
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] ❌ Search error:`, error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to search content'
+        });
+    }
+});
+
+function formatViews(views) {
+        if (typeof views === 'string') {
+            return views;
+        }
+        if (views >= 1000000) {
+            return (views / 1000000).toFixed(1) + 'M';
+        }
+        if (views >= 1000) {
+            return (views / 1000).toFixed(1) + 'K';
+        }
+        return views.toString();
+    }
+
+// GET /api/autocomplete - Endpoint for search suggestions
+app.get('/api/autocomplete', async (req, res) => {
+    try {
+        const { query } = req.query;
+        const limit = 6; // Limit to 6 suggestions
+        
+        if (!query || query.trim() === '') {
+            return res.json({ suggestions: [] });
+        }
+        
+        console.log(`🔍 Getting autocomplete suggestions for "${query}"`);
+        
+        // Create case-insensitive regex for search
+        const searchRegex = new RegExp(query, 'i');
+        
+        // Search in all collections concurrently
+        const [movies, music, books] = await Promise.all([
+            // Search movies by title
+            db.collection('Movie')
+                .find({ title: searchRegex })
+                .limit(limit)
+                .project({ title: 1, poster_path: 1, vote_average: 1 })
+                .toArray(),
+                
+            // Search music by name
+            db.collection('Music')
+                .find({ name: searchRegex })
+                .limit(limit)
+                .project({ name: 1, artists: 1, poster_url: 1 })
+                .toArray(),
+                
+            // Search books by title
+            db.collection('books')
+                .find({ title: searchRegex })
+                .limit(limit)
+                .project({ title: 1, author: 1, image: 1 })
+                .toArray()
+        ]);
+        
+        // Format results to a common structure
+        const movieSuggestions = movies.map(movie => ({
+            id: movie._id,
+            title: movie.title,
+            type: 'movie',
+            image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : './assests/movieposter.png'
+        }));
+        
+        const musicSuggestions = music.map(track => ({
+            id: track._id,
+            title: track.name,
+            type: 'music',
+            image: track.poster_url || './assests/musicposter.png'
+        }));
+        
+        const bookSuggestions = books.map(book => ({
+            id: book._id,
+            title: book.title,
+            type: 'book',
+            image: book.image || './assests/bookposter.png'
+        }));
+        
+        // Combine and limit results
+        const allSuggestions = [...movieSuggestions, ...musicSuggestions, ...bookSuggestions]
+            .sort((a, b) => a.title.localeCompare(b.title))
+            .slice(0, limit);
+            
+        console.log(`✅ Found ${allSuggestions.length} suggestions`);
+        
+        res.json({ suggestions: allSuggestions });
+        
+    } catch (error) {
+        console.error('❌ Autocomplete error:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to get suggestions'
+        });
     }
 });

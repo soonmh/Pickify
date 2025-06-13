@@ -13,15 +13,15 @@
 
     <style>
         .error-message {
-        color: #e53e3e;
-        font-size: 12px;
-        margin-top: -20px;
-        margin-bottom: 15px;
-        display: none;
+            color: #e53e3e;
+            font-size: 12px;
+            margin-top: -20px;
+            margin-bottom: 15px;
+            display: none;
         }
 
         .password-field {
-        margin-bottom: 0px;
+            margin-bottom: 0px;
         }
     </style>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -77,18 +77,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
 
                 <div class="g_id_signin"
-                    data-type="icon"
-                    data-shape="circle"
-                    data-theme="filled_black"
-                    data-size="large">  
+                    data-type="standard"           
+                    data-size="large"              
+                    data-theme="outline"           
+                    data-text="signin_with"        
+                    data-shape="rectangular"       
+                    data-logo_alignment="left"     
+                    data-width="300"               
+                    data-locale="en">              
                 </div>
 
             </div>
             <p>If you don't have an account, <a href="signup.html">Register here!</a></p>
         </div>
     </div>
-     <!-- Username Prompt Modal -->
-  <div id="username-modal" class="auth-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; max-width: 400px;">
+     <div id="username-modal" class="auth-card" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; max-width: 400px;">
     <h2 style="text-align: center; font-size: 22px;">Choose a Username</h2>
     <input type="text" id="new-username" placeholder="Enter a username" required />
     <div id="username-modal-error" style="color: red; font-size: 14px; margin-top: 10px; display: none;">Username already taken</div>
@@ -146,24 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             const result = await response.json();
 
-            // const matchedUser = users.find(user =>
-            //     (user.name && user.name === inputUsername) ||
-            //     (user.email && user.email === inputUsername)
-            // );
-
-            // if (!matchedUser) {
-            //     document.getElementById('username-error').textContent = "User not found";
-            //     document.getElementById('username-error').style.display = 'block';
-            //     return;
-            // }
-
-            // const passwordIsMatch = await bcrypt.compare(inputPassword,matchedUser.password);
-            // if (!passwordIsMatch) {
-            //     document.getElementById('password-error').textContent = "Incorrect password";
-            //     document.getElementById('password-error').style.display = 'block';
-            //     return;
-            // }
-
             if(!result.success){
                 if (result.error === "User not found") {
                     document.getElementById('username-error').textContent = result.error;
@@ -176,7 +161,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Session-based login
-            // console.log(result.user)
             sessionStorage.setItem('loggedInUser', JSON.stringify(result.user));
 
             // Optional: persistent login
@@ -205,29 +189,51 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleGoogleCredential(response) {
         const token = response.credential;
         const payload = JSON.parse(atob(token.split('.')[1]));
-        googlePayload = payload;
+        googlePayload = payload; // Store the payload globally
 
         try {
-            const res = await fetch('http://localhost:3000/User');
-            const users = await res.json();
+            // Check if the user already exists using the dedicated email availability endpoint
+            const checkEmailRes = await fetch(`http://localhost:3000/checkEmailAvailability?email=${encodeURIComponent(payload.email)}`);
+            const checkEmailData = await checkEmailRes.json();
 
-            const existingUser = users.find(u => u.Email === payload.email);
+            if (!checkEmailData.isAvailable) { // If email is NOT available, it means user exists
+                // Fetch the existing user's full data (assuming your /login endpoint can handle email)
+                // Or create a new endpoint /getUserByEmail for better practice
+                // For simplicity, let's assume `db.collection('User').findOne({ email: ... })` is sufficient.
+                const userLoginRes = await fetch('http://localhost:3000/googleLogin', { // Creating a new endpoint for googleLogin for proper handling
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: payload.email, googleId: payload.sub })
+                });
 
-            if (existingUser) {
-                sessionStorage.setItem('loggedInUser', JSON.stringify(existingUser));
-                localStorage.setItem('loggedInUser', JSON.stringify(existingUser));
-                window.location.href = existingUser.Email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+                if (!userLoginRes.ok) {
+                    throw new Error('Failed to log in Google user.');
+                }
+                const existingUser = await userLoginRes.json();
+
+                if (existingUser.user) {
+                    sessionStorage.setItem('loggedInUser', JSON.stringify(existingUser.user));
+                    localStorage.setItem('loggedInUser', JSON.stringify(existingUser.user)); // Remember me for Google login
+                    window.location.href = existingUser.user.email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+                } else {
+                    // This case should ideally not be hit if email exists, but good for debugging
+                    console.error("Existing user data not returned after google login.");
+                }
             } else {
+                // If email is available, prompt for username for a new Google user
                 document.getElementById('username-modal').style.display = 'block';
             }
         } catch (error) {
             console.error("Google Sign-In failed:", error);
+            alert("Google Sign-In error. Please try again.");
         }
     }
 
     async function submitNewUser() {
         const username = document.getElementById('new-username').value.trim();
         const errorBox = document.getElementById('username-modal-error');
+
+        errorBox.style.display = 'none'; // Hide previous error
 
         if (!username) {
             errorBox.textContent = "Please enter a username";
@@ -236,20 +242,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            const res = await fetch('http://localhost:3000/User');
-            const users = await res.json();
+            // Check username availability using the dedicated endpoint
+            const usernameCheckRes = await fetch(`http://localhost:3000/checkUsernameAvailability?username=${encodeURIComponent(username)}`);
+            const usernameCheckData = await usernameCheckRes.json();
 
-            if (users.some(u => u.Name === username)) {
-                errorBox.textContent = "Username already taken";
+            if (!usernameCheckData.isAvailable) {
+                errorBox.textContent = "Username already taken. Please choose another.";
                 errorBox.style.display = 'block';
                 return;
             }
 
+            // If username is available, proceed to create the new user
             const newUser = {
-                Name: username,
-                Email: googlePayload.email,
-                Picture: googlePayload.picture,
-                GoogleId: googlePayload.sub
+                name: username, // Use lowercase 'name'
+                email: googlePayload.email, // Use lowercase 'email'
+                picture: googlePayload.picture, // Optional: store picture
+                googleId: googlePayload.sub, // Optional: store GoogleId
+                password: null // Google users don't have a password in your system
             };
 
             const addRes = await fetch('http://localhost:3000/User', {
@@ -259,19 +268,51 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (addRes.ok) {
-                sessionStorage.setItem('loggedInUser', JSON.stringify(newUser));
-                localStorage.setItem('loggedInUser', JSON.stringify(newUser));
-                window.location.href = newUser.Email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+                const result = await addRes.json(); // Get the actual user object with _id
+                // Store the full user object including the _id from the database
+                const loggedInUser = {
+                    userId: result.userId, // The _id from the new user insertion
+                    name: newUser.name,
+                    email: newUser.email,
+                    picture: newUser.picture // Include picture if needed for display
+                };
+                sessionStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
+                localStorage.setItem('loggedInUser', JSON.stringify(loggedInUser)); // Remember me for Google login
+                document.getElementById('username-modal').style.display = 'none'; // Hide the modal
+
+                 // ✅ Add default collection creation for Google users here
+                const favouriteDes = "A personal space to keep the movies and shows you love the most. Easily access your top picks anytime.";
+                const watchLaterDes = "Spotted something interesting? Drop it here and come back to it whenever you’re free.";
+                await defaultCollectionCreation(loggedInUser.userId, "Favourite", favouriteDes);
+                await defaultCollectionCreation(loggedInUser.userId, "Watch Later", watchLaterDes);
+
+                window.location.href = loggedInUser.email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
+
             } else {
-                errorBox.textContent = "Something went wrong. Please try again.";
+                const errorResult = await addRes.json();
+                errorBox.textContent = errorResult.error || "Failed to create account. Please try again.";
                 errorBox.style.display = 'block';
             }
         } catch (error) {
             console.error("Submit new user error:", error);
-            errorBox.textContent = "Failed to create account.";
+            errorBox.textContent = "Failed to create account due to server error.";
             errorBox.style.display = 'block';
         }
     }
+
+    // DH created function jangan delete :)
+    async function defaultCollectionCreation(userId, collectionName, collectionDescription){
+        await fetch('http://localhost:3000/createCollection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                collectionName,
+                collectionDescription
+            })
+        }); 
+    }
+
 </script>
 
 </body>

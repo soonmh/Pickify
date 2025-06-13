@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="./css/header-footer.css">
   <link rel="stylesheet" href="./css/auth.css">
   <link rel="stylesheet" href="./css/signup.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">   
+  <link rel="stylesheet" href="./css/signup-dynamic.css"> <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> 
 </head>
 <body data-page-type="landingpage">
   <div id="header-placeholder"></div>
@@ -51,7 +51,6 @@
     </div>
   </div>
 
-  <!-- Enhanced CAPTCHA Overlay and Modal -->
   <div id="captcha-overlay"></div>
 
   <div id="captcha-box">
@@ -67,7 +66,16 @@
     <div class="captcha-message">Can't read the code? Click the refresh icon.</div>
   </div>
 
-  <!-- Success Message Modal -->
+  <div id="email-verification-overlay"></div>
+  <div id="email-verification-box">
+    <h3>Verify Your Email</h3>
+    <p>A 6-digit verification code has been sent to your email address.</p>
+    <input type="text" id="verification-code-input" placeholder="Enter 6-digit code" maxlength="6" autocomplete="off" />
+    <div id="verification-code-error" class="error-message"></div>
+    <button class="btn-primary" id="verify-email-submit">Verify Code</button>
+    <button type="button" id="resend-code" class="btn-link">Resend Code</button>
+  </div>
+
   <div id="success-modal" class="modal">
     <div class="modal-content">
       <div class="success-icon">
@@ -84,6 +92,7 @@
 <script src="./js/header-footer.js"></script>
 <script>
   let generatedCaptcha = "";
+  let userEmailForVerification = ""; // Store email for verification
 
   function togglePasswordVisibility(btn) {
     const input = btn.previousElementSibling;
@@ -171,73 +180,80 @@
   document.getElementById('canvas').onclick = drawCaptcha;
   document.getElementById('refresh-captcha').onclick = drawCaptcha;
 
-  // ✅ Modified submit handler — check duplicates before CAPTCHA
-  document.getElementById('signup-form').addEventListener('submit', async function (e) {
-    e.preventDefault();
+// ✅ Modified submit handler to use dedicated availability endpoints
+document.getElementById('signup-form').addEventListener('submit', async function (e) {
+  e.preventDefault();
 
-    const email = document.getElementById('email').value.trim();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
-    const confirmPassword = document.getElementById('confirm-password').value;
+  const emailInput = document.getElementById('email');
+  const usernameInput = document.getElementById('username');
+  const passwordInput = document.getElementById('password');
+  const confirmPasswordInput = document.getElementById('confirm-password');
 
-    let valid = true;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$/;
+  const email = emailInput.value.trim();
+  const username = usernameInput.value.trim();
+  const password = passwordInput.value;
+  const confirmPassword = confirmPasswordInput.value;
 
-    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+  let valid = true;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()]).{8,}$/;
 
-    if (!emailRegex.test(email)) {
+  document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+
+  if (!emailRegex.test(email)) {
+    document.getElementById('email-error').textContent = 'Please enter a valid email address';
+    document.getElementById('email-error').style.display = 'block';
+    valid = false;
+  }
+  if (!username) {
+    document.getElementById('username-error').textContent = 'Username is required';
+    document.getElementById('username-error').style.display = 'block';
+    valid = false;
+  }
+  if (!passwordRegex.test(password)) {
+    document.getElementById('password-error').style.display = 'block';
+    valid = false;
+  }
+  if (password !== confirmPassword) {
+    document.getElementById('confirm-password-error').style.display = 'block';
+    valid = false;
+  }
+
+  if (!valid) return; // Exit if basic format validation fails
+
+  // Perform client-side duplicate checks using new dedicated endpoints
+  try {
+    const emailCheckRes = await fetch(`http://localhost:3000/checkEmailAvailability?email=${encodeURIComponent(email)}`);
+    const emailCheckData = await emailCheckRes.json();
+
+    if (!emailCheckData.isAvailable) {
+      document.getElementById('email-error').textContent = 'Email address already in use';
       document.getElementById('email-error').style.display = 'block';
-      valid = false;
+      return; // Stop the process
     }
-    if (!username) {
+
+    const usernameCheckRes = await fetch(`http://localhost:3000/checkUsernameAvailability?username=${encodeURIComponent(username)}`);
+    const usernameCheckData = await usernameCheckRes.json();
+
+    if (!usernameCheckData.isAvailable) {
+      document.getElementById('username-error').textContent = 'Username already exists';
       document.getElementById('username-error').style.display = 'block';
-      valid = false;
+      return; // Stop the process
     }
-    if (!passwordRegex.test(password)) {
-      document.getElementById('password-error').style.display = 'block';
-      valid = false;
-    }
-    if (password !== confirmPassword) {
-      document.getElementById('confirm-password-error').style.display = 'block';
-      valid = false;
-    }
+    
+    // If all client-side checks (including duplicate) pass, then show CAPTCHA
+    document.getElementById('captcha-box').style.display = 'block';
+    document.getElementById('captcha-overlay').style.display = 'block';
+    void document.getElementById('captcha-box').offsetWidth;
+    document.getElementById('captcha-box').classList.add('active');
+    document.getElementById('captcha-input').value = '';
+    drawCaptcha();
 
-    if (!valid) return;
-
-    // ✅ Check for duplicates FIRST (case-sensitive)
-    try {
-      const res = await fetch('http://localhost:3000/User');
-      const users = await res.json();
-
-      const usernameExists = users.some(u => u.Name === username);
-      const emailExists = users.some(u => u.Email === email);
-
-      if (usernameExists) {
-        document.getElementById('username-error').textContent = 'Username already exists';
-        document.getElementById('username-error').style.display = 'block';
-        return;
-      }
-
-      if (emailExists) {
-        document.getElementById('email-error').textContent = 'Email address already in use';
-        document.getElementById('email-error').style.display = 'block';
-        return;
-      }
-      //DH write send email code here :)
-      await sendEmail(email);
-      // ✅ Only show CAPTCHA if everything passes
-      document.getElementById('captcha-box').style.display = 'block';
-      document.getElementById('captcha-overlay').style.display = 'block';
-      void document.getElementById('captcha-box').offsetWidth;
-      document.getElementById('captcha-box').classList.add('active');
-      document.getElementById('captcha-input').value = '';
-      drawCaptcha();
-
-    } catch (err) {
-      alert('Failed to validate user uniqueness:\n' + err.message);
-    }
-  });
+  } catch (err) {
+    alert('Failed to check availability:\n' + err.message);
+    console.error('Availability check error:', err);
+  }
+});
 
   document.getElementById('captcha-submit').addEventListener('click', async function () {
     const input = document.getElementById('captcha-input').value.trim();
@@ -250,58 +266,117 @@
       return;
     }
 
+    // If CAPTCHA is correct, proceed to send email and show email verification modal
     const email = document.getElementById('email').value.trim();
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value;
+    userEmailForVerification = email; // Store for later verification
 
     try {
+      // DH write send email code here :)
+      await sendEmail(userEmailForVerification);
+      
+      // Show email verification modal
+      document.getElementById('captcha-box').classList.remove('active');
+      setTimeout(() => {
+        document.getElementById('captcha-box').style.display = 'none';
+        document.getElementById('captcha-overlay').style.display = 'none'; // Hide CAPTCHA overlay
+        document.getElementById('email-verification-box').style.display = 'block';
+        document.getElementById('email-verification-overlay').style.display = 'block';
+        void document.getElementById('email-verification-box').offsetWidth;
+        document.getElementById('email-verification-box').classList.add('active');
+        document.getElementById('verification-code-input').value = '';
+      }, 300);
+
+    } catch (err) {
+      alert('Failed to send verification email:\n' + err.message);
+      // If email sending fails, hide CAPTCHA and overlay
+      document.getElementById('captcha-box').classList.remove('active');
+      setTimeout(() => {
+        document.getElementById('captcha-box').style.display = 'none';
+        document.getElementById('captcha-overlay').style.display = 'none';
+      }, 300);
+    }
+  });
+
+  document.getElementById('verify-email-submit').addEventListener('click', async function () {
+    const verificationCode = document.getElementById('verification-code-input').value.trim();
+    const emailError = document.getElementById('verification-code-error');
+
+    emailError.style.display = 'none'; // Hide previous error
+
+    if (verificationCode.length !== 6 || !/^\d+$/.test(verificationCode)) {
+      emailError.textContent = 'Please enter a valid 6-digit code.';
+      emailError.style.display = 'block';
+      return;
+    }
+
+    const email = document.getElementById('email').value.trim(); // Get email again for registration
+
+    try {
+      // Send verification code to backend
+      const response = await fetch('http://localhost:3000/verifyCode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmailForVerification, code: verificationCode })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        emailError.textContent = result.error || 'Invalid verification code. Please try again.';
+        emailError.style.display = 'block';
+        return;
+      }
+
+      // If email verification is successful, proceed to user registration
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
       const post = await fetch('http://localhost:3000/User', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: username, email: email, password: password, profilePic: null, backgroundPic: null })
       });
 
-
       if (!post.ok) throw new Error(await post.text());
-      const result=await post.json();
-      // console.log(post);
-      // console.log(result.userId);
-      document.getElementById('captcha-box').classList.remove('active');
+      const userResult = await post.json();
+
+      document.getElementById('email-verification-box').classList.remove('active');
       setTimeout(() => {
-        document.getElementById('captcha-box').style.display = 'none';
+        document.getElementById('email-verification-box').style.display = 'none';
+        document.getElementById('email-verification-overlay').style.display = 'none'; // Hide email verification overlay
         const successModal = document.getElementById('success-modal');
         const modalContent = successModal.querySelector('.modal-content');
         successModal.style.display = 'block';
         void modalContent.offsetWidth;
         modalContent.classList.add('active');
       }, 300);
+
       const favouriteDes="A personal space to keep the movies and shows you love the most. Easily access your top picks anytime.";
       const watchLaterDes="Spotted something interesting? Drop it here and come back to it whenever you’re free.";
-      await defaultCollectionCreation(result.userId,"Favourite",favouriteDes);
-      await defaultCollectionCreation(result.userId,"Watch Later",watchLaterDes)
+      await defaultCollectionCreation(userResult.userId,"Favourite",favouriteDes);
+      await defaultCollectionCreation(userResult.userId,"Watch Later",watchLaterDes);
+
     } catch (err) {
-      document.getElementById('captcha-box').classList.remove('active');
-      setTimeout(() => {
-        document.getElementById('captcha-box').style.display = 'none';
-        document.getElementById('captcha-overlay').style.display = 'none';
-        alert('Signup failed:\n' + err.message);
-      }, 300);
+      emailError.textContent = 'Signup failed: ' + err.message;
+      emailError.style.display = 'block';
+      console.error('Signup process error:', err);
+      // Keep email verification modal open to show error
     }
   });
 
-  // Shake animation style
-  document.head.insertAdjacentHTML('beforeend', `
-    <style>
-      @keyframes shake {
-        0%, 100% { transform: translate(-50%, -50%); }
-        10%, 30%, 50%, 70%, 90% { transform: translate(-52%, -50%); }
-        20%, 40%, 60%, 80% { transform: translate(-48%, -50%); }
-      }
-      #captcha-box.shake {
-        animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-      }
-    </style>
-  `);
+  document.getElementById('resend-code').addEventListener('click', async function() {
+    try {
+      await sendEmail(userEmailForVerification);
+      document.getElementById('verification-code-error').textContent = 'New code sent. Please check your email.';
+      document.getElementById('verification-code-error').style.color = '#4caf50'; // Green color for success
+      document.getElementById('verification-code-error').style.display = 'block';
+      document.getElementById('verification-code-input').value = ''; // Clear the input field
+    } catch (err) {
+      document.getElementById('verification-code-error').textContent = 'Failed to resend code. Please try again.';
+      document.getElementById('verification-code-error').style.color = '#e53e3e'; // Red color for error
+      document.getElementById('verification-code-error').style.display = 'block';
+    }
+  });
 
   document.getElementById('continue-btn').addEventListener('click', function() {
     window.location.href = 'login.html';
@@ -317,7 +392,7 @@ async function defaultCollectionCreation(userId, collectionName, collectionDescr
             collectionName,
             collectionDescription
         })
-    });   
+    }); 
 }
 
 //DH created function jangan delete :)
@@ -338,6 +413,7 @@ async function sendEmail(userEmail){
         console.log('Email sent successfully!');
     } catch (error) {
         console.error('Error sending email:', error);
+        throw error; // Re-throw to be caught by the calling function
     }
 }
 </script>
