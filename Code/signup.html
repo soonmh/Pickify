@@ -334,7 +334,7 @@ document.getElementById('signup-form').addEventListener('submit', async function
       const post = await fetch('http://localhost:3000/User', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: username, email: email, password: password, profilePic: null, backgroundPic: null })
+        body: JSON.stringify({ name: username, email: email, password: password, profilePic: null, backgroundPic: null, active: true })
       });
 
       if (!post.ok) throw new Error(await post.text());
