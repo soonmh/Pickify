@@ -157,6 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     document.getElementById('password-error').textContent = result.error;
                     document.getElementById('password-error').style.display = 'block';
                 }
+                else if (result.error === 'Account is deactivated') {
+                    document.getElementById('username-error').textContent = result.error;
+                    document.getElementById('username-error').style.display = 'block';
+                }
                 return;
             }
 

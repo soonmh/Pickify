@@ -7,9 +7,16 @@ const { ObjectId, GridFSBucket } = require('mongodb');
 const multer = require('multer');
 const stream = require('stream');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const path = require('path');
 const saltRounds=10;
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');   
 // const session = require('express-session');
+
+const allowedOrigins = [
+  'http://127.0.0.1:5501',
+  'http://localhost:5500'
+];
 
 // const corsOptions = {
 //   origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
@@ -31,7 +38,7 @@ const transporter = nodemailer.createTransport({
     }
 })
 let db
-// app.use(cors());
+app.use(cors());
 app.use(express.json())
 
 connectToDb((err) => {
@@ -95,6 +102,10 @@ app.post('/login', async (req, res) =>{
         return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    if (user.active === 'false') {
+        return res.status(404).json({ success: false, error: 'Account is deactivated' });
+    }
+
     // Handle password comparison only if the user has a password (i.e., not a Google-only user)
     if (user.password) {
         const isMatch = await bcrypt.compare(password, user.password);
@@ -119,7 +130,7 @@ app.post('/login', async (req, res) =>{
 
 // ✅ MODIFIED: app.post('/User') to handle Google users (no password) and enforce uniqueness
 app.post('/User', async (req, res) => {
-    const user = req.body; // user will now contain { name, email, picture, googleId } OR { name, email, password }
+    const user = req.body;
 
     // Server-side duplicate check for email (case-insensitive)
     const existingEmailUser = await db.collection('User').findOne({ email: new RegExp(`^${user.email}$`, 'i') });
@@ -135,11 +146,17 @@ app.post('/User', async (req, res) => {
 
     // Hash password only if provided (for traditional signup)
     if (user.password) {
+        // ✅ Validate password here for traditional signup
+        const passwordError = validatePassword(user.password);
+        if (passwordError) {
+            return res.status(400).json({ success: false, error: passwordError });
+        }
+
         const hashPassword = await bcrypt.hash(user.password, saltRounds);
         user.password = hashPassword;
     } else {
-        // If no password, ensure it's explicitly null or undefined, not stored as an empty string.
-        user.password = null; // Mark as null for Google users
+        // If no password (e.g., Google user), ensure it's explicitly null
+        user.password = null;
     }
 
     try {
@@ -148,7 +165,6 @@ app.post('/User', async (req, res) => {
         res.status(201).json({ success: true, userId: result.insertedId });
     } catch (err) {
         console.error("Database insertion error:", err);
-        // Catch E11000 duplicate key error if unique index is violated (as a fallback)
         if (err.code === 11000) {
             if (err.keyPattern.email) {
                 return res.status(409).json({ success: false, error: 'Email address already registered.' });
@@ -163,25 +179,81 @@ app.post('/User', async (req, res) => {
 
 // ✅ NEW ENDPOINT: Handle Google Login (if user already exists via Google)
 app.post('/googleLogin', async (req, res) => {
-    const { email, googleId } = req.body;
+    const { email, googleId, picture } = req.body; // Added 'picture' to body for consistency if frontend sends it
 
     try {
-        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i'), googleId: googleId });
+        // 1. Try to find user by googleId first (for existing Google-linked accounts)
+        let user = await db.collection('User').findOne({ googleId: googleId });
 
-        if (!user) {
-            return res.status(404).json({ success: false, error: 'Google user not found. Please register.' });
+        if (user) {
+            // User found by googleId, update picture if it changed
+            if (picture && user.picture !== picture) {
+                await db.collection('User').updateOne(
+                    { _id: user._id },
+                    { $set: { picture: picture } }
+                );
+                user.picture = picture; // Update user object for response
+            }
+            return res.status(200).json({
+                success: true,
+                message: 'Google login successful',
+                user: {
+                    userId: user._id.toString(), // Ensure _id is string
+                    email: user.email,
+                    name: user.name,
+                    picture: user.picture
+                }
+            });
         }
 
-        res.status(200).json({
-            success: true,
-            message: 'Google login successful',
-            user: {
-                userId: user._id,
-                email: user.email,
-                name: user.name,
-                picture: user.picture // Include picture if you store it
+        // 2. If not found by googleId, try to find by email (for linking existing password-based accounts)
+        user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') });
+
+        if (user) {
+            // User found by email
+            if (!user.googleId) {
+                // Existing password user, link Google ID
+                await db.collection('User').updateOne(
+                    { _id: user._id },
+                    { $set: { googleId: googleId, picture: picture || user.picture } } // Set googleId and potentially update picture
+                );
+                // Update user object with new googleId and picture before sending response
+                user.googleId = googleId;
+                user.picture = picture || user.picture;
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'Account linked and Google login successful',
+                    user: {
+                        userId: user._id.toString(), // Ensure _id is string
+                        email: user.email,
+                        name: user.name,
+                        picture: user.picture
+                    }
+                });
+            } else if (user.googleId !== googleId) {
+                // Email exists but is already linked to a *different* Google ID
+                return res.status(409).json({ success: false, error: 'Email already registered with a different Google account. Please use the original Google account or standard login.' });
             }
-        });
+            // This case should ideally not be reached if the first 'user' check by googleId passed
+            // It means email matched, googleId existed, and it matched the current googleId (redundant, but safe)
+            return res.status(200).json({
+                success: true,
+                message: 'Google login successful',
+                user: {
+                    userId: user._id.toString(), // Ensure _id is string
+                    email: user.email,
+                    name: user.name,
+                    picture: user.picture
+                }
+            });
+        }
+
+        // 3. If neither found, indicate that it's a new user and frontend should prompt for registration
+        // Your frontend's `handleGoogleCredential` already handles this via `checkEmailAvailability`
+        // and then showing the username modal, so we'll return a specific status/message for it.
+        return res.status(404).json({ success: false, error: 'New Google user. Please proceed with registration.' });
+
     } catch (err) {
         console.error('Error in Google login:', err);
         res.status(500).json({ success: false, error: 'Server error during Google login.' });
@@ -304,6 +376,179 @@ app.post('/contact', async (req, res) => {
         });
     }
 });
+
+// ✅ NEW ENDPOINT: Forgot Password - Request Reset Link
+app.post('/forgotPassword', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') });
+
+        // IMPORTANT SECURITY NOTE: Always respond generically even if the email doesn't exist
+        // to prevent email enumeration attacks.
+        if (!user) {
+            console.log(`Password reset requested for non-existent email: ${email}`);
+            return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        }
+
+        // Generate a unique token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiration = Date.now() + 3600000; // 1 hour from now
+
+        // Store the token and its expiration in the user document
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    resetPasswordToken: resetToken,
+                    resetPasswordExpires: tokenExpiration
+                }
+            }
+        );
+
+        // Construct the reset link (make sure this matches your client-side path)
+        const resetLink = `http://localhost:3000/resetpasswordpage.html?token=${resetToken}`;
+
+        // Email content
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Password Reset Request',
+            html: `
+                <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+                <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+                <p><a href="${resetLink}">Reset Password Link</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset email:', error);
+                // Even on email send error, we return success: true for security reasons
+                return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+            }
+            console.log('Password reset email sent:', info.response);
+            res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        });
+
+    } catch (error) {
+        console.error('Server error during forgot password:', error);
+        res.status(500).json({ success: false, error: 'Internal server error. Please try again later.' });
+    }
+});
+
+// ✅ NEW ENDPOINT: GET /resetpasswordpage.html (serve the reset password page and validate token)
+app.get('/resetpasswordpage.html', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(400).send('Invalid or missing token.');
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            // Token is invalid or expired
+            return res.status(400).send('Password reset token is invalid or has expired. Please request a new one.');
+        }
+
+        // Serve the HTML page, passing the token if needed by the frontend script
+        // Note: You can either render it dynamically or just send the static file
+        // and let the client-side JS read the URL parameter.
+        res.sendFile(path.join(__dirname, 'Code', 'resetpasswordpage.html')); 
+        
+    } catch (error) {
+        console.error('Server error validating token:', error);
+        res.status(500).send('Internal server error during token validation.');
+    }
+});
+
+
+// ✅ NEW ENDPOINT: POST /resetPassword - Handle Password Reset
+app.post('/resetPassword', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Token and new password are required.' });
+    }
+
+    // ✅ Validate the new password
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+        return res.status(400).json({ success: false, error: passwordError });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, error: 'Password reset token is invalid or has expired.' });
+        }
+
+        // Hash the new password
+        const hashPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        // Update the user's password and clear the reset token fields
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: { password: hashPassword },
+                $unset: { resetPasswordToken: "", resetPasswordExpires: "" } // Remove the token fields
+            }
+        );
+
+        // Optionally, send a confirmation email that password has been reset
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Your Password Has Been Reset',
+            html: `
+                <p>This is a confirmation that the password for your Pickify account ${user.email} has just been changed.</p>
+                <p>If you did not make this change, please contact support immediately.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset confirmation email:', error);
+            } else {
+                console.log('Password reset confirmation email sent:', info.response);
+            }
+        });
+
+        res.status(200).json({ success: true, message: 'Your password has been successfully reset.' });
+
+    } catch (error) {
+        console.error('Server error during password reset:', error);
+        res.status(500).json({ success: false, error: 'Internal server error during password reset.' });
+    }
+});
+
+function validatePassword(password) {
+    // This regex should match the one in your client-side signup and resetpasswordpage.html
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}\[\]:;<>,.?~\\/-]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return 'Password must be at least 8 characters long and include: ' +
+               'one uppercase letter, one lowercase letter, one number, ' +
+               'and one special character (!@#$%^&*...).';
+    }
+    return null; // Return null if password is valid
+}
 
 app.post('/saveTracks', async (req, res) => {
     // console.log("Hello");
@@ -608,189 +853,195 @@ app.get('/api/recommendation/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
-        
+
         console.log(`🎯 Fetching recommendations for user: ${userId}`);
-        
-        // Convert userId string to ObjectId
+
+        // Validate userId
         let userObjectId;
         try {
             userObjectId = new ObjectId(userId);
         } catch (error) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid user ID format'
-            });
+            return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
-        // 1. Get user's collections to understand preferences
-        const userCollections = await db.collection('userCollection')
-            .find({ userId: userObjectId, collectionName: 'Favourite' })
-            .toArray();
+        // 1. Fetch user's favorite collection
+        const userFavorites = await db.collection('userCollection')
+            .findOne({ userId: userObjectId, collectionName: 'Favourite' });
 
-        if (!userCollections || userCollections.length === 0) {
-            console.log('👤 User has no collections, returning empty state');
+        if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
             return res.status(200).json({
                 success: true,
                 count: 0,
                 data: [],
                 type: 'no_collections',
-                message: 'No collections found. Create a collection and add movies to get personalized recommendations!'
+                message: 'No favorite items found. Add movies, music, or books to get recommendations!'
             });
         }
 
-        // 2. Extract all movie IDs from the "Favourite" collection
-        const userMovieIds = userCollections[0].item.map(id => 
-            typeof id === 'string' ? new ObjectId(id) : id
-        );
+        // 2. Separate item IDs by type
+        const movieIds = [];
+        const musicIds = [];
+        const bookIds = [];
 
-        if (userMovieIds.length === 0) {
-            console.log('📭 User collections are empty, returning empty state');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'empty_collections',
-                message: 'Your collections are empty. Add some movies to your watchlist to get personalized recommendations!'
-            });
-        }
-        
-        // 3. Get details of user's movies to analyze preferences
-        const userMovies = await db.collection('Movie')
-            .find({ _id: { $in: userMovieIds } })
-            .toArray();
-        console.log(`👥 User has ${userMovieIds.length} movies in their collections`);
-        console.log('🎥 User movie IDs:', userMovieIds);
-        console.log(`📊 Found ${userMovies.length} movies in user's collections`);
-
-        // If no movies found in database (invalid movie IDs)
-        if (userMovies.length === 0) {
-            console.log('🔍 No valid movies found in database for user collections');
-            return res.status(200).json({
-    success: true,
-    count: 0,
-    data: [],
-    type: 'invalid_movies',
-    message: `No valid movies found in your collections. You have ${userMovieIds.length} movie IDs in your collections, but none matched our database. Try adding movies to get recommendations!`
-});
-        }
-
-        // Need at least 2 movies for meaningful recommendations
-        if (userMovies.length < 2) {
-            console.log('📝 User has too few movies for personalized recommendations');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'insufficient_data',
-                message: `You have only ${userMovies.length} movie in your collections. Add more movies to get better personalized recommendations!`
-            });
-        }
-
-        // 4. Analyze user preferences (genres)
-        const genreCounts = {};
-        const totalGenres = userMovies.reduce((total, movie) => {
-            if (movie.genres && Array.isArray(movie.genres)) {
-                movie.genres.forEach(genre => {
-                    if (genre.name) {
-                        genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
-                        total++;
-                    }
-                });
+        userFavorites.item.forEach(item => {
+            if (item.type === 'movie' && typeof item.itemId === 'string') {
+                movieIds.push(item.itemId);
+            } else if (item.type === 'music' && typeof item.itemId === 'string') {
+                musicIds.push(item.itemId);
+            } else if (item.type === 'book' && item.itemId?.$oid) {
+                bookIds.push(new ObjectId(item.itemId.$oid));
+            } else {
+                console.warn(`⚠️ Skipping invalid item:`, item);
             }
-            return total;
-        }, 0);
+        });
 
-        // Get top genres (at least 20% preference)
-        const minThreshold = Math.max(1, Math.ceil(totalGenres * 0.2));
+        console.log('🎥 Movie IDs:', movieIds);
+        console.log('🎵 Music IDs:', musicIds);
+        console.log('📚 Book IDs:', bookIds);
+
+        // 3. Fetch item details from respective collections (FIXED QUERIES)
+        const [movies, music, books] = await Promise.all([
+            movieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: movieIds.map(id => parseInt(id)) } }).toArray() : [],
+            musicIds.length > 0 ? db.collection('Music').find({ id: { $in: musicIds } }).toArray() : [],
+            bookIds.length > 0 ? db.collection('books').find({ _id: { $in: bookIds } }).toArray() : []
+        ]);
+
+        console.log('🎬 Fetched Movies:', movies.length);
+        console.log('🎵 Fetched Music:', music.length);
+        console.log('📚 Fetched Books:', books.length);
+
+        // Add type information to fetched items since it's not in the documents
+        const moviesWithType = movies.map(item => ({ ...item, type: 'movie' }));
+        const musicWithType = music.map(item => ({ ...item, type: 'music' }));
+        const booksWithType = books.map(item => ({ ...item, type: 'book' }));
+
+        const allUserItems = [...moviesWithType, ...musicWithType, ...booksWithType];
+
+        if (!allUserItems.length) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'invalid_items',
+                message: 'No valid items found in your collections. Try adding more items to get recommendations!'
+            });
+        }
+
+        // 4. Analyze user preferences (UPDATED FOR DIFFERENT STRUCTURES)
+        const genreCounts = {};
+        const typeCounts = { movie: 0, music: 0, book: 0 };
+
+        allUserItems.forEach(item => {
+            // Handle different genre structures
+            if (item.type === 'movie' && item.genres && Array.isArray(item.genres)) {
+                // Movies: genres as array of objects
+                item.genres.forEach(genre => {
+                    genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
+                });
+            } else if (item.type === 'music' && item.genre) {
+                // Music: genre as single string
+                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
+            } else if (item.type === 'book' && item.genre) {
+                // Books: genre as single string
+                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
+            }
+
+            // Count types
+            typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
+        });
+
+        console.log('📈 Genre Counts:', genreCounts);
+        console.log('📊 Type Counts:', typeCounts);
+
+        // Determine preferred genres and types
         const preferredGenres = Object.entries(genreCounts)
-            .filter(([genre, count]) => count >= minThreshold)
+            .filter(([_, count]) => count >= 1) // Changed from > 1 to >= 1 for more recommendations
             .sort((a, b) => b[1] - a[1])
             .map(([genre]) => genre);
 
+        const preferredTypes = Object.entries(typeCounts)
+            .filter(([_, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type]) => type);
+
         console.log('🎭 User preferred genres:', preferredGenres);
-        console.log('📈 Genre counts:', genreCounts);
+        console.log('📊 User preferred types:', preferredTypes);
 
-        // 5. Find recommendations based on preferred genres
-        let recommendations = [];
-        
-        if (preferredGenres.length > 0) {
-            // Find movies with similar genres, excluding ones user already has
-            recommendations = await db.collection('Movie')
-                .find({
-                    tmdbId: { $nin: userMovieIds }, // Exclude movies user already has
-                    vote_average: { $gte: 3.5 }, // Only well-rated movies
-                    'genres.name': { $in: preferredGenres } // Match preferred genres
-                })
-                .sort({ vote_average: -1, popularity: -1 }) // Sort by rating and popularity
-                .limit(limit * 2) // Get more to shuffle from
-                .project({
-                    tmdbId: 1,
-                    title: 1,
-                    poster_path: 1,
-                    vote_average: 1,
-                    popularity: 1,
-                    genres: 1,
-                    release_date: 1,
-                    overview: 1
-                })
-                .toArray();
-        }
+        // 5. Fetch recommendations (UPDATED QUERIES FOR DIFFERENT STRUCTURES)
+        const recommendations = [];
 
-        // 6. If still not enough recommendations, add popular movies
-        if (recommendations.length < limit) {
-            const additionalRecs = await db.collection('Movie')
-                .find({
-                    tmdbId: { $nin: userMovieIds },
-                    vote_average: { $gte: 4.0 }
-                })
-                .sort({ popularity: -1 })
-                .limit(limit - recommendations.length)
-                .project({
-                    tmdbId: 1,
-                    title: 1,
-                    poster_path: 1,
-                    vote_average: 1,
-                    popularity: 1,
-                    genres: 1,
-                    release_date: 1
-                })
-                .toArray();
+        for (const type of preferredTypes) {
+            let collectionName, query, excludeField;
             
-            recommendations.push(...additionalRecs);
+            if (type === 'movie') {
+                collectionName = 'Movie';
+                excludeField = 'tmdbId';
+                query = {
+                    tmdbId: { $nin: movieIds.map(id => parseInt(id)) },
+                    $or: [
+                        { 'genres.name': { $in: preferredGenres } },
+                        { vote_average: { $gte: 6.0 } } // Fallback for highly rated
+                    ]
+                };
+            } else if (type === 'music') {
+                collectionName = 'Music';
+                excludeField = 'id';
+                query = {
+                    id: { $nin: musicIds },
+                    $or: [
+                        { genre: { $in: preferredGenres } },
+                        { popularity: { $gte: 40 } } // Fallback for popular music
+                    ]
+                };
+            } else if (type === 'book') {
+                collectionName = 'books';
+                excludeField = '_id';
+                query = {
+                    _id: { $nin: bookIds },
+                    $or: [
+                        { genre: { $in: preferredGenres } },
+                        { rating: { $gte: 4 } } // Fallback for highly rated books
+                    ]
+                };
+            }
+
+            if (collectionName) {
+                console.log(`🔍 Querying ${collectionName} with:`, JSON.stringify(query, null, 2));
+                
+                const typeRecommendations = await db.collection(collectionName)
+                    .find(query)
+                    .sort({ 
+                        ...(type === 'movie' && { vote_average: -1, popularity: -1 }),
+                        ...(type === 'music' && { popularity: -1 }),
+                        ...(type === 'book' && { rating: -1, views: -1 })
+                    })
+                    .limit(Math.ceil(limit / preferredTypes.length))
+                    .toArray();
+
+                console.log(`✅ Found ${typeRecommendations.length} ${type} recommendations`);
+                
+                // Add type information to recommendations
+                recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
+            }
         }
 
-        // 7. If still no recommendations found, return empty state
-        if (recommendations.length === 0) {
-            console.log('🎬 No suitable recommendations found based on user preferences');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'no_matches',
-                message: 'No recommendations found based on your preferences. Try adding movies from different genres!'
-            });
-        }
-
-        // 8. Shuffle and limit final results
-        const shuffled = recommendations
-            .sort(() => 0.5 - Math.random())
-            .slice(0, limit);
+        // 6. Shuffle and limit recommendations
+        const shuffled = recommendations.sort(() => 0.5 - Math.random()).slice(0, limit);
 
         console.log(`✅ Generated ${shuffled.length} personalized recommendations`);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             count: shuffled.length,
             data: shuffled,
             type: 'personalized',
             userPreferences: {
-                totalMoviesInCollections: userMovies.length,
-                preferredGenres: preferredGenres,
-                genreCounts: genreCounts
+                totalItemsInCollections: allUserItems.length,
+                preferredGenres,
+                preferredTypes
             },
-            message: `Recommendations based on your ${userMovies.length} favorite movies`
+            message: `Recommendations based on your ${allUserItems.length} favorite items`
         });
-
     } catch (error) {
         console.error('❌ Error generating recommendations:', error);
         res.status(500).json({
@@ -1654,5 +1905,34 @@ app.get('/api/autocomplete', async (req, res) => {
             success: false,
             error: 'Failed to get suggestions'
         });
+    }
+});
+
+app.get('/admin/getUser', async (req, res) => {
+  try {
+    const users = await db.collection('User').find().toArray();
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, error: 'No users found' });
+    }
+    res.status(200).json({ success: true, users });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+app.put('/admin/changeStatus', async (req, res) => {
+    const { username, active } = req.body; // Changed 'status' to 'active'
+
+    try {
+        await db.collection('User').updateOne(
+            { name: username },           // Filter
+            { $set: { active: active.toString() } }  // Use 'active' here
+        );
+        res.status(200).json({ success: true, message: 'Status updated' });
+    } catch (err) {
+        console.error('Failed to update status:', err); // Add err to the log
+        res.status(500).json({ success: false, error: err.message }); // Return the error message
     }
 });
