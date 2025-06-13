@@ -7,7 +7,7 @@ let searchHistory = [];
 
 document.addEventListener('DOMContentLoaded', function () {
     loadSearchHistoryFromStorage();
-
+    initializeCollectionDropdowns();
     // DOM Elements
     const searchInput = document.getElementById('search-input');
     const searchButton = document.getElementById('search-button');
@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', function () {
             loadFallbackData();
         }
     }
+
+    
 
     /**
      * Check if backend is running
@@ -189,7 +191,7 @@ document.addEventListener('DOMContentLoaded', function () {
             './assests/default-poster.png';
             
         return {
-            id: movie.tmdbId || movie._id,
+            id: movie.id,
             title: movie.title || 'Unknown Title',
             type: "movie",
             genre: movie.genres && movie.genres.length > 0 ? 
@@ -199,7 +201,7 @@ document.addEventListener('DOMContentLoaded', function () {
             image: baseImageUrl,
             year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
             genres: movie.genres || [],
-            tmdbId: movie.tmdbId || movie._id,
+            tmdbId: movie.tmdbId ,
             popularity: movie.popularity || 0,
             vote_count: movie.vote_count || 0
         };
@@ -209,12 +211,15 @@ document.addEventListener('DOMContentLoaded', function () {
  * Format music data from the API response
  */
 function formatMusicData(music) {
+    const convertedRating = music.popularity ? 
+        parseFloat((music.popularity / 20).toFixed(1)) : 0;
     return {
+        type: 'music',
         id: music.id,
         title: music.name,
         image: music.poster_url || './assets/default-music.png',
-        rating: music.popularity || 'N/A',
-        views: `${music.popularity} `,
+        rating: convertedRating || 'N/A',
+        views: `${music.popularity}  `,
         year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year'
     };
 }
@@ -224,9 +229,10 @@ function formatMusicData(music) {
  */
 function formatBookData(book) {
     return {
+        type: 'book',
         id: book._id,
         title: book.title,
-        image: book.image || './assets/default-book.png',
+        image: book.image,
         rating: book.rating || 'N/A',
         views: formatViews(book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 1000000)),
         year: book.year || 'Unknown Year'
@@ -479,40 +485,45 @@ function formatBookData(book) {
      */
     function renderScrollingList(container, data, mediaType) {
         // Clear the container first
-        container.innerHTML = '';
+    container.innerHTML = '';
+    
+    // Render each item in the data array
+    data.forEach((item, index) => {
+        const card = document.createElement('div');
+        card.className = 'recommendation-card';
         
-        // Render each item in the data array
-        data.forEach((item, index) => {
-            const card = document.createElement('div');
-            card.className = 'recommendation-card';
-            
-            // Create badge class based on position (special for top 3)
-            const positionNumber = index + 1;
-            const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
-            
-            // Add the badge HTML with position number and media type
-            const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
-            
-            card.innerHTML = `
-                ${badgeHTML}
-                <img src="${item.image}" alt="${item.title}">
-                <div class="result-body">
-                    <h5 class="result-title">${item.title}</h5>
-                    <div class="result-meta">
-                        <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
-                        <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
-                    </div>
+        // Create badge class based on position (special for top 3)
+        const positionNumber = index + 1;
+        const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
+        
+        // Add the badge HTML with position number and media type
+        const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
+        
+        card.innerHTML = `
+            ${badgeHTML}
+            <img src="${item.image}" alt="${item.title}">
+            <div class="result-body">
+                <h5 class="result-title">${item.title}</h5>
+                <div class="result-meta">
+                    <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
+                    <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
                 </div>
-            `;
-            
-            // Add click handler for the card
-            card.addEventListener('click', () => {
-                // You can add navigation to detail page or other functionality here
+            </div>
+        `;
+        
+        // Add collection dropdown
+        addCollectionDropdown(card, item);
+        
+        // Add click handler for the card (excluding dropdown area)
+        card.addEventListener('click', (e) => {
+            // Don't navigate if clicking on dropdown
+            if (!e.target.closest('.collection-dropdown')) {
                 console.log(`Clicked on ${mediaType} item: ${item.title}`);
-            });
-            
-            container.appendChild(card);
+            }
         });
+        
+        container.appendChild(card);
+    });
     }
 
     /**
@@ -606,7 +617,7 @@ function formatBookData(book) {
     
     try {
         // Get user ID from localStorage/sessionStorage
-        const userId = getCurrentUserId();
+        userId = getCurrentUserId();
         
         if (!userId) {
             recommendationsContainer.innerHTML = `
@@ -633,6 +644,7 @@ function formatBookData(book) {
         `;
 
         console.log(`🎯 Fetching recommendations for user: ${userId}`);
+        console.log(`Making API call to: ${API_BASE_URL}/recommendation/${userId}?limit=4`);
 
         // Fetch personalized recommendations
         const response = await fetch(`${API_BASE_URL}/recommendation/${userId}?limit=4`);
@@ -642,6 +654,7 @@ function formatBookData(book) {
         }
         
         const result = await response.json();
+        console.log('📥 Received recommendations:', result);
         
         if (!result.success) {
             throw new Error(result.error || 'Failed to fetch recommendations');
@@ -659,7 +672,7 @@ function formatBookData(book) {
                 <div style="padding: 2rem;">
                     <i class="fas fa-heart fa-3x" style="color:rgb(223, 41, 41); margin-bottom: 1rem;"></i>
                     <h5 style="color: #666;">No recommendations yet</h5>
-                    <p class="mb-0" style="color: #888;">Add movies to your collections to get personalized recommendations!</p>
+                    <p class="mb-0" style="color: #888;">Add items to your collections to get personalized recommendations!</p>
                 </div>
             </div>
         </div>
@@ -669,16 +682,13 @@ function formatBookData(book) {
 
         console.log(`✅ Loaded ${recommendations.length} recommendations`);
         console.log(`🎭 Recommendation type: ${result.type}`);
-        if (result.userPreferences) {
-            console.log(`📊 Based on ${result.userPreferences.totalMoviesInCollections} movies`);
-            console.log(`🎪 Preferred genres:`, result.userPreferences.preferredGenres);
-        }
+        
 
         // Render recommendations
         recommendations.forEach(item => {
             const col = document.createElement('div');
             col.className = 'col';
-            col.setAttribute('data-id', item._id || item.tmdbId);
+            col.setAttribute('data-id', item.id || item.tmdbId);
 
             // Format the item data consistently
             const formattedItem = formatRecommendationData(item);
@@ -742,20 +752,65 @@ function formatBookData(book) {
  * Format recommendation data for consistent display
  */
 function formatRecommendationData(item) {
-    // Handle different data structures from your backend
+    let rating;
+    
+    // Handle different rating formats based on item type
+    if (item.type === 'music') {
+        // For music, use popularity/20 with 1 decimal place
+        rating = item.popularity ? parseFloat((item.popularity / 20).toFixed(1)) : 0;
+    } else if (item.type === 'movie') {
+        // For movies, use vote_average/2 with 1 decimal place
+        rating = item.vote_average ? parseFloat((item.vote_average / 2).toFixed(1)) : 0;
+    } else if (item.type === 'book') {
+        // For books, use rating as is
+        rating = formatRating(item.rating || 0);
+    } else {
+        // Fallback for any other types
+        rating = formatRating(item.rating || item.vote_average || 0);
+    }
+    
+    
     return {
-        id: item._id || item.id || item.tmdbId,
+        id: item.id || item.tmdbId || 'unknown-id',
         title: item.title || item.name || 'Unknown Title',
         type: item.type || (item.media_type === 'movie' ? 'movie' : item.media_type) || 'unknown',
         image: item.image || item.poster_url || (item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : './assests/1984.png'),
-        rating: formatRating(item.rating || item.vote_average || item.popularity || 0),
+        rating: rating,
         views: formatViews(item.views || (item.popularity ? Math.round(item.popularity * 1000) : 0)),
-        reason: item.recommendationReason || null // e.g., "Because you liked Inception"
+        reason: item.recommendationReason || null
     };
 }
 
+    /**
+     * Format ratings for display
+     * @param {number} rating - The rating to format
+     * @returns {string} The formatted rating
+     */
+    function formatRating(rating) {
+        if (!rating || rating === 0) return '0.0';
+    return parseFloat(rating).toFixed(1);
+    }
+
+    /**
+     * Format views for display (e.g., 12000 -> 12k)
+     * @param {number|string} views - The views to format
+     * @returns {string} The formatted views
+     */
+    function formatViews(views) {
+        if (typeof views === 'string') {
+            return views;
+        }
+        if (views >= 1000000) {
+            return (views / 1000000).toFixed(1) + 'M';
+        }
+        if (views >= 1000) {
+            return (views / 1000).toFixed(1) + 'K';
+        }
+        return views.toString();
+    }
+});
 /**
- * Get current user ID from localStorage (stored after login)
+ * Get current user ID from localStorage (moved to global scope)
  */
 function getCurrentUserId() {
     try {
@@ -790,33 +845,399 @@ function getCurrentUserId() {
     }
 }
 
-    /**
-     * Format ratings for display
-     * @param {number} rating - The rating to format
-     * @returns {string} The formatted rating
-     */
-    function formatRating(rating) {
-        return typeof rating === 'number' ? rating.toFixed(1) : rating;
-    }
+/**
+ * Collection Dropdown Functionality
+ * Add this to your existing script.js file
+ */
 
-    /**
-     * Format views for display (e.g., 12000 -> 12k)
-     * @param {number|string} views - The views to format
-     * @returns {string} The formatted views
-     */
-    function formatViews(views) {
-        if (typeof views === 'string') {
-            return views;
+// Global variable to store user collections
+let userCollections = [];
+
+/**
+ * Initialize collection dropdown functionality
+ */
+function initializeCollectionDropdowns() {
+    // Add CSS for dropdown styling
+    addDropdownStyles();
+    
+    // Load user collections if user is logged in
+    loadUserCollections();
+}
+
+/**
+ * Add CSS styles for the collection dropdown
+ */
+function addDropdownStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .collection-dropdown {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 1000;
         }
-        if (views >= 1000000) {
-            return (views / 1000000).toFixed(1) + 'M';
+        
+        .collection-dropdown-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
-        if (views >= 1000) {
-            return (views / 1000).toFixed(1) + 'K';
+        
+        .result-card:hover .collection-dropdown-btn,
+        .recommendation-card:hover .collection-dropdown-btn {
+            opacity: 1;
         }
-        return views.toString();
+        
+        .collection-dropdown-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .collection-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .collection-dropdown-menu.show {
+            display: block;
+        }
+        
+        .collection-dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .collection-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .collection-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .collection-dropdown-item.loading {
+            color: #666;
+            pointer-events: none;
+        }
+        
+        .collection-dropdown-item.no-collections {
+            color: #666;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .result-card {
+            position: relative;
+        }
+        
+        .recommendation-card {
+            position: relative;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Load user's collections from the backend
+ */
+async function loadUserCollections() {
+    const userId = getCurrentUserId();
+    if (!userId) {
+        userCollections = [];
+        return;
     }
-});
+    
+    try {
+        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const collectionNames = await response.json();
+        userCollections = collectionNames.map(name => ({
+            name: name,
+            _id: name.toLowerCase().replace(/\s+/g, '')
+        }));
+        console.log('✅ Loaded user collections:', userCollections);
+        console.log('📋 Collection names:', collectionNames);
+
+    } catch (error) {
+       console.error('❌ Error loading user collections:', error);
+        
+        // Fallback to default collections
+        userCollections = [
+            { name: 'Favourite', _id: 'favourite' },
+            { name: 'Watch Later', _id: 'watchlater' }
+            
+        ];
+        console.log('🔄 Using fallback collections');
+    }
+}
+
+/**
+ * Add collection dropdown to a result card
+ * @param {HTMLElement} card - The result card element
+ * @param {Object} item - The item data
+ */
+function addCollectionDropdown(card, item) {
+    // Create dropdown container
+    const dropdown = document.createElement('div');
+    dropdown.className = 'collection-dropdown';
+    
+    // Create dropdown button
+    const dropdownBtn = document.createElement('button');
+    dropdownBtn.className = 'collection-dropdown-btn';
+    dropdownBtn.innerHTML = '<i class="fas fa-plus"></i>';
+    dropdownBtn.title = 'Add to collection';
+    
+    // Create dropdown menu
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.className = 'collection-dropdown-menu';
+    
+    // Add click event to button
+    dropdownBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdownMenu(dropdownMenu, item);
+    });
+    
+    // Assemble dropdown
+    dropdown.appendChild(dropdownBtn);
+    dropdown.appendChild(dropdownMenu);
+    
+    // Add to card
+    card.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+}
+
+/**
+ * Toggle dropdown menu visibility and populate with collections
+ * @param {HTMLElement} menu - The dropdown menu element
+ * @param {Object} item - The item data
+ */
+function toggleDropdownMenu(menu, item) {
+    const isVisible = menu.classList.contains('show');
+    
+    // Hide all other dropdown menus
+    document.querySelectorAll('.collection-dropdown-menu').forEach(m => {
+        m.classList.remove('show');
+    });
+    
+    if (!isVisible) {
+        populateDropdownMenu(menu, item);
+        menu.classList.add('show');
+    }
+}
+
+/**
+ * Populate dropdown menu with user collections
+ * @param {HTMLElement} menu - The dropdown menu element
+ * @param {Object} item - The item data
+ */
+function populateDropdownMenu(menu, item) {
+    const userId = getCurrentUserId();
+    
+    if (!userId) {
+        menu.innerHTML = `
+            <div class="collection-dropdown-item no-collections">
+                <i class="fas fa-user"></i> Please log in to add to collections
+            </div>
+        `;
+        return;
+    }
+    
+    if (userCollections.length === 0) {
+        menu.innerHTML = `
+            <div class="collection-dropdown-item loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading collections...
+            </div>
+        `;
+        
+        // Reload collections and repopulate
+        loadUserCollections().then(() => {
+            populateDropdownMenu(menu, item);
+        });
+        return;
+    }
+    
+    // Clear menu
+    menu.innerHTML = '';
+    
+    // Add each collection as a dropdown item
+    userCollections.forEach(collection => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'collection-dropdown-item';
+        menuItem.innerHTML = `
+            <i class="fas fa-folder"></i> ${collection.name}
+        `;
+        
+        menuItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCollection(userId, collection.name, item);
+            menu.classList.remove('show');
+        });
+        
+        menu.appendChild(menuItem);
+    });
+}
+
+/**
+ * Add item to a specific collection
+ * @param {string} userId - User ID
+ * @param {string} collectionName - Collection name
+ * @param {Object} item - Item data
+ */
+async function addToCollection(userId, collectionName, item) {
+    try {
+        // Show loading feedback
+        showToast(`Adding "${item.title}" to ${collectionName}...`, 'info');
+        
+        // Determine item type and ID
+        const itemType = item.type;
+        let itemId;
+        if (itemType === 'movie') {
+            itemId = item.tmdbId;
+        } else if (itemType === 'music' || itemType === 'book') {
+            itemId = item.id;
+        } 
+
+        console.log('🔍 Debug item data:', item);
+        console.log('🔍 Item type:', itemType);
+        console.log('🔍 Item _id:', itemId);
+        
+        if (!itemId) {
+            throw new Error('Item ID not found');
+        }
+        
+        // Call your existing API function
+        const response = await fetch(
+            `http://localhost:3000/addToCollection?userId=${userId}&collectionName=${encodeURIComponent(collectionName)}&itemId=${encodeURIComponent(itemId)}&type=${encodeURIComponent(itemType)}`,
+            {
+                method: 'POST'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`✅ "${item.title}" added to ${collectionName}!`, 'success');
+        } else {
+            throw new Error(data.message || 'Unknown server error');
+        }
+
+    } catch (error) {
+        console.error('Error adding item to collection:', error);
+        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Message to show
+ * @param {string} type - Type of toast (success, error, info)
+ */
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    
+    // Add toast styles if not already added
+    if (!document.querySelector('#toast-styles')) {
+        const toastStyles = document.createElement('style');
+        toastStyles.id = 'toast-styles';
+        toastStyles.textContent = `
+            .toast-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+                animation-fill-mode: forwards;
+            }
+            
+            .toast-success {
+                background: #28a745;
+            }
+            
+            .toast-error {
+                background: #dc3545;
+            }
+            
+            .toast-info {
+                background: #17a2b8;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes fadeOut {
+                to {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+            }
+        `;
+        document.head.appendChild(toastStyles);
+    }
+    
+    // Add to document
+    document.body.appendChild(toast);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
+}
 
 
 // dh example way to use that function

@@ -17,20 +17,20 @@ const genresByType = {
     ],
     movie: [
         {value: 'all', label: 'All Movie Genres'},
-        {value: 'Action', label: 'Action'},                    // Fixed: capitalized
-        {value: 'Science Fiction', label: 'Science Fiction'},  // Fixed: full name
-        {value: 'Drama', label: 'Drama'},                      // Fixed: capitalized
-        {value: 'Thriller', label: 'Thriller'},                // Fixed: capitalized
-        {value: 'Animation', label: 'Animation'},              // Fixed: capitalized
-        {value: 'Comedy', label: 'Comedy'},                    // Fixed: capitalized
-        {value: 'Horror', label: 'Horror'},                    // Fixed: capitalized
-        {value: 'Romance', label: 'Romance'}                   // Fixed: capitalized
+        {value: 'Action', label: 'Action'},                    
+        {value: 'Science Fiction', label: 'Science Fiction'},  
+        {value: 'Drama', label: 'Drama'},                      
+        {value: 'Thriller', label: 'Thriller'},                
+        {value: 'Animation', label: 'Animation'},              
+        {value: 'Comedy', label: 'Comedy'},                  
+        {value: 'Horror', label: 'Horror'},                   
+        {value: 'Romance', label: 'Romance'}                  
     ],
     music: [
         {value: 'all', label: 'All Music Genres'},
         {value: 'Pop', label: 'Pop'},
         {value: 'Rock', label: 'Rock'},
-        {value: 'Hip hop', label: 'Hip-Hop'},                  // Fixed: actual value from your data
+        {value: 'Hip hop', label: 'Hip-Hop'},                  
         {value: 'Jazz', label: 'Jazz'},
         {value: 'Classical', label: 'Classical'},
         {value: 'Lofi', label: 'Lo-Fi'}

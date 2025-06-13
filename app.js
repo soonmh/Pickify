@@ -595,189 +595,195 @@ app.get('/api/recommendation/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
-        
+
         console.log(`🎯 Fetching recommendations for user: ${userId}`);
-        
-        // Convert userId string to ObjectId
+
+        // Validate userId
         let userObjectId;
         try {
             userObjectId = new ObjectId(userId);
         } catch (error) {
-            return res.status(400).json({
-                success: false,
-                error: 'Invalid user ID format'
-            });
+            return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
-        // 1. Get user's collections to understand preferences
-        const userCollections = await db.collection('userCollection')
-            .find({ userId: userObjectId, collectionName: 'Favourite' })
-            .toArray();
+        // 1. Fetch user's favorite collection
+        const userFavorites = await db.collection('userCollection')
+            .findOne({ userId: userObjectId, collectionName: 'Favourite' });
 
-        if (!userCollections || userCollections.length === 0) {
-            console.log('👤 User has no collections, returning empty state');
+        if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
             return res.status(200).json({
                 success: true,
                 count: 0,
                 data: [],
                 type: 'no_collections',
-                message: 'No collections found. Create a collection and add movies to get personalized recommendations!'
+                message: 'No favorite items found. Add movies, music, or books to get recommendations!'
             });
         }
 
-        // 2. Extract all movie IDs from the "Favourite" collection
-        const userMovieIds = userCollections[0].item.map(id => 
-            typeof id === 'string' ? new ObjectId(id) : id
-        );
+        // 2. Separate item IDs by type
+        const movieIds = [];
+        const musicIds = [];
+        const bookIds = [];
 
-        if (userMovieIds.length === 0) {
-            console.log('📭 User collections are empty, returning empty state');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'empty_collections',
-                message: 'Your collections are empty. Add some movies to your watchlist to get personalized recommendations!'
-            });
-        }
-        
-        // 3. Get details of user's movies to analyze preferences
-        const userMovies = await db.collection('Movie')
-            .find({ _id: { $in: userMovieIds } })
-            .toArray();
-        console.log(`👥 User has ${userMovieIds.length} movies in their collections`);
-        console.log('🎥 User movie IDs:', userMovieIds);
-        console.log(`📊 Found ${userMovies.length} movies in user's collections`);
-
-        // If no movies found in database (invalid movie IDs)
-        if (userMovies.length === 0) {
-            console.log('🔍 No valid movies found in database for user collections');
-            return res.status(200).json({
-    success: true,
-    count: 0,
-    data: [],
-    type: 'invalid_movies',
-    message: `No valid movies found in your collections. You have ${userMovieIds.length} movie IDs in your collections, but none matched our database. Try adding movies to get recommendations!`
-});
-        }
-
-        // Need at least 2 movies for meaningful recommendations
-        if (userMovies.length < 2) {
-            console.log('📝 User has too few movies for personalized recommendations');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'insufficient_data',
-                message: `You have only ${userMovies.length} movie in your collections. Add more movies to get better personalized recommendations!`
-            });
-        }
-
-        // 4. Analyze user preferences (genres)
-        const genreCounts = {};
-        const totalGenres = userMovies.reduce((total, movie) => {
-            if (movie.genres && Array.isArray(movie.genres)) {
-                movie.genres.forEach(genre => {
-                    if (genre.name) {
-                        genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
-                        total++;
-                    }
-                });
+        userFavorites.item.forEach(item => {
+            if (item.type === 'movie' && typeof item.itemId === 'string') {
+                movieIds.push(item.itemId);
+            } else if (item.type === 'music' && typeof item.itemId === 'string') {
+                musicIds.push(item.itemId);
+            } else if (item.type === 'book' && item.itemId?.$oid) {
+                bookIds.push(new ObjectId(item.itemId.$oid));
+            } else {
+                console.warn(`⚠️ Skipping invalid item:`, item);
             }
-            return total;
-        }, 0);
+        });
 
-        // Get top genres (at least 20% preference)
-        const minThreshold = Math.max(1, Math.ceil(totalGenres * 0.2));
+        console.log('🎥 Movie IDs:', movieIds);
+        console.log('🎵 Music IDs:', musicIds);
+        console.log('📚 Book IDs:', bookIds);
+
+        // 3. Fetch item details from respective collections (FIXED QUERIES)
+        const [movies, music, books] = await Promise.all([
+            movieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: movieIds.map(id => parseInt(id)) } }).toArray() : [],
+            musicIds.length > 0 ? db.collection('Music').find({ id: { $in: musicIds } }).toArray() : [],
+            bookIds.length > 0 ? db.collection('books').find({ _id: { $in: bookIds } }).toArray() : []
+        ]);
+
+        console.log('🎬 Fetched Movies:', movies.length);
+        console.log('🎵 Fetched Music:', music.length);
+        console.log('📚 Fetched Books:', books.length);
+
+        // Add type information to fetched items since it's not in the documents
+        const moviesWithType = movies.map(item => ({ ...item, type: 'movie' }));
+        const musicWithType = music.map(item => ({ ...item, type: 'music' }));
+        const booksWithType = books.map(item => ({ ...item, type: 'book' }));
+
+        const allUserItems = [...moviesWithType, ...musicWithType, ...booksWithType];
+
+        if (!allUserItems.length) {
+            return res.status(200).json({
+                success: true,
+                count: 0,
+                data: [],
+                type: 'invalid_items',
+                message: 'No valid items found in your collections. Try adding more items to get recommendations!'
+            });
+        }
+
+        // 4. Analyze user preferences (UPDATED FOR DIFFERENT STRUCTURES)
+        const genreCounts = {};
+        const typeCounts = { movie: 0, music: 0, book: 0 };
+
+        allUserItems.forEach(item => {
+            // Handle different genre structures
+            if (item.type === 'movie' && item.genres && Array.isArray(item.genres)) {
+                // Movies: genres as array of objects
+                item.genres.forEach(genre => {
+                    genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
+                });
+            } else if (item.type === 'music' && item.genre) {
+                // Music: genre as single string
+                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
+            } else if (item.type === 'book' && item.genre) {
+                // Books: genre as single string
+                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
+            }
+
+            // Count types
+            typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
+        });
+
+        console.log('📈 Genre Counts:', genreCounts);
+        console.log('📊 Type Counts:', typeCounts);
+
+        // Determine preferred genres and types
         const preferredGenres = Object.entries(genreCounts)
-            .filter(([genre, count]) => count >= minThreshold)
+            .filter(([_, count]) => count >= 1) // Changed from > 1 to >= 1 for more recommendations
             .sort((a, b) => b[1] - a[1])
             .map(([genre]) => genre);
 
+        const preferredTypes = Object.entries(typeCounts)
+            .filter(([_, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type]) => type);
+
         console.log('🎭 User preferred genres:', preferredGenres);
-        console.log('📈 Genre counts:', genreCounts);
+        console.log('📊 User preferred types:', preferredTypes);
 
-        // 5. Find recommendations based on preferred genres
-        let recommendations = [];
-        
-        if (preferredGenres.length > 0) {
-            // Find movies with similar genres, excluding ones user already has
-            recommendations = await db.collection('Movie')
-                .find({
-                    tmdbId: { $nin: userMovieIds }, // Exclude movies user already has
-                    vote_average: { $gte: 3.5 }, // Only well-rated movies
-                    'genres.name': { $in: preferredGenres } // Match preferred genres
-                })
-                .sort({ vote_average: -1, popularity: -1 }) // Sort by rating and popularity
-                .limit(limit * 2) // Get more to shuffle from
-                .project({
-                    tmdbId: 1,
-                    title: 1,
-                    poster_path: 1,
-                    vote_average: 1,
-                    popularity: 1,
-                    genres: 1,
-                    release_date: 1,
-                    overview: 1
-                })
-                .toArray();
-        }
+        // 5. Fetch recommendations (UPDATED QUERIES FOR DIFFERENT STRUCTURES)
+        const recommendations = [];
 
-        // 6. If still not enough recommendations, add popular movies
-        if (recommendations.length < limit) {
-            const additionalRecs = await db.collection('Movie')
-                .find({
-                    tmdbId: { $nin: userMovieIds },
-                    vote_average: { $gte: 4.0 }
-                })
-                .sort({ popularity: -1 })
-                .limit(limit - recommendations.length)
-                .project({
-                    tmdbId: 1,
-                    title: 1,
-                    poster_path: 1,
-                    vote_average: 1,
-                    popularity: 1,
-                    genres: 1,
-                    release_date: 1
-                })
-                .toArray();
+        for (const type of preferredTypes) {
+            let collectionName, query, excludeField;
             
-            recommendations.push(...additionalRecs);
+            if (type === 'movie') {
+                collectionName = 'Movie';
+                excludeField = 'tmdbId';
+                query = {
+                    tmdbId: { $nin: movieIds.map(id => parseInt(id)) },
+                    $or: [
+                        { 'genres.name': { $in: preferredGenres } },
+                        { vote_average: { $gte: 6.0 } } // Fallback for highly rated
+                    ]
+                };
+            } else if (type === 'music') {
+                collectionName = 'Music';
+                excludeField = 'id';
+                query = {
+                    id: { $nin: musicIds },
+                    $or: [
+                        { genre: { $in: preferredGenres } },
+                        { popularity: { $gte: 40 } } // Fallback for popular music
+                    ]
+                };
+            } else if (type === 'book') {
+                collectionName = 'books';
+                excludeField = '_id';
+                query = {
+                    _id: { $nin: bookIds },
+                    $or: [
+                        { genre: { $in: preferredGenres } },
+                        { rating: { $gte: 4 } } // Fallback for highly rated books
+                    ]
+                };
+            }
+
+            if (collectionName) {
+                console.log(`🔍 Querying ${collectionName} with:`, JSON.stringify(query, null, 2));
+                
+                const typeRecommendations = await db.collection(collectionName)
+                    .find(query)
+                    .sort({ 
+                        ...(type === 'movie' && { vote_average: -1, popularity: -1 }),
+                        ...(type === 'music' && { popularity: -1 }),
+                        ...(type === 'book' && { rating: -1, views: -1 })
+                    })
+                    .limit(Math.ceil(limit / preferredTypes.length))
+                    .toArray();
+
+                console.log(`✅ Found ${typeRecommendations.length} ${type} recommendations`);
+                
+                // Add type information to recommendations
+                recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
+            }
         }
 
-        // 7. If still no recommendations found, return empty state
-        if (recommendations.length === 0) {
-            console.log('🎬 No suitable recommendations found based on user preferences');
-            return res.status(200).json({
-                success: true,
-                count: 0,
-                data: [],
-                type: 'no_matches',
-                message: 'No recommendations found based on your preferences. Try adding movies from different genres!'
-            });
-        }
-
-        // 8. Shuffle and limit final results
-        const shuffled = recommendations
-            .sort(() => 0.5 - Math.random())
-            .slice(0, limit);
+        // 6. Shuffle and limit recommendations
+        const shuffled = recommendations.sort(() => 0.5 - Math.random()).slice(0, limit);
 
         console.log(`✅ Generated ${shuffled.length} personalized recommendations`);
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             count: shuffled.length,
             data: shuffled,
             type: 'personalized',
             userPreferences: {
-                totalMoviesInCollections: userMovies.length,
-                preferredGenres: preferredGenres,
-                genreCounts: genreCounts
+                totalItemsInCollections: allUserItems.length,
+                preferredGenres,
+                preferredTypes
             },
-            message: `Recommendations based on your ${userMovies.length} favorite movies`
+            message: `Recommendations based on your ${allUserItems.length} favorite items`
         });
-
     } catch (error) {
         console.error('❌ Error generating recommendations:', error);
         res.status(500).json({
