@@ -59,6 +59,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (logoutBtn) {
       logoutBtn.addEventListener('click', function (e) {
         e.preventDefault();
+        fetch('http://localhost:3000/logout')
+          .then(error => console.log('Error: ' + error));
         sessionStorage.removeItem('loggedInUser');
         localStorage.removeItem('loggedInUser');
         window.location.href = 'landingpage.html'; // Redirect after logout
@@ -67,4 +69,36 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   loadComponent('footer-placeholder', footerPath);
+
+  setInterval(() => {
+    loadComponent('header-placeholder', headerPath, () => {
+    // ✅ After header is loaded, update username
+      const userData = localStorage.getItem('loggedInUser') || sessionStorage.getItem('loggedInUser');
+      const usernameEl = document.getElementById('header-username');
+
+      if (usernameEl) {
+        if (userData) {
+          const user = JSON.parse(userData);
+          usernameEl.textContent = user.name || user.nmail || "Profile";
+          usernameEl.href = "profile.html";
+        } else {
+          usernameEl.textContent = "Login";
+          usernameEl.href = "signin.html";
+        }
+      }
+
+      // ✅ Logout functionality
+      const logoutBtn = document.querySelector('.logout');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', function (e) {
+          e.preventDefault();
+          fetch('http://localhost:3000/logout')
+            .then(error => console.log('Error: ' + error));
+          sessionStorage.removeItem('loggedInUser');
+          localStorage.removeItem('loggedInUser');
+          window.location.href = 'landingpage.html'; // Redirect after logout
+        });
+      }
+    });
+  }, 1000);
 });

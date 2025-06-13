@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+    if(isLoggedIn){
+        user = JSON.parse(isLoggedIn);
+        userId = user.userId;
+    }
+
     const changePasswordBtn = document.querySelector('.change-password-button button');
     const modalOverlay = document.getElementById('changePasswordModal'); // This ID still targets the overlay
 
@@ -112,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showModal();
     });
 
-
+    
     if (closeModalBtn) closeModalBtn.addEventListener('click', hideModal);
     if (cancelChangeBtn) cancelChangeBtn.addEventListener('click', hideModal);
 
@@ -127,17 +133,62 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    if (saveChangesBtn) saveChangesBtn.addEventListener('click', (event) => {
+    if (saveChangesBtn) saveChangesBtn.addEventListener('click', async (event) => {
         event.preventDefault(); // Prevent form submission for now
         // Simulate successful password change
-        if (validatePasswords()) {
-            console.log('Password change submitted. Implement actual logic here.');
-            // In a real app, you'd wait for a success response from the server here.
-            hideModal(); // Hide the change password modal
-            showSuccessModal(); // Show the success message
+        const vp = validatePasswords();
+        const op = await validateOldPassword(currentPasswordInput.value);
+        console.log(`vp ${vp} op ${op}`);
+        if (vp && op === true) {
+            clearError(currentPasswordInput, currentPasswordError);
+            console.log('Passssssssssssssssssssssss');
+            fetch(`http://localhost:3000/user/changePassword?userId=${userId}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({password: confirmNewPasswordInput.value})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Password change submitted. Implement actual logic here.');
+                    // In a real app, you'd wait for a success response from the server here.
+                    hideModal(); // Hide the change password modal
+                    showSuccessModal(); // Show the success message
+                }
+                else {
+                    alert('Passwowrd is not updated');
+                }
+            })
+            .catch(err => console.log(err));
+        }
+        else if (op === false) {
+            showError(currentPasswordInput, currentPasswordError, 'Current password is incorrect.');
         }
     });
 
     // Event listener for the OK button on the success modal
     if (successModalOkBtn) successModalOkBtn.addEventListener('click', hideSuccessModal);
 });
+
+const validateOldPassword = async oldPassword => {
+    try {
+        const response = await fetch(`http://localhost:3000/user/getPassword?userId=${userId}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: oldPassword})
+        })
+        const data = await response.json();
+        console.log('data.success in op ' + data.success);
+        return data.success;
+    }catch (err) {
+        console.error('Error validating old password:', err);
+        // Attempt to log error details if it's a JSON response, otherwise log the error itself
+        try {
+            const errorDetails = await err.json(); // If the error response is JSON
+            console.error('Error details:', errorDetails);
+        } catch (parseError) {
+            // If err.json() fails, it means the error response wasn't JSON
+        }
+        return false;
+    }
+};

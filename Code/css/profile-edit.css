@@ -187,3 +187,11 @@
     color: var(--white, #ffffff);
     transform: translateY(-1px);
 }
+
+#saveProfileEditsBtn:disabled {
+    background-color: #cccccc; /* Lighter background color */
+    color: #666666;           /* Darker text for contrast on light gray */
+    cursor: not-allowed;      /* "Stop" cursor */
+    opacity: 0.7;             /* Slightly transparent */
+    box-shadow: none;         /* Remove shadow when disabled */
+}

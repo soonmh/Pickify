@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     data-type="icon"
                     data-shape="circle"
                     data-theme="filled_black"
-                    data-size="large">
+                    data-size="large">  
                 </div>
 
             </div>
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('login-form').addEventListener('submit', async function (event) {
         event.preventDefault();
-
+        console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         const inputUsername = document.getElementById('username').value.trim();
         const inputPassword = document.getElementById('password').value;
 
@@ -140,6 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('http://localhost:3000/login',{
                 method: 'POST',
+                credentials: 'include',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: inputUsername, password: inputPassword})
             });
