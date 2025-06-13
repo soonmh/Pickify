@@ -7,8 +7,10 @@ const { ObjectId, GridFSBucket } = require('mongodb');
 const multer = require('multer');
 const stream = require('stream');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const path = require('path');
 const saltRounds=10;
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');   
 // const session = require('express-session');
 
 const corsOptions = {
@@ -119,7 +121,7 @@ app.post('/login', async (req, res) =>{
 
 // ✅ MODIFIED: app.post('/User') to handle Google users (no password) and enforce uniqueness
 app.post('/User', async (req, res) => {
-    const user = req.body; // user will now contain { name, email, picture, googleId } OR { name, email, password }
+    const user = req.body;
 
     // Server-side duplicate check for email (case-insensitive)
     const existingEmailUser = await db.collection('User').findOne({ email: new RegExp(`^${user.email}$`, 'i') });
@@ -135,11 +137,17 @@ app.post('/User', async (req, res) => {
 
     // Hash password only if provided (for traditional signup)
     if (user.password) {
+        // ✅ Validate password here for traditional signup
+        const passwordError = validatePassword(user.password);
+        if (passwordError) {
+            return res.status(400).json({ success: false, error: passwordError });
+        }
+
         const hashPassword = await bcrypt.hash(user.password, saltRounds);
         user.password = hashPassword;
     } else {
-        // If no password, ensure it's explicitly null or undefined, not stored as an empty string.
-        user.password = null; // Mark as null for Google users
+        // If no password (e.g., Google user), ensure it's explicitly null
+        user.password = null;
     }
 
     try {
@@ -148,7 +156,6 @@ app.post('/User', async (req, res) => {
         res.status(201).json({ success: true, userId: result.insertedId });
     } catch (err) {
         console.error("Database insertion error:", err);
-        // Catch E11000 duplicate key error if unique index is violated (as a fallback)
         if (err.code === 11000) {
             if (err.keyPattern.email) {
                 return res.status(409).json({ success: false, error: 'Email address already registered.' });
@@ -304,6 +311,179 @@ app.post('/contact', async (req, res) => {
         });
     }
 });
+
+// ✅ NEW ENDPOINT: Forgot Password - Request Reset Link
+app.post('/forgotPassword', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') });
+
+        // IMPORTANT SECURITY NOTE: Always respond generically even if the email doesn't exist
+        // to prevent email enumeration attacks.
+        if (!user) {
+            console.log(`Password reset requested for non-existent email: ${email}`);
+            return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        }
+
+        // Generate a unique token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiration = Date.now() + 3600000; // 1 hour from now
+
+        // Store the token and its expiration in the user document
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    resetPasswordToken: resetToken,
+                    resetPasswordExpires: tokenExpiration
+                }
+            }
+        );
+
+        // Construct the reset link (make sure this matches your client-side path)
+        const resetLink = `http://localhost:3000/resetpasswordpage.html?token=${resetToken}`;
+
+        // Email content
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Password Reset Request',
+            html: `
+                <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+                <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+                <p><a href="${resetLink}">Reset Password Link</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset email:', error);
+                // Even on email send error, we return success: true for security reasons
+                return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+            }
+            console.log('Password reset email sent:', info.response);
+            res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        });
+
+    } catch (error) {
+        console.error('Server error during forgot password:', error);
+        res.status(500).json({ success: false, error: 'Internal server error. Please try again later.' });
+    }
+});
+
+// ✅ NEW ENDPOINT: GET /resetpasswordpage.html (serve the reset password page and validate token)
+app.get('/resetpasswordpage.html', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(400).send('Invalid or missing token.');
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            // Token is invalid or expired
+            return res.status(400).send('Password reset token is invalid or has expired. Please request a new one.');
+        }
+
+        // Serve the HTML page, passing the token if needed by the frontend script
+        // Note: You can either render it dynamically or just send the static file
+        // and let the client-side JS read the URL parameter.
+        res.sendFile(path.join(__dirname, 'Code', 'resetpasswordpage.html')); 
+        
+    } catch (error) {
+        console.error('Server error validating token:', error);
+        res.status(500).send('Internal server error during token validation.');
+    }
+});
+
+
+// ✅ NEW ENDPOINT: POST /resetPassword - Handle Password Reset
+app.post('/resetPassword', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Token and new password are required.' });
+    }
+
+    // ✅ Validate the new password
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+        return res.status(400).json({ success: false, error: passwordError });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, error: 'Password reset token is invalid or has expired.' });
+        }
+
+        // Hash the new password
+        const hashPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        // Update the user's password and clear the reset token fields
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: { password: hashPassword },
+                $unset: { resetPasswordToken: "", resetPasswordExpires: "" } // Remove the token fields
+            }
+        );
+
+        // Optionally, send a confirmation email that password has been reset
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Your Password Has Been Reset',
+            html: `
+                <p>This is a confirmation that the password for your Pickify account ${user.email} has just been changed.</p>
+                <p>If you did not make this change, please contact support immediately.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset confirmation email:', error);
+            } else {
+                console.log('Password reset confirmation email sent:', info.response);
+            }
+        });
+
+        res.status(200).json({ success: true, message: 'Your password has been successfully reset.' });
+
+    } catch (error) {
+        console.error('Server error during password reset:', error);
+        res.status(500).json({ success: false, error: 'Internal server error during password reset.' });
+    }
+});
+
+function validatePassword(password) {
+    // This regex should match the one in your client-side signup and resetpasswordpage.html
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}\[\]:;<>,.?~\\/-]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return 'Password must be at least 8 characters long and include: ' +
+               'one uppercase letter, one lowercase letter, one number, ' +
+               'and one special character (!@#$%^&*...).';
+    }
+    return null; // Return null if password is valid
+}
 
 app.post('/saveTracks', async (req, res) => {
     // console.log("Hello");
