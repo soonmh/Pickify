@@ -20,22 +20,12 @@ const allowedOrigins = [
 ];
 
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-  optionsSuccessStatus: 200
+  credentials: true, // If you need to handle cookies or authorization headers
+  optionsSuccessStatus: 200 // For legacy browser support
 };
-
 app.use(cors(corsOptions));
 
 const storage = multer.memoryStorage();
@@ -112,6 +102,10 @@ app.post('/login', async (req, res) =>{
 
     if (!user) {
         return res.status(404).json({ success: false, error: 'User not found' });
+    }
+
+    if (user.active === 'false') {
+        return res.status(404).json({ success: false, error: 'Account is deactivated' });
     }
 
     // Handle password comparison only if the user has a password (i.e., not a Google-only user)
@@ -1913,5 +1907,34 @@ app.get('/api/autocomplete', async (req, res) => {
             success: false,
             error: 'Failed to get suggestions'
         });
+    }
+});
+
+app.get('/admin/getUser', async (req, res) => {
+  try {
+    const users = await db.collection('User').find().toArray();
+
+    if (users.length === 0) {
+      return res.status(404).json({ success: false, error: 'No users found' });
+    }
+    res.status(200).json({ success: true, users });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ success: false, error: 'Server error' });
+  }
+});
+
+app.put('/admin/changeStatus', async (req, res) => {
+    const { username, active } = req.body; // Changed 'status' to 'active'
+
+    try {
+        await db.collection('User').updateOne(
+            { name: username },           // Filter
+            { $set: { active: active.toString() } }  // Use 'active' here
+        );
+        res.status(200).json({ success: true, message: 'Status updated' });
+    } catch (err) {
+        console.error('Failed to update status:', err); // Add err to the log
+        res.status(500).json({ success: false, error: err.message }); // Return the error message
     }
 });

@@ -25,6 +25,7 @@
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "googleapis": "^148.0.0",
+    "init": "^0.1.2",
     "mongodb": "^6.16.0",
     "multer": "^2.0.1",
     "nodemailer": "^7.0.3",
@@ -32,5 +33,6 @@
     "pickify": "file:",
     "querystring": "^0.2.1"
   },
-  "keywords": []
+  "keywords": [],
+  "devDependencies": {}
 }
