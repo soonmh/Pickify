@@ -185,25 +185,81 @@ app.post('/User', async (req, res) => {
 
 // ✅ NEW ENDPOINT: Handle Google Login (if user already exists via Google)
 app.post('/googleLogin', async (req, res) => {
-    const { email, googleId } = req.body;
+    const { email, googleId, picture } = req.body; // Added 'picture' to body for consistency if frontend sends it
 
     try {
-        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i'), googleId: googleId });
+        // 1. Try to find user by googleId first (for existing Google-linked accounts)
+        let user = await db.collection('User').findOne({ googleId: googleId });
 
-        if (!user) {
-            return res.status(404).json({ success: false, error: 'Google user not found. Please register.' });
+        if (user) {
+            // User found by googleId, update picture if it changed
+            if (picture && user.picture !== picture) {
+                await db.collection('User').updateOne(
+                    { _id: user._id },
+                    { $set: { picture: picture } }
+                );
+                user.picture = picture; // Update user object for response
+            }
+            return res.status(200).json({
+                success: true,
+                message: 'Google login successful',
+                user: {
+                    userId: user._id.toString(), // Ensure _id is string
+                    email: user.email,
+                    name: user.name,
+                    picture: user.picture
+                }
+            });
         }
 
-        res.status(200).json({
-            success: true,
-            message: 'Google login successful',
-            user: {
-                userId: user._id,
-                email: user.email,
-                name: user.name,
-                picture: user.picture // Include picture if you store it
+        // 2. If not found by googleId, try to find by email (for linking existing password-based accounts)
+        user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') });
+
+        if (user) {
+            // User found by email
+            if (!user.googleId) {
+                // Existing password user, link Google ID
+                await db.collection('User').updateOne(
+                    { _id: user._id },
+                    { $set: { googleId: googleId, picture: picture || user.picture } } // Set googleId and potentially update picture
+                );
+                // Update user object with new googleId and picture before sending response
+                user.googleId = googleId;
+                user.picture = picture || user.picture;
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'Account linked and Google login successful',
+                    user: {
+                        userId: user._id.toString(), // Ensure _id is string
+                        email: user.email,
+                        name: user.name,
+                        picture: user.picture
+                    }
+                });
+            } else if (user.googleId !== googleId) {
+                // Email exists but is already linked to a *different* Google ID
+                return res.status(409).json({ success: false, error: 'Email already registered with a different Google account. Please use the original Google account or standard login.' });
             }
-        });
+            // This case should ideally not be reached if the first 'user' check by googleId passed
+            // It means email matched, googleId existed, and it matched the current googleId (redundant, but safe)
+            return res.status(200).json({
+                success: true,
+                message: 'Google login successful',
+                user: {
+                    userId: user._id.toString(), // Ensure _id is string
+                    email: user.email,
+                    name: user.name,
+                    picture: user.picture
+                }
+            });
+        }
+
+        // 3. If neither found, indicate that it's a new user and frontend should prompt for registration
+        // Your frontend's `handleGoogleCredential` already handles this via `checkEmailAvailability`
+        // and then showing the username modal, so we'll return a specific status/message for it.
+        return res.status(404).json({ success: false, error: 'New Google user. Please proceed with registration.' });
+
     } catch (err) {
         console.error('Error in Google login:', err);
         res.status(500).json({ success: false, error: 'Server error during Google login.' });
