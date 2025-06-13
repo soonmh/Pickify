@@ -13,6 +13,11 @@ const saltRounds=10;
 const nodemailer = require('nodemailer');   
 // const session = require('express-session');
 
+const allowedOrigins = [
+  'http://127.0.0.1:5501',
+  'http://localhost:5500'
+];
+
 const corsOptions = {
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps, curl, Postman)
