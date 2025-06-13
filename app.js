@@ -3,10 +3,27 @@ const express = require('express')
 const cors = require('cors');
 const { connectToDb, getDb } = require('./db')
 const app = express()
-const { ObjectId } = require('mongodb');
+const { ObjectId, GridFSBucket } = require('mongodb');
+const multer = require('multer');
+const stream = require('stream');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+const path = require('path');
 const saltRounds=10;
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer');   
+// const session = require('express-session');
+
+const corsOptions = {
+  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true, // If you need to handle cookies or authorization headers
+  optionsSuccessStatus: 200 // For legacy browser support
+};
+app.use(cors(corsOptions));
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -16,7 +33,7 @@ const transporter = nodemailer.createTransport({
     }
 })
 let db
-app.use(cors());
+// app.use(cors());
 app.use(express.json())
 
 connectToDb((err) => {
@@ -91,13 +108,11 @@ app.post('/login', async (req, res) =>{
         // Or you might want to prompt them to use Google login.
         return res.status(401).json({ success: false, error: 'This account uses Google Sign-In. Please log in with Google.' });
     }
-
-
     res.status(200).json({ 
         success: true, 
         message: 'Login successful', 
-        user:{
-            userId: user._id, // Ensure _id is returned for collections
+        user: { 
+            userId: user._id.toString(),
             email: user.email,
             name: user.name
         }
@@ -106,7 +121,7 @@ app.post('/login', async (req, res) =>{
 
 // ✅ MODIFIED: app.post('/User') to handle Google users (no password) and enforce uniqueness
 app.post('/User', async (req, res) => {
-    const user = req.body; // user will now contain { name, email, picture, googleId } OR { name, email, password }
+    const user = req.body;
 
     // Server-side duplicate check for email (case-insensitive)
     const existingEmailUser = await db.collection('User').findOne({ email: new RegExp(`^${user.email}$`, 'i') });
@@ -122,11 +137,17 @@ app.post('/User', async (req, res) => {
 
     // Hash password only if provided (for traditional signup)
     if (user.password) {
+        // ✅ Validate password here for traditional signup
+        const passwordError = validatePassword(user.password);
+        if (passwordError) {
+            return res.status(400).json({ success: false, error: passwordError });
+        }
+
         const hashPassword = await bcrypt.hash(user.password, saltRounds);
         user.password = hashPassword;
     } else {
-        // If no password, ensure it's explicitly null or undefined, not stored as an empty string.
-        user.password = null; // Mark as null for Google users
+        // If no password (e.g., Google user), ensure it's explicitly null
+        user.password = null;
     }
 
     try {
@@ -135,7 +156,6 @@ app.post('/User', async (req, res) => {
         res.status(201).json({ success: true, userId: result.insertedId });
     } catch (err) {
         console.error("Database insertion error:", err);
-        // Catch E11000 duplicate key error if unique index is violated (as a fallback)
         if (err.code === 11000) {
             if (err.keyPattern.email) {
                 return res.status(409).json({ success: false, error: 'Email address already registered.' });
@@ -291,6 +311,179 @@ app.post('/contact', async (req, res) => {
         });
     }
 });
+
+// ✅ NEW ENDPOINT: Forgot Password - Request Reset Link
+app.post('/forgotPassword', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required.' });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({ email: new RegExp(`^${email}$`, 'i') });
+
+        // IMPORTANT SECURITY NOTE: Always respond generically even if the email doesn't exist
+        // to prevent email enumeration attacks.
+        if (!user) {
+            console.log(`Password reset requested for non-existent email: ${email}`);
+            return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        }
+
+        // Generate a unique token
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const tokenExpiration = Date.now() + 3600000; // 1 hour from now
+
+        // Store the token and its expiration in the user document
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: {
+                    resetPasswordToken: resetToken,
+                    resetPasswordExpires: tokenExpiration
+                }
+            }
+        );
+
+        // Construct the reset link (make sure this matches your client-side path)
+        const resetLink = `http://localhost:3000/resetpasswordpage.html?token=${resetToken}`;
+
+        // Email content
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Password Reset Request',
+            html: `
+                <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+                <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+                <p><a href="${resetLink}">Reset Password Link</a></p>
+                <p>This link will expire in 1 hour.</p>
+                <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset email:', error);
+                // Even on email send error, we return success: true for security reasons
+                return res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+            }
+            console.log('Password reset email sent:', info.response);
+            res.status(200).json({ success: true, message: 'If an account exists with this email, a password reset link has been sent.' });
+        });
+
+    } catch (error) {
+        console.error('Server error during forgot password:', error);
+        res.status(500).json({ success: false, error: 'Internal server error. Please try again later.' });
+    }
+});
+
+// ✅ NEW ENDPOINT: GET /resetpasswordpage.html (serve the reset password page and validate token)
+app.get('/resetpasswordpage.html', async (req, res) => {
+    const { token } = req.query;
+
+    if (!token) {
+        return res.status(400).send('Invalid or missing token.');
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            // Token is invalid or expired
+            return res.status(400).send('Password reset token is invalid or has expired. Please request a new one.');
+        }
+
+        // Serve the HTML page, passing the token if needed by the frontend script
+        // Note: You can either render it dynamically or just send the static file
+        // and let the client-side JS read the URL parameter.
+        res.sendFile(path.join(__dirname, 'Code', 'resetpasswordpage.html')); 
+        
+    } catch (error) {
+        console.error('Server error validating token:', error);
+        res.status(500).send('Internal server error during token validation.');
+    }
+});
+
+
+// ✅ NEW ENDPOINT: POST /resetPassword - Handle Password Reset
+app.post('/resetPassword', async (req, res) => {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+        return res.status(400).json({ success: false, error: 'Token and new password are required.' });
+    }
+
+    // ✅ Validate the new password
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+        return res.status(400).json({ success: false, error: passwordError });
+    }
+
+    try {
+        const user = await db.collection('User').findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() } // Token must not be expired
+        });
+
+        if (!user) {
+            return res.status(400).json({ success: false, error: 'Password reset token is invalid or has expired.' });
+        }
+
+        // Hash the new password
+        const hashPassword = await bcrypt.hash(newPassword, saltRounds);
+
+        // Update the user's password and clear the reset token fields
+        await db.collection('User').updateOne(
+            { _id: user._id },
+            {
+                $set: { password: hashPassword },
+                $unset: { resetPasswordToken: "", resetPasswordExpires: "" } // Remove the token fields
+            }
+        );
+
+        // Optionally, send a confirmation email that password has been reset
+        const mailOptions = {
+            from: process.env.EMAIL_NAME,
+            to: user.email,
+            subject: 'Pickify - Your Password Has Been Reset',
+            html: `
+                <p>This is a confirmation that the password for your Pickify account ${user.email} has just been changed.</p>
+                <p>If you did not make this change, please contact support immediately.</p>
+                <p>Thanks,<br/>The Pickify Team</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error sending password reset confirmation email:', error);
+            } else {
+                console.log('Password reset confirmation email sent:', info.response);
+            }
+        });
+
+        res.status(200).json({ success: true, message: 'Your password has been successfully reset.' });
+
+    } catch (error) {
+        console.error('Server error during password reset:', error);
+        res.status(500).json({ success: false, error: 'Internal server error during password reset.' });
+    }
+});
+
+function validatePassword(password) {
+    // This regex should match the one in your client-side signup and resetpasswordpage.html
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+={}\[\]:;<>,.?~\\/-]).{8,}$/;
+    if (!passwordRegex.test(password)) {
+        return 'Password must be at least 8 characters long and include: ' +
+               'one uppercase letter, one lowercase letter, one number, ' +
+               'and one special character (!@#$%^&*...).';
+    }
+    return null; // Return null if password is valid
+}
 
 app.post('/saveTracks', async (req, res) => {
     // console.log("Hello");
@@ -919,6 +1112,357 @@ app.get('/api/health', (req, res) => {
         message: 'Pickify Backend is running!',
         database: db ? 'Connected' : 'Disconnected'
     });
+});
+
+// --- GridFS Image Upload and Serving ---
+// --- Profile Picture ---
+// Endpoint to upload/update a profile picture
+app.post('/user/profile-picture', upload.single('profileImageFile'), async (req, res) => {
+    // if (!req.session.user || !req.session.user.id) {
+    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
+    // }
+    const id = req.query.userId;
+
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded.' });
+    }
+
+    const bucket = new GridFSBucket(db, { bucketName: 'profile_pictures' });
+    
+    // Create a readable stream from the buffer
+    const readablePhotoStream = new stream.PassThrough();
+    readablePhotoStream.end(req.file.buffer);
+
+    const uploadStream = bucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype
+    });
+    const fileId = uploadStream.id;
+
+    readablePhotoStream.pipe(uploadStream)
+        .on('error', (error) => {
+            console.error("GridFS upload error:", error);
+            return res.status(500).json({ success: false, error: 'Failed to upload image to GridFS.' });
+        })
+        .on('finish', async () => {
+            console.log(`File ${req.file.originalname} uploaded to GridFS with id: ${fileId}`);
+            try {
+                const userId = new ObjectId(id);
+                // Update the user document with the new GridFS file ID for profilePic
+                // Assuming your User collection has a field like 'profilePic' to store this ID
+                await db.collection('User').updateOne(
+                    { _id: userId },
+                    { $set: { profilePic: fileId } } // Store the GridFS file ID
+                );
+
+                res.json({ success: true, message: 'Profile picture updated!', fileId: fileId.toString() });
+
+                // Update session
+                // req.session.user.profilePicId = fileId.toString(); // Store as string in session
+                // req.session.save(err => {
+                //     if (err) console.error("Session save error after pic update:", err);
+                //     res.json({ success: true, message: 'Profile picture updated!', fileId: fileId.toString() });
+                // });
+            } catch (dbError) {
+                console.error("DB update error after GridFS upload:", dbError);
+                // If DB update fails, you might want to delete the orphaned GridFS file
+                bucket.delete(fileId, (deleteErr) => {
+                    if (deleteErr) console.error("Failed to delete orphaned GridFS file:", deleteErr);
+                });
+                return res.status(500).json({ success: false, error: 'Failed to update user record.' });
+            }
+        });
+});
+
+// --- Background Picture ---
+// Endpoint to upload/update a background picture
+app.post('/user/background-picture', upload.single('backgroundImageFile'), async (req, res) => {
+    // if (!req.session.user || !req.session.user.id) {
+    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
+    // }
+
+    const id = req.query.userId;
+
+    if (!req.file) {
+        return res.status(400).json({ success: false, error: 'No file uploaded.' });
+    }
+
+    const bucket = new GridFSBucket(db, { bucketName: 'background_pictures' }); // Use a different bucket
+    
+    const readablePhotoStream = new stream.PassThrough();
+    readablePhotoStream.end(req.file.buffer);
+
+    const uploadStream = bucket.openUploadStream(req.file.originalname, {
+        contentType: req.file.mimetype
+    });
+    const fileId = uploadStream.id;
+
+    readablePhotoStream.pipe(uploadStream)
+        .on('error', (error) => {
+            console.error("GridFS background upload error:", error);
+            return res.status(500).json({ success: false, error: 'Failed to upload background image to GridFS.' });
+        })
+        .on('finish', async () => {
+            console.log(`Background file ${req.file.originalname} uploaded to GridFS with id: ${fileId}`);
+            try {
+                const userId = new ObjectId(id);
+                // Update the user document with the new GridFS file ID for backgroundPic
+                await db.collection('User').updateOne(
+                    { _id: userId },
+                    { $set: { backgroundPic: fileId } } // Store the GridFS file ID in 'backgroundPic' field
+                );
+                res.json({ success: true, message: 'Background picture updated!', fileId: fileId.toString() });
+
+                // Update session
+                // req.session.user.backgroundPicId = fileId.toString(); // Store as string in session
+                // req.session.save(err => {
+                //     if (err) console.error("Session save error after background pic update:", err);
+                //     res.json({ success: true, message: 'Background picture updated!', fileId: fileId.toString() });
+                // });
+            } catch (dbError) {
+                console.error("DB update error after background GridFS upload:", dbError);
+                bucket.delete(fileId, (deleteErr) => {
+                    if (deleteErr) console.error("Failed to delete orphaned background GridFS file:", deleteErr);
+                });
+                return res.status(500).json({ success: false, error: 'Failed to update user record for background picture.' });
+            }
+        });
+});
+
+app.get('/user/getImage', async (req, res) => {
+    const {userId} = req.query
+    console.log('userId: '+userId);
+
+    const id = new ObjectId(userId);
+    console.log('id ' + id);
+    
+    try {
+        const user = await db.collection('User').findOne({ _id: id});
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+        res.status(200).json({ success: true, profile: user.profilePic, background: user.backgroundPic });
+    }
+    catch (err) {
+        console.error("Error fetching user image:", err);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+});
+
+// Generalized Endpoint to serve images from specified GridFS bucket
+app.get('/image/:bucketName/:fileId', async (req, res) => {
+    try {
+        const { bucketName, fileId: fileIdString } = req.params;
+        const fileId = new ObjectId(fileIdString);
+        const bucket = new GridFSBucket(db, { bucketName: bucketName });
+
+        const file = await db.collection(`${bucketName}.files`).findOne({ _id: fileId });
+        if (!file) {
+            return res.status(404).send('Image not found');
+        }
+
+        res.set('Content-Type', file.contentType);
+        res.set('Content-Disposition', `inline; filename="${file.filename}"`);
+
+        const downloadStream = bucket.openDownloadStream(fileId);
+        downloadStream.pipe(res);
+        downloadStream.on('error', () => res.status(404).send('Image not found or error streaming'));
+    } catch (error) { // Catch ObjectId creation error for invalid fileIdString
+        console.error("Error serving image from GridFS:", error);
+        res.status(500).send('Server error');
+    }
+});
+
+// Endpoint to update username
+app.post('/user/username', async (req, res) => {
+    // if (!req.session.user || !req.session.user.id) {
+    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
+    // }
+    const userIdString = req.query.userId; // Renamed for clarity
+
+    const { newUsername } = req.body;
+
+    if (!newUsername || newUsername.trim().length === 0) {
+        return res.status(400).json({ success: false, error: 'Username cannot be empty.' });
+    }
+    
+
+    try {
+        const userObjectId = new ObjectId(userIdString); // Use userObjectId consistently
+
+        // Proactively check if the new username is already taken by ANOTHER user
+        const existingUserWithNewName = await db.collection('User').findOne({
+            name: newUsername.trim()
+        });
+
+        console.log(existingUserWithNewName);
+
+        if (existingUserWithNewName) {
+            return res.status(409).json({ success: false, error: 'Username already taken. Please choose another.' });
+        }
+
+        // Proceed with the update
+        const result = await db.collection('User').updateOne(
+            { _id: userObjectId },
+            { $set: { name: newUsername.trim() } }
+        );
+
+        if (result.matchedCount === 0) {
+            // This case should ideally not happen if userId is valid and user exists
+            return res.status(404).json({ success: false, error: 'User not found.' });
+        }
+
+        if (result.modifiedCount === 0 && result.matchedCount > 0) {
+            // Username was the same as before, no actual update needed by the database
+            return res.status(200).json({ 
+                success: true, 
+                message: 'Username is the same as before. No update performed.', 
+                username: newUsername.trim() 
+            });
+        }
+        
+        // Successfully updated
+        res.json({ 
+            success: true, 
+            message: 'Username updated successfully!', 
+            username: newUsername.trim() 
+        });
+
+    } catch (error) {
+        console.error('Error updating username:', error);
+        // The unique index constraint error (11000) is a good fallback,
+        // but the proactive check above should catch most cases.
+        if (error.code === 11000) { // MongoDB duplicate key error code
+            return res.status(409).json({ success: false, error: 'Username already taken. Please ensure it is unique.' });
+        }
+        if (error.name === 'BSONTypeError') { // Handle invalid ObjectId format
+            return res.status(400).json({ success: false, error: 'Invalid user ID format.' });
+        }
+        res.status(500).json({ success: false, error: 'Server error while updating username.' });
+    }
+});
+
+// Helper function to delete a file from GridFS
+async function deleteGridFSFile(db, bucketName, fileIdString) {
+    if (!fileIdString) {
+        console.log(`No fileId provided for bucket ${bucketName}, skipping deletion.`);
+        return;
+    }
+    try {
+        const fileId = new ObjectId(fileIdString);
+        const bucket = new GridFSBucket(db, { bucketName });
+        await bucket.delete(fileId);
+        console.log(`Successfully deleted file ${fileIdString} from bucket ${bucketName}.`);
+    } catch (error) {
+        // Log error but don't necessarily stop the entire account deletion
+        console.error(`Error deleting file ${fileIdString} from bucket ${bucketName}:`, error.message);
+        // If the error is "FileNotFound", it's not critical if we're trying to clean up.
+        if (error.message.includes('FileNotFound')) {
+            console.warn(`File ${fileIdString} not found in ${bucketName} during deletion, might have been already deleted.`);
+        } else {
+            // For other errors, you might want to re-throw or handle differently
+        }
+    }
+}
+
+// Endpoint to delete a user account
+app.delete('/user/delete', async (req, res) => {
+    // if (!req.session.user || !req.session.user.id) {
+    //     return res.status(401).json({ success: false, error: 'Not authenticated. Please log in.' });
+    // }
+
+    const userIdString = req.query.userId;
+    const profilePicId = req.query.profileId;
+    const backgroundPicId = req.query.backgroundId;
+
+    // const userIdString = req.session.user.id;
+    const userObjectId = new ObjectId(userIdString);
+    // const { profilePicId, backgroundPicId } = req.session.user; // Get from session
+
+    try {
+        console.log(`Attempting to delete account for user ID: ${userIdString}`);
+
+        // 1. Delete Profile Picture from GridFS
+        await deleteGridFSFile(db, 'profile_pictures', profilePicId);
+
+        // 2. Delete Background Picture from GridFS
+        await deleteGridFSFile(db, 'background_pictures', backgroundPicId);
+
+        // 3. Delete user's collections (e.g., from 'userCollection')
+        const collectionDeleteResult = await db.collection('userCollection').deleteMany({ userId: userObjectId });
+        console.log(`Deleted ${collectionDeleteResult.deletedCount} entries from userCollection for user ${userIdString}.`);
+
+        // 4. Delete the user document from 'User' collection
+        const userDeleteResult = await db.collection('User').deleteOne({ _id: userObjectId });
+        if (userDeleteResult.deletedCount === 0) {
+            // This case should ideally not happen if session is valid and user exists
+            return res.status(404).json({ success: false, error: 'User not found for deletion.' });
+        }
+        console.log(`Successfully deleted user document for ${userIdString}.`);
+        res.status(200).json({ success: true, message: 'Account deleted successfully.' });
+
+        // // 5. Destroy session and clear cookie
+        // req.session.destroy(err => {
+        //     if (err) {
+        //         console.error('Session destruction error during account deletion:', err);
+        //         // Still attempt to clear cookie and respond positively as user data is deleted
+        //     }
+        //     res.clearCookie('connect.sid'); // Default session cookie name
+        //     res.status(200).json({ success: true, message: 'Account deleted successfully.' });
+        // });
+
+    } catch (error) {
+        console.error('Error during account deletion process:', error);
+        res.status(500).json({ success: false, error: 'Failed to delete account due to a server error.' });
+    }
+});
+
+
+app.put('/user/changePassword', async (req, res) => {
+    const {userId} = req.query
+    const {password} = req.body;
+    console.log('User password to be updated ' + password)
+
+    const hashPassword = await bcrypt.hash(password, saltRounds);
+    console.log('hashpassword ' + hashPassword)
+
+
+    const id = new ObjectId(userId);
+
+    db.collection('User').updateOne({ _id : id}, {$set: {password : hashPassword}})
+    .then ( () => res.status(200).json({success: true, message: 'Password updated successfully!'}))
+    .catch(err => res.status(500).json({success: false, error: err}));
+});
+
+app.post('/user/getPassword', async (req, res) => {
+    
+    const {userId} = req.query;
+    const {password} = req.body;
+    console.log('User password from req.body ' + password);
+    
+    try {
+        const id = new ObjectId(userId);
+        const user = await db.collection('User').findOne({_id: id});
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+
+        // Correctly await the result of bcrypt.compare
+        const isMatch = await bcrypt.compare(password, user.password);
+        console.log('Password match result (isMatch): ' + isMatch); // This will log true or false
+
+        if (!isMatch) {
+            return res.status(401).json({ success: false, error: 'Incorrect password' });
+        }
+
+        // Successfully verified old password
+        res.status(200).json({success: true, message: 'Password verified.'});
+
+    } catch (err) {
+        console.error('Error in /user/getPassword:', err);
+        // Send a more generic error message to the client for security
+        res.status(500).json({success: false, error: 'Server error during password verification.'});
+    }
 });
 
 // Enhanced search API with better debugging - replace your existing search API

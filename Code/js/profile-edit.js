@@ -1,4 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
+    const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+    const user = JSON.parse(isLoggedIn) || undefined;
+
     const editProfilePageBtn = document.querySelector('.edit-profile-button button');
     const editOptionsModalOverlay = document.getElementById('editProfileOptionsModal');
 
@@ -28,29 +31,16 @@ document.addEventListener('DOMContentLoaded', () => {
     profilePicFileInput.type = 'file';
     profilePicFileInput.accept = 'image/*';
 
-    // Function to load profile data from local storage
-    const loadProfileData = () => {
-        const savedProfilePic = localStorage.getItem('profilePic');
-        const savedBackgroundPic = localStorage.getItem('backgroundPic');
-        const savedUsername = localStorage.getItem('username');
-
-        if (savedProfilePic && mainProfilePic) {
-            mainProfilePic.src = savedProfilePic;
-            modalProfilePicPreview.src = savedProfilePic; // Also update modal preview
-        }
-        if (savedBackgroundPic && mainHeaderImg) {
-            mainHeaderImg.src = savedBackgroundPic;
-            modalBackgroundPreview.src = savedBackgroundPic; // Also update modal preview
-        }
-        if (savedUsername && mainUsernameDisplay) {
-            mainUsernameDisplay.textContent = savedUsername;
-            modalUsernameInput.value = savedUsername; // Also update modal input
-        }
-    };
-
     const backgroundPicFileInput = document.createElement('input');
     backgroundPicFileInput.type = 'file';
     backgroundPicFileInput.accept = 'image/*';
+
+    const checkUsernameAndToggleButtonState = () => {
+        if (modalUsernameInput && saveProfileEditsBtn) {
+            const isUsernameEmpty = modalUsernameInput.value.trim().length === 0;
+            saveProfileEditsBtn.disabled = isUsernameEmpty;
+        }
+    };
 
     const showModal = () => {
         // Pre-fill username from main page
@@ -64,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mainHeaderImg && modalBackgroundPreview) {
             modalBackgroundPreview.src = mainHeaderImg.src || 'assests/foster-lake.jpg';
         }
+        checkUsernameAndToggleButtonState(); // Set initial button state when modal opens
         editOptionsModalOverlay.classList.add('active');
     };
 
@@ -127,33 +118,111 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Save Changes
-    if (saveProfileEditsBtn) {
-        saveProfileEditsBtn.addEventListener('click', () => {
-            // Update main profile picture
-            if (mainProfilePic && modalProfilePicPreview.src !== mainProfilePic.src) {
-                mainProfilePic.src = modalProfilePicPreview.src;
-                localStorage.setItem('profilePic', modalProfilePicPreview.src);
-            }
-            // Update main background image
-            if (mainHeaderImg && modalBackgroundPreview.src !== mainHeaderImg.src) {
-                mainHeaderImg.src = modalBackgroundPreview.src;
-                localStorage.setItem('backgroundPic', modalBackgroundPreview.src);
-            }
-            // Update main username
-            if (mainUsernameDisplay && modalUsernameInput) {
-                const newUsername = modalUsernameInput.value.trim();
-                mainUsernameDisplay.textContent = newUsername;
-                localStorage.setItem('username', newUsername);
-            }
-            console.log('Profile changes saved (simulated).');
-            // In a real app, you'd send this data to a server.
-            // For now, we just update the page and close the modal.
-            hideModal();
+    // Add event listener to username input to enable/disable save button
+    if (modalUsernameInput) {
+        modalUsernameInput.addEventListener('input', () => {
+            checkUsernameAndToggleButtonState();
         });
     }
 
-    // Load existing data from local storage when the page loads
-    // localStorage.clear();
-    loadProfileData();
+    // Handle Save Changes
+    if (saveProfileEditsBtn) {
+        saveProfileEditsBtn.addEventListener('click', async () => {
+            saveProfileEditsBtn.disabled = true; // Prevent multiple clicks
+            saveProfileEditsBtn.textContent = 'Saving...';
+
+            const profilePicFile = profilePicFileInput.files[0];
+            const backgroundFile = backgroundPicFileInput.files[0];
+            const newUsername = modalUsernameInput.value.trim();
+
+            let profilePicUpdated = false;
+            let backgroundPicUpdated = false;
+            let usernameUpdated = false;
+
+            try {
+                // 1. Upload Profile Picture if changed
+                if (profilePicFile && mainProfilePic) {
+                    const formData = new FormData();
+                    formData.append('profileImageFile', profilePicFile);
+
+                    const response = await fetch(`http://localhost:3000/user/profile-picture?userId=${user.userId}`, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to upload profile picture.');
+                    }
+                    mainProfilePic.src = `http://localhost:3000/image/profile_pictures/${result.fileId}`;
+                    profilePicUpdated = true;
+                    console.log('Profile picture updated successfully.');
+                }
+
+                // 2. Upload Background Picture if changed
+                if (backgroundFile && mainHeaderImg) {
+                    const formData = new FormData();
+                    formData.append('backgroundImageFile', backgroundFile);
+
+                    const response = await fetch(`http://localhost:3000/user/background-picture?userId=${user.userId}`, {
+                        method: 'POST',
+                        body: formData,
+                        credentials: 'include'
+                    });
+                    const result = await response.json();
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.error || 'Failed to upload background picture.');
+                    }
+                    mainHeaderImg.src = `http://localhost:3000/image/background_pictures/${result.fileId}`;
+                    backgroundPicUpdated = true;
+                    console.log('Background picture updated successfully.');
+                }
+
+                // 3. Update Username (locally for now, backend update would be similar)
+                if (mainUsernameDisplay && newUsername !== mainUsernameDisplay.textContent) {
+                    const usernameResponse = await fetch(`http://localhost:3000/user/username?userId=${user.userId}`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                        },
+                        credentials: 'include', // Send cookies
+                        body: JSON.stringify({ newUsername: newUsername })
+                    });
+                    const usernameResult = await usernameResponse.json();
+                    console.log('usernameResponse '+usernameResponse.ok);
+                    console.log('usernameResult '+usernameResult.success);
+                    if (!usernameResponse.ok || !usernameResult.success) {
+                        throw new Error(usernameResult.error || 'Failed to update username.');
+                    }
+                    mainUsernameDisplay.textContent = usernameResult.username; // Update with username from server response
+                    user.name = usernameResult.username;
+                    sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+                    localStorage.setItem('loggedInUser', JSON.stringify(user));
+                    console.log('name in session:' + JSON.stringify(user));
+                    
+                    
+                    usernameUpdated = true;
+                    console.log('Username updated successfully via backend.');
+                }
+
+                if (profilePicUpdated || backgroundPicUpdated || usernameUpdated) {
+                    let messages = [];
+                    if (profilePicUpdated) messages.push('Profile picture updated.');
+                    if (backgroundPicUpdated) messages.push('Background picture updated.');
+                    if (usernameUpdated) messages.push('Username updated.');
+                    alert(messages.join('\n') || 'Profile updated successfully!');
+                } else {
+                    alert('No changes were made.');
+                }
+
+            } catch (error) {
+                console.error('Error saving profile changes:', error);
+                alert(`Error saving changes: ${error.message}`);
+            } finally {
+                saveProfileEditsBtn.disabled = false;
+                saveProfileEditsBtn.textContent = 'Save Changes';
+                hideModal();
+            }
+        });
+    }
 });

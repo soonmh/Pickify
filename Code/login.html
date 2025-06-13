@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('login-form').addEventListener('submit', async function (event) {
         event.preventDefault();
-
+        console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         const inputUsername = document.getElementById('username').value.trim();
         const inputPassword = document.getElementById('password').value;
 
@@ -143,6 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('http://localhost:3000/login',{
                 method: 'POST',
+                credentials: 'include',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({username: inputUsername, password: inputPassword})
             });
@@ -278,6 +279,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 sessionStorage.setItem('loggedInUser', JSON.stringify(loggedInUser));
                 localStorage.setItem('loggedInUser', JSON.stringify(loggedInUser)); // Remember me for Google login
                 document.getElementById('username-modal').style.display = 'none'; // Hide the modal
+
+                 // ✅ Add default collection creation for Google users here
+                const favouriteDes = "A personal space to keep the movies and shows you love the most. Easily access your top picks anytime.";
+                const watchLaterDes = "Spotted something interesting? Drop it here and come back to it whenever you’re free.";
+                await defaultCollectionCreation(loggedInUser.userId, "Favourite", favouriteDes);
+                await defaultCollectionCreation(loggedInUser.userId, "Watch Later", watchLaterDes);
+
                 window.location.href = loggedInUser.email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
 
             } else {
@@ -291,6 +299,20 @@ document.addEventListener('DOMContentLoaded', () => {
             errorBox.style.display = 'block';
         }
     }
+
+    // DH created function jangan delete :)
+    async function defaultCollectionCreation(userId, collectionName, collectionDescription){
+        await fetch('http://localhost:3000/createCollection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                userId,
+                collectionName,
+                collectionDescription
+            })
+        }); 
+    }
+
 </script>
 
 </body>
