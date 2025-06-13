@@ -11,14 +11,14 @@ const saltRounds=10;
 const nodemailer = require('nodemailer');
 // const session = require('express-session');
 
-const corsOptions = {
-  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true, // If you need to handle cookies or authorization headers
-  optionsSuccessStatus: 200 // For legacy browser support
-};
-app.use(cors(corsOptions));
+// const corsOptions = {
+//   origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   allowedHeaders: ['Content-Type', 'Authorization'],
+//   credentials: true, // If you need to handle cookies or authorization headers
+//   optionsSuccessStatus: 200 // For legacy browser support
+// };
+// app.use(cors(corsOptions));
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
