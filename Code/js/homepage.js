@@ -1008,7 +1008,7 @@ function addCollectionDropdown(card, item) {
     const dropdownBtn = document.createElement('button');
     dropdownBtn.className = 'collection-dropdown-btn';
     dropdownBtn.innerHTML = '<i class="fas fa-plus"></i>';
-    dropdownBtn.title = 'Add to collection';
+    dropdownBtn.title = 'Add to Watchlist';
     
     // Create dropdown menu
     const dropdownMenu = document.createElement('div');

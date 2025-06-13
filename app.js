@@ -14,7 +14,7 @@ const nodemailer = require('nodemailer');
 // const session = require('express-session');
 
 const corsOptions = {
-  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
+  origin: 'http://127.0.0.1:5500', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // If you need to handle cookies or authorization headers

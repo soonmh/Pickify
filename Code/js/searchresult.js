@@ -39,6 +39,8 @@ const genresByType = {
 
 document.addEventListener('DOMContentLoaded', function() {
 
+    initializeCollectionDropdowns();
+
     const urlParams = new URLSearchParams(window.location.search);
     const queryFromURL = urlParams.get('query');
 
@@ -254,60 +256,66 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Render results - Updated to show genre information
     function renderResults() {
-        resultsContainer.innerHTML = '';
+    resultsContainer.innerHTML = '';
+    
+    if (currentData.length === 0) {
+        resultsContainer.innerHTML = `
+            <div class="col-12 text-center my-5">
+                <h4>No results found</h4>
+                <p>Try adjusting your search or filters</p>
+            </div>
+        `;
+        return;
+    }
+    
+    currentData.forEach(item => {
+        const col = document.createElement('div');
+        col.className = 'col';
+        col.setAttribute('data-id', item.id);
         
-        if (currentData.length === 0) {
-            resultsContainer.innerHTML = `
-                <div class="col-12 text-center my-5">
-                    <h4>No results found</h4>
-                    <p>Try adjusting your search or filters</p>
-                </div>
-            `;
-            return;
+        // Determine additional info based on type
+        let additionalInfo = '';
+        if (item.type === 'book' && item.author) {
+            additionalInfo = `<div class="result-author">by ${item.author}</div>`;
+        } else if (item.type === 'movie' && item.director) {
+            additionalInfo = `<div class="result-director">by ${item.director}</div>`;
+        } else if (item.type === 'music' && item.artist) {
+            additionalInfo = `<div class="result-artist">by ${item.artist}</div>`;
         }
         
-        currentData.forEach(item => {
-            const col = document.createElement('div');
-            col.className = 'col';
-            col.setAttribute('data-id', item.id);
-            
-            // Determine additional info based on type
-            let additionalInfo = '';
-            if (item.type === 'book' && item.author) {
-                additionalInfo = `<div class="result-author">by ${item.author}</div>`;
-            } else if (item.type === 'movie' && item.director) {
-                additionalInfo = `<div class="result-director">by ${item.director}</div>`;
-            } else if (item.type === 'music' && item.artist) {
-                additionalInfo = `<div class="result-artist">by ${item.artist}</div>`;
-            }
-            
-            // Add genre display
-            const genreDisplay = item.genre && item.genre !== 'unknown' ? item.genre : 'No Genre';
-            
-            col.innerHTML = `
-                <div class="result-card">
-                    <img src="${item.image}" class="result-img" alt="${item.title}" onerror="this.src='./assests/placeholder.png'">
-                    <div class="result-body">
-                        <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
-                        <h5 class="result-title">${item.title}</h5>
-                        ${additionalInfo}
-                        <div class="result-genre">
-                            <i class="fas fa-tag"></i> ${genreDisplay}
-                        </div>
-                        <div class="result-meta">
-                            <div class="result-rating">
-                                <i class="fas fa-star"></i> ${typeof item.rating === 'number' ? item.rating.toFixed(1) : '0.0'}
-                            </div>
-                            <div class="result-views">
-                                <i class="fas fa-eye"></i> ${formatNumber(item.views)}
-                            </div>
-                        </div>
+        // Add genre display
+        const genreDisplay = item.genre && item.genre !== 'unknown' ? item.genre : 'No Genre';
+        
+        // Create the result card
+        const resultCard = document.createElement('div');
+        resultCard.className = 'result-card';
+        resultCard.innerHTML = `
+            <img src="${item.image}" class="result-img" alt="${item.title}" onerror="this.src='./assests/placeholder.png'">
+            <div class="result-body">
+                <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
+                <h5 class="result-title">${item.title}</h5>
+                ${additionalInfo}
+                <div class="result-genre">
+                    <i class="fas fa-tag"></i> ${genreDisplay}
+                </div>
+                <div class="result-meta">
+                    <div class="result-rating">
+                        <i class="fas fa-star"></i> ${typeof item.rating === 'number' ? item.rating.toFixed(1) : '0.0'}
+                    </div>
+                    <div class="result-views">
+                        <i class="fas fa-eye"></i> ${formatNumber(item.views)}
                     </div>
                 </div>
-            `;
-            
-            // Add click event to each card
-            col.addEventListener('click', () => {
+            </div>
+        `;
+        
+        // Add collection dropdown to the card
+        addCollectionDropdown(resultCard, item);
+        
+        // Add click event to the card (excluding dropdown area)
+        resultCard.addEventListener('click', (e) => {
+            // Don't navigate if clicking on dropdown
+            if (!e.target.closest('.collection-dropdown')) {
                 // Navigate to detail page based on content type
                 let detailUrl;
                 if (item.type === 'movie') {
@@ -321,11 +329,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (detailUrl) {
                     window.location.href = detailUrl;
                 }
-            });
-            
-            resultsContainer.appendChild(col);
+            }
         });
-    }
+        
+        col.appendChild(resultCard);
+        resultsContainer.appendChild(col);
+    });
+}
     
     // Update results count
     function updateResultsCount() {
@@ -454,4 +464,425 @@ document.addEventListener('DOMContentLoaded', function() {
             item.style.visibility = 'visible';
         });
     }
+
+    // Collection Dropdown Functionality for Search Results
+// Add this to the end of your searchresult.js file
+
+// Global variable to store user collections
+let userCollections = [];
+
+/**
+ * Initialize collection dropdown functionality
+ */
+function initializeCollectionDropdowns() {
+    // Add CSS for dropdown styling
+    addDropdownStyles();
+    
+    // Load user collections if user is logged in
+    loadUserCollections();
+}
+
+/**
+ * Add CSS styles for the collection dropdown
+ */
+function addDropdownStyles() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .collection-dropdown {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 1000;
+        }
+        
+        .collection-dropdown-btn {
+            background: rgba(0, 0, 0, 0.7);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .result-card:hover .collection-dropdown-btn {
+            opacity: 1;
+        }
+        
+        .collection-dropdown-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .collection-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 180px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1001;
+        }
+        
+        .collection-dropdown-menu.show {
+            display: block;
+        }
+        
+        .collection-dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+        
+        .collection-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .collection-dropdown-item:last-child {
+            border-bottom: none;
+        }
+        
+        .collection-dropdown-item.loading {
+            color: #666;
+            pointer-events: none;
+        }
+        
+        .collection-dropdown-item.no-collections {
+            color: #666;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        .result-card {
+            position: relative;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+/**
+ * Get current user ID from localStorage
+ */
+function getCurrentUserId() {
+    try {
+        // Check sessionStorage first (current session)
+        let userData = sessionStorage.getItem('loggedInUser');
+        
+        // If not in session, check localStorage (persistent login)
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
+        
+        if (userData) {
+            const user = JSON.parse(userData);
+            console.log('👤 Found user data:', user);
+            
+            // Your backend returns userId, but check for other possible ID fields
+            const userId = user.userId || user._id || user.id;
+            
+            if (userId) {
+                console.log(`✅ Found user ID: ${userId}`);
+                return userId;
+            } else {
+                console.log('⚠️ User data found but no userId field:', user);
+            }
+        }
+        
+        console.log('❌ No user data found in storage');
+        return null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
+}
+
+/**
+ * Load user's collections from the backend
+ */
+async function loadUserCollections() {
+    const userId = getCurrentUserId();
+    if (!userId) {
+        userCollections = [];
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const collectionNames = await response.json();
+        userCollections = collectionNames.map(name => ({
+            name: name,
+            _id: name.toLowerCase().replace(/\s+/g, '')
+        }));
+        console.log('✅ Loaded user collections:', userCollections);
+
+    } catch (error) {
+        console.error('❌ Error loading user collections:', error);
+        
+        // Fallback to default collections
+        userCollections = [
+            { name: 'Favourite', _id: 'favourite' },
+            { name: 'Watch Later', _id: 'watchlater' }
+        ];
+        console.log('🔄 Using fallback collections');
+    }
+}
+
+/**
+ * Add collection dropdown to a result card
+ * @param {HTMLElement} card - The result card element
+ * @param {Object} item - The item data
+ */
+function addCollectionDropdown(card, item) {
+    // Create dropdown container
+    const dropdown = document.createElement('div');
+    dropdown.className = 'collection-dropdown';
+    
+    // Create dropdown button
+    const dropdownBtn = document.createElement('button');
+    dropdownBtn.className = 'collection-dropdown-btn';
+    dropdownBtn.innerHTML = '<i class="fas fa-plus"></i>';
+    dropdownBtn.title = 'Add to Watchlist';
+    
+    // Create dropdown menu
+    const dropdownMenu = document.createElement('div');
+    dropdownMenu.className = 'collection-dropdown-menu';
+    
+    // Add click event to button
+    dropdownBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleDropdownMenu(dropdownMenu, item);
+    });
+    
+    // Assemble dropdown
+    dropdown.appendChild(dropdownBtn);
+    dropdown.appendChild(dropdownMenu);
+    
+    // Add to card
+    card.appendChild(dropdown);
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!dropdown.contains(e.target)) {
+            dropdownMenu.classList.remove('show');
+        }
+    });
+}
+
+/**
+ * Toggle dropdown menu visibility and populate with collections
+ * @param {HTMLElement} menu - The dropdown menu element
+ * @param {Object} item - The item data
+ */
+function toggleDropdownMenu(menu, item) {
+    const isVisible = menu.classList.contains('show');
+    
+    // Hide all other dropdown menus
+    document.querySelectorAll('.collection-dropdown-menu').forEach(m => {
+        m.classList.remove('show');
+    });
+    
+    if (!isVisible) {
+        populateDropdownMenu(menu, item);
+        menu.classList.add('show');
+    }
+}
+
+/**
+ * Populate dropdown menu with user collections
+ * @param {HTMLElement} menu - The dropdown menu element
+ * @param {Object} item - The item data
+ */
+function populateDropdownMenu(menu, item) {
+    const userId = getCurrentUserId();
+    
+    if (!userId) {
+        menu.innerHTML = `
+            <div class="collection-dropdown-item no-collections">
+                <i class="fas fa-user"></i> Please log in to add to collections
+            </div>
+        `;
+        return;
+    }
+    
+    if (userCollections.length === 0) {
+        menu.innerHTML = `
+            <div class="collection-dropdown-item loading">
+                <i class="fas fa-spinner fa-spin"></i> Loading collections...
+            </div>
+        `;
+        
+        // Reload collections and repopulate
+        loadUserCollections().then(() => {
+            populateDropdownMenu(menu, item);
+        });
+        return;
+    }
+    
+    // Clear menu
+    menu.innerHTML = '';
+    
+    // Add each collection as a dropdown item
+    userCollections.forEach(collection => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'collection-dropdown-item';
+        menuItem.innerHTML = `
+            <i class="fas fa-folder"></i> ${collection.name}
+        `;
+        
+        menuItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCollection(userId, collection.name, item);
+            menu.classList.remove('show');
+        });
+        
+        menu.appendChild(menuItem);
+    });
+}
+
+/**
+ * Add item to a specific collection
+ * @param {string} userId - User ID
+ * @param {string} collectionName - Collection name
+ * @param {Object} item - Item data
+ */
+async function addToCollection(userId, collectionName, item) {
+    try {
+        // Show loading feedback
+        showToast(`Adding "${item.title}" to ${collectionName}...`, 'info');
+        
+        // Determine item type and ID
+        const itemType = item.type;
+        let itemId;
+        if (itemType === 'movie') {
+            itemId = item.tmdbId || item.id;
+        } else if (itemType === 'music' || itemType === 'book') {
+            itemId = item.id;
+        } 
+
+        console.log('🔍 Debug item data:', item);
+        console.log('🔍 Item type:', itemType);
+        console.log('🔍 Item ID:', itemId);
+        
+        if (!itemId) {
+            throw new Error('Item ID not found');
+        }
+        
+        // Call your existing API function
+        const response = await fetch(
+            `http://localhost:3000/addToCollection?userId=${userId}&collectionName=${encodeURIComponent(collectionName)}&itemId=${encodeURIComponent(itemId)}&type=${encodeURIComponent(itemType)}`,
+            {
+                method: 'POST'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`✅ "${item.title}" added to ${collectionName}!`, 'success');
+        } else {
+            throw new Error(data.message || 'Unknown server error');
+        }
+
+    } catch (error) {
+        console.error('Error adding item to collection:', error);
+        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Show toast notification
+ * @param {string} message - Message to show
+ * @param {string} type - Type of toast (success, error, info)
+ */
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    
+    // Add toast styles if not already added
+    if (!document.querySelector('#toast-styles')) {
+        const toastStyles = document.createElement('style');
+        toastStyles.id = 'toast-styles';
+        toastStyles.textContent = `
+            .toast-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+                animation-fill-mode: forwards;
+            }
+            
+            .toast-success {
+                background: #28a745;
+            }
+            
+            .toast-error {
+                background: #dc3545;
+            }
+            
+            .toast-info {
+                background: #17a2b8;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes fadeOut {
+                to {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+            }
+        `;
+        document.head.appendChild(toastStyles);
+    }
+    
+    // Add to document
+    document.body.appendChild(toast);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
+}
 });
