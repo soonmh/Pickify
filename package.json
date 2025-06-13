@@ -25,6 +25,7 @@
     "express": "^5.1.0",
     "googleapis": "^148.0.0",
     "mongodb": "^6.16.0",
+    "multer": "^2.0.1",
     "nodemailer": "^7.0.3",
     "pickify": "file:",
     "querystring": "^0.2.1"
