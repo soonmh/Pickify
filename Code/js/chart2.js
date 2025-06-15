@@ -195,7 +195,7 @@ function getDummyData() {
             image: "./assests/TheSilentPatient.png",
             author: "Alex Michaelides",
             year: 2019,
-            description:"A woman’s silence after murdering her husband hides a dark truth waiting to be uncovered."
+            description:"A woman's silence after murdering her husband hides a dark truth waiting to be uncovered."
         },
         {
             id: 16,
@@ -232,7 +232,7 @@ function getDummyData() {
             image: "./assests/Sapiens.png",
             author: "Yuval Noah Harari",
             year: 2011,
-            description:"A sweeping account of human evolution, culture, and our species’ impact on the world."
+            description:"A sweeping account of human evolution, culture, and our species' impact on the world."
         },
         {
             id: 19,
@@ -841,14 +841,25 @@ function getDummyData() {
     }
     
     function navigateToContentPage(id) {
-        console.log(`Navigating to content page for ID: ${id}`);
-        
-        // use Squid Game as example first (ID: 25)
-        if (id == 25) {
-            window.location.href = "review.html";
-        } else {
-            alert(`Navigating to content page for: ${id}`);
-            // future implementation could use: window.location.href = `/content/${id}`;
+        // Find the item in the current data
+        const item = currentData.find(item => item.id == id);
+        if (!item) {
+            console.error('Item not found:', id);
+            return;
+        }
+
+        // Construct the review page URL based on item type
+        let reviewUrl;
+        if (item.type === 'movies') {
+            reviewUrl = `review.html?id=${item.tmdbId}&type=movie`;
+        } else if (item.type === 'music') {
+            reviewUrl = `review.html?id=${item.id}&type=music`;
+        } else if (item.type === 'books') {
+            reviewUrl = `review.html?id=${item.id}&type=book`;
+        }
+
+        if (reviewUrl) {
+            window.location.href = reviewUrl;
         }
     }
     

@@ -468,9 +468,6 @@ function updateListItem(data){
     const analysisCard=collectionPage.querySelector(".analysis");
     if(data.items.length>0){
         analysisCard.style.display="flex";
-        // collectionPage.style.display='flex'
-        // updateTitleAndDescription(data.collectionName,data.description);
-        // const baseUrl = "https://image.tmdb.org/t/p/w342";
         const typeCount={};
         data.items.forEach(item => {
             const type = item.type;
@@ -483,6 +480,22 @@ function updateListItem(data){
 
             const card=document.createElement("div");
             card.className="movie-card";
+            
+            // Add click event to navigate to review page
+            card.addEventListener('click', () => {
+                let reviewUrl;
+                if (item.type === 'movie') {
+                    reviewUrl = `review.html?id=${item.infomation.tmdbId}&type=movie`;
+                } else if (item.type === 'music') {
+                    reviewUrl = `review.html?id=${item.infomation.id}&type=music`;
+                } else if (item.type === 'book') {
+                    reviewUrl = `review.html?id=${item.infomation.id}&type=book`;
+                }
+                
+                if (reviewUrl) {
+                    window.location.href = reviewUrl;
+                }
+            });
 
             const img=document.createElement("img");
             img.src = item.infomation.image;

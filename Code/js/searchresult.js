@@ -319,11 +319,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Navigate to detail page based on content type
                 let detailUrl;
                 if (item.type === 'movie') {
-                    detailUrl = `/movie-details.html?id=${item.tmdbId || item.id}`;
+                    detailUrl = `../Code/review.html?id=${item.tmdbId}&type=movie`;
                 } else if (item.type === 'music') {
-                    detailUrl = `/music-details.html?id=${item.id}`;
+                    detailUrl = `../Code/review.html?id=${item.id}&type=music`;
                 } else if (item.type === 'book') {
-                    detailUrl = `/book-details.html?id=${item.id}`;
+                    detailUrl = `../Code/review.html?id=${item.id}&type=book`;
                 }
                 
                 if (detailUrl) {

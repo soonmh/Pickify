@@ -485,45 +485,47 @@ function formatBookData(book) {
      */
     function renderScrollingList(container, data, mediaType) {
         // Clear the container first
-    container.innerHTML = '';
+        container.innerHTML = '';
     
-    // Render each item in the data array
-    data.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'recommendation-card';
-        
-        // Create badge class based on position (special for top 3)
-        const positionNumber = index + 1;
-        const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
-        
-        // Add the badge HTML with position number and media type
-        const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
-        
-        card.innerHTML = `
-            ${badgeHTML}
-            <img src="${item.image}" alt="${item.title}">
-            <div class="result-body">
-                <h5 class="result-title">${item.title}</h5>
-                <div class="result-meta">
-                    <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
-                    <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
+        // Render each item in the data array
+        data.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'recommendation-card';
+            
+            // Create badge class based on position (special for top 3)
+            const positionNumber = index + 1;
+            const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
+            
+            // Add the badge HTML with position number and media type
+            const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
+            
+            card.innerHTML = `
+                ${badgeHTML}
+                <img src="${item.image}" alt="${item.title}">
+                <div class="result-body">
+                    <h5 class="result-title">${item.title}</h5>
+                    <div class="result-meta">
+                        <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
+                        <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
+                    </div>
                 </div>
-            </div>
-        `;
-        
-        // Add collection dropdown
-        addCollectionDropdown(card, item);
-        
-        // Add click handler for the card (excluding dropdown area)
-        card.addEventListener('click', (e) => {
-            // Don't navigate if clicking on dropdown
-            if (!e.target.closest('.collection-dropdown')) {
-                console.log(`Clicked on ${mediaType} item: ${item.title}`);
-            }
+            `;
+            
+            // Add collection dropdown
+            addCollectionDropdown(card, item);
+            
+            // Add click handler for the card (excluding dropdown area)
+            card.addEventListener('click', (e) => {
+                // Don't navigate if clicking on dropdown
+                if (!e.target.closest('.collection-dropdown')) {
+                    console.log(`Clicked on ${mediaType} item: ${item.title}`);
+                    // Navigate to review page with item details
+                    window.location.href = `review.html?id=${item.id}&type=${mediaType}`;
+                }
+            });
+            
+            container.appendChild(card);
         });
-        
-        container.appendChild(card);
-    });
     }
 
     /**
@@ -1283,3 +1285,13 @@ function showToast(message, type = 'info') {
 //         }
 //     }
 // }
+
+/**
+ * Handle click on recommendation items
+ * @param {string} id - The item ID
+ * @param {string} type - The item type (movie, music, book)
+ */
+function handleRecommendationClick(id, type) {
+    console.log(`Clicked on ${type} recommendation: ${id}`);
+    window.location.href = `review.html?id=${id}&type=${type}`;
+}
