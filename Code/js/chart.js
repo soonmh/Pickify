@@ -184,7 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
             image: "./assests/TheSilentPatient.png",
             author: "Alex Michaelides",
             year: 2019,
-            description:"A woman’s silence after murdering her husband hides a dark truth waiting to be uncovered."
+            description:"A woman's silence after murdering her husband hides a dark truth waiting to be uncovered."
         },
         {
             id: 16,
@@ -221,7 +221,7 @@ document.addEventListener('DOMContentLoaded', function() {
             image: "./assests/Sapiens.png",
             author: "Yuval Noah Harari",
             year: 2011,
-            description:"A sweeping account of human evolution, culture, and our species’ impact on the world."
+            description:"A sweeping account of human evolution, culture, and our species' impact on the world."
         },
         {
             id: 19,
@@ -311,6 +311,11 @@ document.addEventListener('DOMContentLoaded', function() {
             description: "A survival game where 456 players, including Choi Hyun Suk, Lee Jung Jae, Park Hae Soo, and Kim Joo Hyuk, compete for a 45.6 billion won prize."
         }
     ];
+
+    // Export the entertainment data for server use
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = { entertainmentData };
+    }
 
     function getUrlParameter(name) {
         name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');

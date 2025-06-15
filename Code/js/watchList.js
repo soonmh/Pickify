@@ -478,6 +478,12 @@ function updateListItem(data){
             // Increment the count
             typeCount[type] += 1;
 
+            // Debug log for music items
+            if (type === 'music') {
+                console.log('Music item data:', item);
+                console.log('Music item information:', item.infomation);
+            }
+
             const card=document.createElement("div");
             card.className="movie-card";
             
@@ -485,11 +491,11 @@ function updateListItem(data){
             card.addEventListener('click', () => {
                 let reviewUrl;
                 if (item.type === 'movie') {
-                    reviewUrl = `review.html?id=${item.infomation.tmdbId}&type=movie`;
+                    reviewUrl = `review.html?tmdbId=${item.infomation.tmdbId}&type=movie`;
                 } else if (item.type === 'music') {
-                    reviewUrl = `review.html?id=${item.infomation.id}&type=music`;
+                    reviewUrl = `review.html?tmdbId=${item.infomation.id}&type=music`;
                 } else if (item.type === 'book') {
-                    reviewUrl = `review.html?id=${item.infomation.id}&type=book`;
+                    reviewUrl = `review.html?tmdbId=${item.infomation.id}&type=book`;
                 }
                 
                 if (reviewUrl) {
@@ -517,6 +523,10 @@ function updateListItem(data){
             
             const titleDiv=document.createElement("div");
             titleDiv.className="title";
+            // Debug log for title
+            if (type === 'music') {
+                console.log('Setting music title:', item.infomation.title);
+            }
             titleDiv.textContent=item.infomation.title;
 
             languageDiv.appendChild(releaseDate);

@@ -42,7 +42,7 @@ document.addEventListener("DOMContentLoaded",()=>{
         return details;
     };
 
-    fetch("http://localhost:3000/api/reviews").then(res=>res.json()).then(data=>{
+    fetch("http://localhost:5000/api/reviews").then(res=>res.json()).then(data=>{
         allReviews=data;
         updateReviewDisplay();
     });
@@ -71,7 +71,7 @@ document.addEventListener("DOMContentLoaded",()=>{
             timestamp: Date.now()
         };
 
-        fetch("http://localhost:3000/api/reviews",{
+        fetch("http://localhost:5000/api/reviews",{
             method:"POST",
             headers:{"Content-Type":"application/json"},
             body:JSON.stringify(newReview)

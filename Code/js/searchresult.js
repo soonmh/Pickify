@@ -319,14 +319,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Navigate to detail page based on content type
                 let detailUrl;
                 if (item.type === 'movie') {
-                    detailUrl = `../Code/review.html?id=${item.tmdbId}&type=movie`;
+                    detailUrl = `review.html?tmdbId=${item.tmdbId}&type=movie`;
                 } else if (item.type === 'music') {
-                    detailUrl = `../Code/review.html?id=${item.id}&type=music`;
+                    detailUrl = `review.html?tmdbId=${item.id}&type=music`;
                 } else if (item.type === 'book') {
-                    detailUrl = `../Code/review.html?id=${item.id}&type=book`;
+                    detailUrl = `review.html?tmdbId=${item.id}&type=book`;
                 }
                 
                 if (detailUrl) {
+                    console.log('Navigating to:', detailUrl);
                     window.location.href = detailUrl;
                 }
             }
@@ -617,7 +618,7 @@ async function loadUserCollections() {
     }
     
     try {
-        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
+        const response = await fetch(`http://localhost:5000/collectionNameList?userId=${userId}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:5000/api';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 // Function to populate entertainment details
@@ -19,62 +19,52 @@ function populateEntertainmentDetails(review) {
         const yearEl = document.querySelector('.item-year');
         const genreEl = document.querySelector('.item-genre');
         const descriptionEl = document.querySelector('.item-description');
-
-        // Handle image URL
-        let imageUrl = details.image;
-        if (imageUrl && !imageUrl.startsWith('http')) {
-            if (imageUrl.startsWith('/')) {
-                imageUrl = `https://image.tmdb.org/t/p/w500${imageUrl}`;
-            } else {
-                imageUrl = `./assets/${imageUrl}`;
-            }
-        }
-
-        if (posterEl) posterEl.src = imageUrl;
-        if (titleEl) titleEl.textContent = details.title;
-        if (typeEl) typeEl.textContent = details.type.charAt(0).toUpperCase() + details.type.slice(1);
-        if (yearEl) yearEl.textContent = details.year;
-        if (genreEl) genreEl.textContent = details.genre;
-        if (descriptionEl) descriptionEl.textContent = details.description;
-
-        // Show/hide and populate type-specific details
-        const authorEl = document.querySelector('.item-author');
         const directorEl = document.querySelector('.item-director');
-        const artistEl = document.querySelector('.item-artist');
         const durationEl = document.querySelector('.item-duration');
 
-        if (authorEl) authorEl.style.display = 'none';
-        if (directorEl) directorEl.style.display = 'none';
-        if (artistEl) artistEl.style.display = 'none';
-        if (durationEl) durationEl.style.display = 'none';
-
-        // Map type to match schema
-        const type = details.type === 'movie' ? 'movies' : 
-                    details.type === 'book' ? 'books' : 
-                    details.type;
-
-        if (type === 'books' && details.author) {
-            if (authorEl) {
-                authorEl.style.display = 'block';
-                authorEl.textContent = `Author: ${details.author}`;
+        // Handle image URL
+        let imageUrl = details.poster_path;
+        if (imageUrl) {
+            if (imageUrl.startsWith('/')) {
+                imageUrl = `${TMDB_IMAGE_BASE_URL}${imageUrl}`;
+            } else if (!imageUrl.startsWith('http')) {
+                imageUrl = `./assets/${imageUrl}`;
             }
-        } else if (type === 'movies') {
-            if (details.director && directorEl) {
+        } else {
+            imageUrl = './assets/placeholder.png';
+        }
+
+        // Update DOM elements with data
+        if (posterEl) posterEl.src = imageUrl;
+        if (titleEl) titleEl.textContent = details.title || 'Untitled';
+        if (typeEl) typeEl.textContent = (details.type || 'unknown').charAt(0).toUpperCase() + (details.type || 'unknown').slice(1);
+        if (yearEl) yearEl.textContent = details.year || (details.release_date ? details.release_date.split('-')[0] : 'Unknown Year');
+        if (genreEl) genreEl.textContent = details.genre || details.genres || 'No Genre';
+        if (descriptionEl) descriptionEl.textContent = details.description || details.overview || 'No description available';
+
+        // Show/hide and populate type-specific details
+        [directorEl, durationEl].forEach(el => {
+            if (el) el.style.display = 'none';
+        });
+
+        // Show and populate movie-specific details
+        if (details.type?.toLowerCase() === 'movie') {
+            if (directorEl && details.director) {
                 directorEl.style.display = 'block';
                 directorEl.textContent = `Director: ${details.director}`;
             }
-            if (details.duration && durationEl) {
+            if (durationEl && (details.duration || details.runtime)) {
                 durationEl.style.display = 'block';
-                durationEl.textContent = `Duration: ${details.duration} minutes`;
-            }
-        } else if (type === 'music' && details.artist) {
-            if (artistEl) {
-                artistEl.style.display = 'block';
-                artistEl.textContent = `Artist: ${details.artist}`;
+                durationEl.textContent = `Duration: ${details.duration || details.runtime} minutes`;
             }
         }
     } catch (error) {
         console.error('Error populating entertainment details:', error);
+        // Show error message to user
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = 'Failed to load entertainment details. Please try refreshing the page.';
+        document.querySelector('.summary-container').prepend(errorMessage);
     }
 }
 
@@ -123,7 +113,7 @@ function displayReviews(reviews) {
 
         reviewElement.innerHTML = `
             <div class="user-info">
-                <img src="${review.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
+                <img src="${review.userAvatar || './assets/profilepic3.png'}" alt="User Profile">
             </div>
             <div class="review-content">
                 <strong>${review.user}</strong>
@@ -154,29 +144,37 @@ function displayReviews(reviews) {
 // Initialize page
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
-    const entertainmentId = urlParams.get('id');
-    const type = urlParams.get('type');
+    console.log('Full URL:', window.location.href);
+    console.log('All URL parameters:', Object.fromEntries(urlParams.entries()));
+    
+    const tmdbId = urlParams.get('tmdbId');
+    let type = urlParams.get('type');
 
-    console.log('Page loaded with params:', { entertainmentId, type });
+    console.log('Page loaded with params:', { tmdbId, type });
 
-    if (!entertainmentId || !type) {
+    if (!tmdbId || !type) {
+        console.error('Missing parameters:', { tmdbId, type });
         alert('Missing entertainment ID or type');
         return;
     }
 
+    // Map the type to match server expectations
+    type = type === 'movies' ? 'movie' : 
+           type === 'books' ? 'book' : 
+           type;
+
     try {
         // First, fetch the entertainment details
-        console.log('Fetching entertainment details...', {
-            url: `${API_BASE_URL}/entertainment/${type}/${entertainmentId}`,
-            type,
-            id: entertainmentId
-        });
+        const apiUrl = `${API_BASE_URL}/entertainment/${type}/${tmdbId}`;
+        console.log('Fetching entertainment details from:', apiUrl);
         
-        const entertainmentResponse = await fetch(`${API_BASE_URL}/entertainment/${type}/${entertainmentId}`);
+        const entertainmentResponse = await fetch(apiUrl);
         console.log('Response status:', entertainmentResponse.status);
         
         if (!entertainmentResponse.ok) {
-            throw new Error(`HTTP error! status: ${entertainmentResponse.status}`);
+            const errorText = await entertainmentResponse.text();
+            console.error('API Error Response:', errorText);
+            throw new Error(`HTTP error! status: ${entertainmentResponse.status}, message: ${errorText}`);
         }
         
         const entertainmentResult = await entertainmentResponse.json();
@@ -194,63 +192,27 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Create a temporary review object with the entertainment details
-        const tempReview = {
-            entertainmentDetails: {
-                title: entertainmentData.title || 'Unknown Title',
-                type: type,
-                genre: entertainmentData.genre || 'Unknown Genre',
-                image: entertainmentData.image || './assets/placeholder.png',
-                year: entertainmentData.year || new Date().getFullYear(),
-                description: entertainmentData.description || 'No description available',
-                views: entertainmentData.views || 0,
-                rating: entertainmentData.rating || 0
-            }
+        // Create a review object with the entertainment details
+        const review = {
+            entertainmentDetails: entertainmentData
         };
 
-        // Add type-specific fields
-        if (type === 'book') {
-            tempReview.entertainmentDetails.author = entertainmentData.author || 'Unknown Author';
-        } else if (type === 'movie') {
-            tempReview.entertainmentDetails.director = entertainmentData.director || 'Unknown Director';
-            tempReview.entertainmentDetails.duration = entertainmentData.duration || 0;
-        } else if (type === 'music') {
-            tempReview.entertainmentDetails.artist = entertainmentData.artist || 'Unknown Artist';
-        }
+        // Populate the entertainment details
+        populateEntertainmentDetails(review);
 
-        console.log('Populating entertainment details:', tempReview);
-        // Populate the page with entertainment details
-        populateEntertainmentDetails(tempReview);
+        // Then fetch the reviews
+        const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${tmdbId}`);
+        const reviewsResult = await reviewsResponse.json();
 
-        // Then fetch reviews
-        console.log('Fetching reviews...', {
-            url: `${API_BASE_URL}/reviews/${entertainmentId}`
-        });
-        const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${entertainmentId}`);
-        console.log('Reviews response status:', reviewsResponse.status);
-        
-        if (!reviewsResponse.ok) {
-            throw new Error(`HTTP error! status: ${reviewsResponse.status}`);
-        }
-        
-        const reviews = await reviewsResponse.json();
-        console.log('Reviews:', reviews);
-
-        if (reviews && reviews.length > 0) {
-            updateReviewStats(reviews);
-            displayReviews(reviews);
-        } else {
-            // If no reviews, show empty state
-            document.querySelector('.review-summary').innerHTML = `
-                <h2>No Reviews Yet</h2>
-                <p>Be the first to review this ${type}!</p>
-            `;
-            document.querySelector('.review-list').innerHTML = `
-                <p class="no-reviews">No reviews yet. Be the first to share your thoughts!</p>
-            `;
+        if (reviewsResult.success) {
+            updateReviewStats(reviewsResult.data);
+            displayReviews(reviewsResult.data);
         }
     } catch (error) {
-        console.error('Error loading data:', error);
-        alert('Failed to load entertainment details. Please try again later.');
+        console.error('Error:', error);
+        const errorMessage = document.createElement('div');
+        errorMessage.className = 'error-message';
+        errorMessage.textContent = `Failed to load entertainment details: ${error.message}. Please try refreshing the page.`;
+        document.querySelector('.summary-container').prepend(errorMessage);
     }
 });

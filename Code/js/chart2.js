@@ -851,11 +851,11 @@ function getDummyData() {
         // Construct the review page URL based on item type
         let reviewUrl;
         if (item.type === 'movies') {
-            reviewUrl = `review.html?id=${item.tmdbId}&type=movie`;
+            reviewUrl = `review.html?tmdbId=${item.tmdbId}&type=movie`;
         } else if (item.type === 'music') {
-            reviewUrl = `review.html?id=${item.id}&type=music`;
+            reviewUrl = `review.html?tmdbId=${item.id}&type=music`;
         } else if (item.type === 'books') {
-            reviewUrl = `review.html?id=${item.id}&type=book`;
+            reviewUrl = `review.html?tmdbId=${item.id}&type=book`;
         }
 
         if (reviewUrl) {
