@@ -1,579 +1,14 @@
 const API_BASE_URL = 'http://localhost:3000/api';
+const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-// Genre options by entertainment type - Updated to match your actual data
-const genresByType = {
-    book: [
-        {value: 'all', label: 'All Book Genres'},
-        {value: 'Fiction', label: 'Fiction'},
-        {value: 'Economics', label: 'Economics'},
-        {value: 'Literary', label: 'Literary'},
-        {value: 'Self-help', label: 'Self-help'},
-        {value: 'Reference', label: 'Reference'},
-        {value: 'Other', label: 'Other'},
-        {value: 'Juvenile', label: 'Juvenile'},
-        {value: 'Dating', label: 'Dating'},
-        {value: 'Fantasy', label: 'Fantasy'},
-        {value: 'Romance', label: 'Romance'}
-    ],
-    movie: [
-        {value: 'all', label: 'All Movie Genres'},
-        {value: 'Action', label: 'Action'},                    
-        {value: 'Science Fiction', label: 'Science Fiction'},  
-        {value: 'Drama', label: 'Drama'},                      
-        {value: 'Thriller', label: 'Thriller'},                
-        {value: 'Animation', label: 'Animation'},              
-        {value: 'Comedy', label: 'Comedy'},                  
-        {value: 'Horror', label: 'Horror'},                   
-        {value: 'Romance', label: 'Romance'}                  
-    ],
-    music: [
-        {value: 'all', label: 'All Music Genres'},
-        {value: 'Pop', label: 'Pop'},
-        {value: 'Rock', label: 'Rock'},
-        {value: 'Hip hop', label: 'Hip-Hop'},                  
-        {value: 'Jazz', label: 'Jazz'},
-        {value: 'Classical', label: 'Classical'},
-        {value: 'Lofi', label: 'Lo-Fi'}
-    ]
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadEntertainmentData();
     initializeCollectionDropdowns();
+    
+    initChart();
+});
 
-    const urlParams = new URLSearchParams(window.location.search);
-    const queryFromURL = urlParams.get('query');
-
-    // DOM elements
-    const searchInput = document.getElementById('search-input');
-    const searchButton = document.getElementById('search-button');
-    const typeFilter = document.getElementById('type-filter');
-    const genreFilter = document.getElementById('genre-filter');
-    const sortButtons = document.querySelectorAll('.sort-btn');
-    const resultsContainer = document.getElementById('results-container');
-    const resultsNumberSpan = document.getElementById('results-number');
-    const pagination = document.querySelector('.pagination');
-    
-    // State variables
-    let currentData = [];
-    let currentPage = 1;
-    const itemsPerPage = 8;
-    let currentFilters = {
-        search: '',
-        type: 'all',
-        genre: 'all'
-    };
-    let currentSort = 'rating'; // Default sort
-    let totalResults = 0;
-    
-    // If there's a query parameter in the URL, set it as the search input value
-    // and apply search immediately
-    if (queryFromURL) {
-        searchInput.value = queryFromURL;
-        currentFilters.search = queryFromURL;
-        // Apply the search filter right away
-        fetchSearchResults();
-        initializeGenreDropdown();
-    } else {
-        // Show initial state with a message
-        resultsContainer.innerHTML = `
-            <div class="col-12 text-center my-5">
-                <h4>Start searching for content</h4>
-                <p>Use the search bar above to find movies, music, and books</p>
-            </div>
-        `;
-        initializeGenreDropdown();
-    }
-    
-    // Initialize the genre dropdown (disabled by default)
-    function initializeGenreDropdown() {
-        // Initially, the genre filter should be disabled
-        genreFilter.disabled = true;
-        
-        // Add a placeholder option
-        genreFilter.innerHTML = '<option value="all">Please select a type first</option>';
-        
-        // Add a visual indicator that it's disabled
-        genreFilter.classList.add('disabled-select');
-    }
-    
-    // Event listeners
-    searchButton.addEventListener('click', handleSearch);
-    searchInput.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            handleSearch();
-        }
-    });
-    
-    typeFilter.addEventListener('change', function() {
-        const selectedType = this.value;
-        
-        if (selectedType === 'all') {
-            // If "All Types" is selected, disable the genre dropdown
-            disableGenreDropdown();
-            
-            // Reset genre filter to "all"
-            currentFilters.genre = 'all';
-        } else {
-            // Enable and update genre options for the selected type
-            enableGenreDropdown(selectedType);
-        }
-        
-        // Handle filters to update results
-        handleFilters();
-    });
-    
-    genreFilter.addEventListener('change', handleFilters);
-    
-    sortButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            sortButtons.forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentSort = this.getAttribute('data-sort');
-            currentPage = 1;
-            fetchSearchResults();
-        });
-    });
-    
-    // Disable genre dropdown when no specific type is selected
-    function disableGenreDropdown() {
-        genreFilter.disabled = true;
-        genreFilter.innerHTML = '<option value="all">Please select a type first</option>';
-        genreFilter.classList.add('disabled-select');
-    }
-    
-    // Enable genre dropdown and populate with options for the selected type
-    function enableGenreDropdown(selectedType) {
-        // Only enable if we have genre options for this type
-        if (genresByType[selectedType]) {
-            genreFilter.disabled = false;
-            genreFilter.classList.remove('disabled-select');
-            
-            // Clear current options
-            genreFilter.innerHTML = '';
-            
-            // Add new options based on selected type
-            genresByType[selectedType].forEach(genre => {
-                const option = document.createElement('option');
-                option.value = genre.value;
-                option.textContent = genre.label;
-                genreFilter.appendChild(option);
-            });
-            
-            // Reset genre filter to "all"
-            genreFilter.value = 'all';
-            currentFilters.genre = 'all';
-        }
-    }
-    
-    // Search handler
-    function handleSearch() {
-        currentFilters.search = searchInput.value.trim();
-        currentPage = 1;
-        fetchSearchResults();
-    }
-    
-    // Filter handler
-    function handleFilters() {
-        currentFilters.type = typeFilter.value;
-        currentFilters.genre = genreFilter.value;
-        currentPage = 1;
-        fetchSearchResults();
-    }
-    
-    // Fetch search results from API
-    function fetchSearchResults() {
-        // Show loading state
-        resultsContainer.innerHTML = `
-            <div class="col-12 text-center my-5">
-                <div class="spinner-border" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-                <p class="mt-2">Loading results...</p>
-            </div>
-        `;
-        
-        // Build query parameters
-        const queryParams = new URLSearchParams();
-        
-        // Add search term if present
-        if (currentFilters.search) {
-            queryParams.append('query', currentFilters.search);
-        }
-        
-        // Add type filter if not 'all'
-        if (currentFilters.type !== 'all') {
-            queryParams.append('type', currentFilters.type);
-        }
-        
-        // Add genre filter if not 'all' and a specific type is selected
-        if (currentFilters.type !== 'all' && currentFilters.genre !== 'all') {
-            queryParams.append('genre', currentFilters.genre);
-        }
-        
-        // Add sort parameter
-        queryParams.append('sort', currentSort);
-        
-        // Add pagination parameters
-        queryParams.append('page', currentPage);
-        queryParams.append('limit', itemsPerPage);
-        
-        // Debug: Log the query being sent
-        console.log('Search query params:', queryParams.toString());
-        
-        // Make the API call
-        fetch(`${API_BASE_URL}/search?${queryParams.toString()}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    // Update state with fetched data
-                    currentData = data.items;
-                    totalResults = data.total;
-                    
-                    // Render the results
-                    renderResults();
-                    updateResultsCount();
-                    renderPagination();
-                } else {
-                    throw new Error(data.error || 'Error fetching search results');
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                resultsContainer.innerHTML = `
-                    <div class="col-12 text-center my-5">
-                        <h4>Error loading results</h4>
-                        <p>Please try again later</p>
-                    </div>
-                `;
-            });
-    }
-    
-    // Render results - Updated to show genre information
-    function renderResults() {
-    resultsContainer.innerHTML = '';
-    
-    if (currentData.length === 0) {
-        resultsContainer.innerHTML = `
-            <div class="col-12 text-center my-5">
-                <h4>No results found</h4>
-                <p>Try adjusting your search or filters</p>
-            </div>
-        `;
-        return;
-    }
-    
-    currentData.forEach(item => {
-        const col = document.createElement('div');
-        col.className = 'col';
-        col.setAttribute('data-id', item.id);
-        
-        // Determine additional info based on type
-        let additionalInfo = '';
-        if (item.type === 'book' && item.author) {
-            additionalInfo = `<div class="result-author">by ${item.author}</div>`;
-        } else if (item.type === 'movie' && item.director) {
-            additionalInfo = `<div class="result-director">by ${item.director}</div>`;
-        } else if (item.type === 'music' && item.artist) {
-            additionalInfo = `<div class="result-artist">by ${item.artist}</div>`;
-        }
-        
-        // Add genre display
-        const genreDisplay = item.genre && item.genre !== 'unknown' ? item.genre : 'No Genre';
-        
-        // Create the result card
-        const resultCard = document.createElement('div');
-        resultCard.className = 'result-card';
-        resultCard.innerHTML = `
-            <img src="${item.image}" class="result-img" alt="${item.title}" onerror="this.src='./assests/placeholder.png'">
-            <div class="result-body">
-                <span class="result-type ${item.type}">${item.type.charAt(0).toUpperCase() + item.type.slice(1)}</span>
-                <h5 class="result-title">${item.title}</h5>
-                ${additionalInfo}
-                <div class="result-genre">
-                    <i class="fas fa-tag"></i> ${genreDisplay}
-                </div>
-                <div class="result-meta">
-                    <div class="result-rating">
-                        <i class="fas fa-star"></i> ${typeof item.rating === 'number' ? item.rating.toFixed(1) : '0.0'}
-                    </div>
-                    <div class="result-views">
-                        <i class="fas fa-eye"></i> ${formatNumber(item.views)}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Add collection dropdown to the card
-        addCollectionDropdown(resultCard, item);
-        
-        // Add click event to the card (excluding dropdown area)
-        resultCard.addEventListener('click', (e) => {
-            // Don't navigate if clicking on dropdown
-            if (!e.target.closest('.collection-dropdown')) {
-                // Navigate to detail page based on content type
-                let detailUrl;
-                if (item.type === 'movie') {
-                    detailUrl = `review.html?tmdbId=${item.tmdbId}&type=movie`;
-                } else if (item.type === 'music') {
-                    detailUrl = `review.html?tmdbId=${item.id}&type=music`;
-                } else if (item.type === 'book') {
-                    detailUrl = `review.html?tmdbId=${item.id}&type=book`;
-                }
-                
-                if (detailUrl) {
-                    console.log('Navigating to:', detailUrl);
-                    window.location.href = detailUrl;
-                }
-            }
-        });
-        
-        col.appendChild(resultCard);
-        resultsContainer.appendChild(col);
-    });
-}
-    
-    // Update results count
-    function updateResultsCount() {
-        resultsNumberSpan.textContent = totalResults;
-    }
-    
-    // Render pagination
-    function renderPagination() {
-        const pageCount = Math.ceil(totalResults / itemsPerPage);
-        let paginationHTML = '';
-        
-        // Previous button
-        paginationHTML += `
-            <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${currentPage - 1}">Previous</a>
-            </li>
-        `;
-        
-        // Page numbers (show maximum 5 page numbers)
-        const maxPages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxPages / 2));
-        let endPage = Math.min(pageCount, startPage + maxPages - 1);
-        
-        // Adjust startPage if we're near the end
-        if (endPage - startPage + 1 < maxPages) {
-            startPage = Math.max(1, endPage - maxPages + 1);
-        }
-        
-        // First page
-        if (startPage > 1) {
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="1">1</a>
-                </li>
-            `;
-            
-            if (startPage > 2) {
-                paginationHTML += `
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#">...</a>
-                    </li>
-                `;
-            }
-        }
-        
-        // Page numbers
-        for (let i = startPage; i <= endPage; i++) {
-            paginationHTML += `
-                <li class="page-item ${currentPage === i ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
-                </li>
-            `;
-        }
-        
-        // Last page
-        if (endPage < pageCount) {
-            if (endPage < pageCount - 1) {
-                paginationHTML += `
-                    <li class="page-item disabled">
-                        <a class="page-link" href="#">...</a>
-                    </li>
-                `;
-            }
-            
-            paginationHTML += `
-                <li class="page-item">
-                    <a class="page-link" href="#" data-page="${pageCount}">${pageCount}</a>
-                </li>
-            `;
-        }
-        
-        // Next button
-        paginationHTML += `
-            <li class="page-item ${currentPage === pageCount || pageCount === 0 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${currentPage + 1}">Next</a>
-            </li>
-        `;
-        
-        pagination.innerHTML = paginationHTML;
-        
-        // Add event listeners to pagination links
-        document.querySelectorAll('.page-link').forEach(link => {
-            link.addEventListener('click', function(e) {
-                e.preventDefault();
-                if (this.parentElement.classList.contains('disabled')) {
-                    return;
-                }
-                
-                const pageNum = parseInt(this.getAttribute('data-page'));
-                if (pageNum >= 1 && pageNum <= pageCount) {
-                    currentPage = pageNum;
-                    fetchSearchResults();
-                    // Scroll back to top of results
-                    window.scrollTo({
-                        top: document.querySelector('.search-container').offsetTop,
-                        behavior: 'smooth'
-                    });
-                }
-            });
-        });
-    }
-    
-    // Helper function to format numbers (e.g., 12000 -> 12k)
-    function formatNumber(num) {
-        if (!num) return '0';
-        
-        if (num >= 1000000) {
-            return (num / 1000000).toFixed(1) + 'M';
-        }
-        if (num >= 1000) {
-            return (num / 1000).toFixed(1) + 'k';
-        }
-        return num;
-    }
-
-    // Ensure pagination is visible after all dynamic content is loaded
-    const paginationElement = document.querySelector('.pagination');
-    if (paginationElement) {
-        paginationElement.style.display = 'flex';
-        paginationElement.style.visibility = 'visible';
-        
-        // Make each page item visible
-        const pageItems = document.querySelectorAll('.page-item');
-        pageItems.forEach(item => {
-            item.style.display = 'inline-block';
-            item.style.visibility = 'visible';
-        });
-    }
-
-    // Collection Dropdown Functionality for Search Results
-// Add this to the end of your searchresult.js file
-
-// Global variable to store user collections
-let userCollections = [];
-
-/**
- * Initialize collection dropdown functionality
- */
-function initializeCollectionDropdowns() {
-    // Add CSS for dropdown styling
-    addDropdownStyles();
-    
-    // Load user collections if user is logged in
-    loadUserCollections();
-}
-
-/**
- * Add CSS styles for the collection dropdown
- */
-function addDropdownStyles() {
-    const style = document.createElement('style');
-    style.textContent = `
-        .collection-dropdown {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            z-index: 1000;
-        }
-        
-        .collection-dropdown-btn {
-            background: rgba(0, 0, 0, 0.7);
-            border: none;
-            border-radius: 50%;
-            width: 32px;
-            height: 32px;
-            color: white;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .result-card:hover .collection-dropdown-btn {
-            opacity: 1;
-        }
-        
-        .collection-dropdown-btn:hover {
-            background: rgba(0, 0, 0, 0.9);
-        }
-        
-        .collection-dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            min-width: 180px;
-            max-height: 200px;
-            overflow-y: auto;
-            display: none;
-            z-index: 1001;
-        }
-        
-        .collection-dropdown-menu.show {
-            display: block;
-        }
-        
-        .collection-dropdown-item {
-            padding: 10px 15px;
-            cursor: pointer;
-            border-bottom: 1px solid #f0f0f0;
-            transition: background-color 0.2s ease;
-        }
-        
-        .collection-dropdown-item:hover {
-            background-color: #f8f9fa;
-        }
-        
-        .collection-dropdown-item:last-child {
-            border-bottom: none;
-        }
-        
-        .collection-dropdown-item.loading {
-            color: #666;
-            pointer-events: none;
-        }
-        
-        .collection-dropdown-item.no-collections {
-            color: #666;
-            text-align: center;
-            font-style: italic;
-        }
-        
-        .result-card {
-            position: relative;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-/**
- * Get current user ID from localStorage
- */
+let entertainmentData = [];
 function getCurrentUserId() {
     try {
         // Check sessionStorage first (current session)
@@ -606,10 +41,6 @@ function getCurrentUserId() {
         return null;
     }
 }
-
-/**
- * Load user's collections from the backend
- */
 async function loadUserCollections() {
     const userId = getCurrentUserId();
     if (!userId) {
@@ -629,115 +60,836 @@ async function loadUserCollections() {
             _id: name.toLowerCase().replace(/\s+/g, '')
         }));
         console.log('✅ Loaded user collections:', userCollections);
+        console.log('📋 Collection names:', collectionNames);
 
     } catch (error) {
-        console.error('❌ Error loading user collections:', error);
+       console.error('❌ Error loading user collections:', error);
         
         // Fallback to default collections
         userCollections = [
             { name: 'Favourite', _id: 'favourite' },
             { name: 'Watch Later', _id: 'watchlater' }
+            
         ];
         console.log('🔄 Using fallback collections');
     }
 }
 
-/**
- * Add collection dropdown to a result card
- * @param {HTMLElement} card - The result card element
- * @param {Object} item - The item data
- */
-function addCollectionDropdown(card, item) {
-    // Create dropdown container
-    const dropdown = document.createElement('div');
-    dropdown.className = 'collection-dropdown';
+function getDummyData() {
+    return [
+
+        {
+            id: 1,
+            title: "The Midnight Library",
+            type: "books",
+            genre: "fantasy fiction",
+            rating: 4.8,
+            views: 12400,
+            image: "./assests/MidnightLibrary.png",
+            author: "Matt Haig",
+            year: 2020,
+            description: "A woman explores infinite lives in a mystical library to discover what truly makes life worth living."
+        },
+        {
+            id: 2,
+            title: "Inception",
+            type: "movies",
+            genre: "sci-fi",
+            rating: 4.7,
+            views: 48700,
+            image: "./assests/Inception.png",
+            director: "Christopher Nolan",
+            year: 2010,
+            duration: 148,
+            description:"A skilled thief enters dreams to plant an idea but risks losing himself in layers of subconscious."
+        },
+        {
+            id: 3,
+            title: "Taylor Swift - Folklore",
+            type: "music",
+            genre: "pop",
+            rating: 4.9,
+            views: 38200,
+            image: "./assests/Folklore.png",
+            artist: "Taylor Swift",
+            year: 2020,
+            description:"An introspective journey through nostalgic melodies and fictional tales of love, loss, and longing."
+        },
+        {
+            id: 4,
+            title: "Dune",
+            type: "books",
+            genre: "sci-fi",
+            rating: 4.6,
+            views: 15800,
+            image: "./assests/DuneBook.png",
+            author: "Frank Herbert",
+            year: 1965,
+            description:"Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family."
+        },
+        {
+            id: 5,
+            title: "The Shawshank Redemption",
+            type: "movies",
+            genre: "drama",
+            rating: 4.4,
+            views: 52300,
+            image: "./assests/ShawshankRedemption.png",
+            director: "Frank Darabont",
+            year: 1994,
+            duration:142,
+            description:"A banker wrongfully imprisoned forms a life-changing friendship and plans a daring escape."
+        },
+        {
+            id: 6,
+            title: "Kendrick Lamar - To Pimp a Butterfly",
+            type: "music",
+            genre: "hip-hop",
+            rating: 4.8,
+            views: 27500,
+            image: "./assests/ToPimpAButterfly.png",
+            artist: "Kendrick Lamar",
+            year: 2015,
+            description:"A powerful fusion of jazz, rap, and soul that explores race, fame, and personal transformation."
+        },
+        {
+            id: 7,
+            title: "Project Hail Mary",
+            type: "books",
+            genre: "sci-fi",
+            rating: 4.7,
+            views: 9300,
+            image: "./assests/ProjectHailMary.png",
+            author: "Andy Weir",
+            year: 2021,
+            description:"A lone astronaut awakens in space with amnesia and must save humanity from an extinction event."
+        },
+        {
+            id: 8,
+            title: "Everything Everywhere All at Once",
+            type: "movies",
+            genre: "sci-fi",
+            rating: 4.8,
+            views: 31700,
+            image: "./assests/EverythingEverywhere.png",
+            director: "Daniels",
+            year: 2022,
+            duration: 139,
+            description:"An aging laundromat owner must save the multiverse by confronting her alternate selves."
+        },
+        {
+            id: 9,
+            title: "The Great Gatsby",
+            type: "books",
+            genre: "classic",
+            rating: 4.5,
+            views: 45600,
+            image: "./assests/TheGreatGatsby.png",
+            author: "F. Scott Fitzgerald",
+            year: 1925,
+            description:"A mysterious millionaire's lavish parties mask his obsession with a lost love across the bay."
+        },
+        {
+            id: 10,
+            title: "Parasite",
+            type: "movies",
+            genre: "thriller",
+            rating: 4.8,
+            views: 38900,
+            image: "./assests/Parasite.png",
+            director: "Bong Joon-ho",
+            year: 2019,
+            duration: 132,
+            description:"A poor family schemes to infiltrate a wealthy household, sparking a shocking class conflict."
+        },
+        {
+            id: 11,
+            title: "Billie Eilish - Happier Than Ever",
+            type: "music",
+            genre: "pop",
+            rating: 4.7,
+            views: 32100,
+            image: "./assests/HappierThanEver.png",
+            artist: "Billie Eilish",
+            year: 2021,
+            description:"A haunting blend of ballads and rage as Billie reflects on fame, betrayal, and self-empowerment."
+        },
+        {
+            id: 12,
+            title: "Educated",
+            type: "books",
+            genre: "memoir",
+            rating: 4.7,
+            views: 20300,
+            image: "./assests/Educated.png",
+            author: "Tara Westover",
+            year: 2018,
+            description:"Raised by survivalists in rural Idaho, a young woman escapes to pursue education and self-discovery."
+        },
+        {
+            id: 13,
+            title: "The Dark Knight",
+            type: "movies",
+            genre: "action",
+            rating: 4.9,
+            views: 67800,
+            image: "./assests/TheDarkKnight.png",
+            director: "Christopher Nolan",
+            year: 2008,
+            duration: 152,
+            description:"Batman battles chaos incarnate as the Joker pushes Gotham and its hero to their moral limits."
+        },
+        {
+            id: 14,
+            title: "Pink Floyd - The Dark Side of the Moon",
+            type: "music",
+            genre: "rock",
+            rating: 5.0,
+            views: 89400,
+            image: "./assests/TheDarkSideOfTheMoon.png",
+            artist: "Pink Floyd",
+            year: 1973,
+            description:"A psychedelic odyssey through time, money, madness, and the pressures of modern life."
+        },
+        {
+            id: 15,
+            title: "The Silent Patient",
+            type: "books",
+            genre: "thriller",
+            rating: 4.6,
+            views: 18700,
+            image: "./assests/TheSilentPatient.png",
+            author: "Alex Michaelides",
+            year: 2019,
+            description:"A woman’s silence after murdering her husband hides a dark truth waiting to be uncovered."
+        },
+        {
+            id: 16,
+            title: "Pulp Fiction",
+            type: "movies",
+            genre: "drama",
+            rating: 4.8,
+            views: 58200,
+            image: "./assests/PulpFiction.png",
+            director: "Quentin Tarantino",
+            year: 1994,
+            duration: 154,
+            description:"Interwoven stories of crime and redemption unfold with wit, violence, and pop-culture flair."
+        },
+        {
+            id: 17,
+            title: "The Weeknd - After Hours",
+            type: "music",
+            genre: "r&b",
+            rating: 4.7,
+            views: 41500,
+            image: "./assests/AfterHours.png",
+            artist: "The Weeknd",
+            year: 2020,
+            description:"A synth-heavy descent into heartbreak, loneliness, and emotional transformation in the city."
+        },
+        {
+            id: 18,
+            title: "Sapiens: A Brief History of Humankind",
+            type: "books",
+            genre: "non-fiction",
+            rating: 4.7,
+            views: 35600,
+            image: "./assests/Sapiens.png",
+            author: "Yuval Noah Harari",
+            year: 2011,
+            description:"A sweeping account of human evolution, culture, and our species’ impact on the world."
+        },
+        {
+            id: 19,
+            title: "Spirited Away",
+            type: "movies",
+            genre: "animation",
+            rating: 4.8,
+            views: 42300,
+            image: "./assests/SpiritedAway.png",
+            director: "Hayao Miyazaki",
+            year: 2001,
+            duration: 125,
+            description:"A young girl navigates a spirit world to save her parents and discover her inner strength."
+        },
+        {
+            id: 20,
+            title: "Tyler, the Creator - IGOR",
+            type: "music",
+            genre: "hip-hop",
+            rating: 4.6,
+            views: 28900,
+            image: "./assests/IGOR.png",
+            artist: "Tyler, the Creator",
+            year: 2019,
+            description:"A genre-bending tale of heartbreak and identity wrapped in bold, soulful production."
+        },
+        {
+            id: 21,
+            title: "Where the Crawdads Sing",
+            type: "books",
+            genre: "fiction",
+            rating: 4.5,
+            views: 31200,
+            image: "./assests/WhereTheCrawdadsSing.png",
+            author: "Delia Owens",
+            year: 2018,
+            description:"An abandoned girl raised in the marsh becomes a murder suspect in a quiet Southern town."
+        },
+        {
+            id: 22,
+            title: "Black Panther",
+            type: "movies",
+            genre: "action",
+            rating: 4.7,
+            views: 49600,
+            image: "./assests/BlackPanther.png",
+            director: "Ryan Coogler",
+            year: 2018,
+            duration: 134,
+            description:"A king returns to a hidden nation to defend his throne and legacy from powerful enemies."
+        },
+        {
+            id: 23,
+            title: "Adele - 30",
+            type: "music",
+            genre: "pop",
+            rating: 4.8,
+            views: 36700,
+            image: "./assests/30.png",
+            artist: "Adele",
+            year: 2021,
+            description:"An emotional album chronicling heartbreak, healing, and the complexities of motherhood."
+        },
+        {
+            id: 24,
+            title: "Atomic Habits",
+            type: "books",
+            genre: "self-help",
+            rating: 4.8,
+            views: 42800,
+            image: "./assests/AtomicHabits.png",
+            author: "James Clear",
+            year: 2018,
+            description:"A practical guide to building good habits and breaking bad ones through small, consistent changes."
+        },
+        {
+            id: 25,
+            title: "Squid Game",
+            type: "movies",
+            genre: "thriller",
+            rating: 5.0,
+            views: 61000,
+            image: "./assests/poster.png",
+            director: "Hwang Dong-hyuk",
+            year: 2021,
+            duration: 480,
+            description: "A survival game where 456 players, including Choi Hyun Suk, Lee Jung Jae, Park Hae Soo, and Kim Joo Hyuk, compete for a 45.6 billion won prize."
+        }
+    ];
+}
+
+    function formatMovieData(movie) {
+        const genreType = movie.genres;
+        var genre1 = '';
+        console.log(genreType.length);
+        for (let i = 0; i < genreType.length; i++) {
+            if (i > 0) genre1 += ' ';
+            genre1 += genreType[i].name || 'Unknown Genre';
+        }
+        const baseImageUrl = movie.poster_path ?
+            `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` :
+            './assests/default-poster.png';
+        return {
+            id: movie.tmdbId || movie._id,
+            title: movie.title || 'Unknown Title',
+            type: "movies",
+            genre: genre1 || 'unknown',
+            rating: Math.round((movie.vote_average / 2) * 10) / 10 || 0,
+            views: movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000),
+            image: baseImageUrl,
+            year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+            director: movie.director || '',
+            duration: movie.runtime || 1,
+            description: movie.overview || ''
+        };
+    }
+
+    function formatMusicData(music) {
+        const artistName = music.artists;
+        var artist = '';
+        for (let i = 0; i < artistName.length; i++) {
+            if (i > 0) artist += ', ';
+            artist += artistName[i] || 'Unknown Artist';
+        }
+
+        return {
+            id: music.id,
+            title: music.name,
+            type: 'music',
+            genre: music.genre || 'unknown',
+            rating: music.popularity / 20 || 0,
+            views: music.popularity || 0,
+            image: music.poster_url || './assests/default-music.png',
+            artist: artist || '',
+            year: music.release ? new Date(music.release).getFullYear() : 'Unknown',
+            description: music.description || ''
+        };
+    }
+
+    function formatBookData(book) {
+        return {
+            id: book._id,
+            title: book.title,
+            type: 'books',
+            genre: book.genre || 'unknown',
+            rating: book.rating || 0,
+            views: book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 100000),
+            image: book.image || './assests/default-book.png',
+            author: book.author || '',
+            year: book.year || 'Unknown',
+            description: book.description || ''
+        };
+    }
+
+    async function loadEntertainmentData() {
+        const chartItems = document.querySelector('.chart-items');
+        const chartEmpty = document.querySelector('.chart-empty');
+        const chartLoading = document.querySelector('.chart-loading');
+        
+        chartItems.style.display = 'none';
+        chartEmpty.style.display = 'none';
+        chartLoading.style.display = 'block';
+
+        try {
+            // Fetch all types in parallel
+            const [moviesRes, musicRes, booksRes] = await Promise.all([
+                fetch(`${API_BASE_URL}/movies/top?limit=50`),
+                fetch(`${API_BASE_URL}/music/top?limit=50`),
+                fetch(`${API_BASE_URL}/books/top?limit=50`)
+            ]);
+            
+            const [movies, music, books] = await Promise.all([
+                moviesRes.json(),
+                musicRes.json(),
+                booksRes.json()
+            ]);
+
+            // Format and merge all data into one array
+            entertainmentData = [
+                ...(movies.data || []).map(formatMovieData),
+                ...(music.data || []).map(formatMusicData),
+                ...(books.data || []).map(formatBookData)
+            ];
+
+            console.log('Successfully loaded data from database');
+            
+        } catch (error) {
+            console.error('Failed to fetch data from backend, falling back to dummy data:', error);
+            entertainmentData = getDummyData();
+        }
+
+        chartLoading.style.display = 'none';
+        return entertainmentData;
+    }
+
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        const regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        const results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    }
+    let currentData = [...entertainmentData];
     
-    // Create dropdown button
-    const dropdownBtn = document.createElement('button');
-    dropdownBtn.className = 'collection-dropdown-btn';
-    dropdownBtn.innerHTML = '<i class="fas fa-plus"></i>';
-    dropdownBtn.title = 'Add to Watchlist';
+    // tab switch
+    const tabs = document.querySelectorAll('.chart-tab');
+    const chartItems = document.querySelector('.chart-items');
+    const chartLoading = document.querySelector('.chart-loading');
+    const chartEmpty = document.querySelector('.chart-empty');
     
-    // Create dropdown menu
-    const dropdownMenu = document.createElement('div');
-    dropdownMenu.className = 'collection-dropdown-menu';
-    
-    // Add click event to button
-    dropdownBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        toggleDropdownMenu(dropdownMenu, item);
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function() {
+            // remove class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // add active class to clicked tab
+            this.classList.add('active');
+            
+            // show loading state
+            chartItems.style.display = 'none';
+            chartEmpty.style.display = 'none';
+            chartLoading.style.display = 'block';
+            
+            // get the tab type (top rated or most viewed)
+            const tabType = this.dataset.tab;
+            
+            // update URL to reflect the current state
+            updatePageUrl(typeFilter.value, tabType);
+            
+            setTimeout(() => {
+                chartLoading.style.display = 'none';
+                
+                applyFilters();
+                
+                console.log(`Switched to "${tabType}" tab`);
+            }, 800);
+        });
     });
     
-    // Assemble dropdown
-    dropdown.appendChild(dropdownBtn);
-    dropdown.appendChild(dropdownMenu);
+    const typeFilter = document.getElementById('chart-type-filter');
+    const genreFilter = document.getElementById('chart-genre-filter');
+    const ratingFilter = document.getElementById('chart-rating-filter');
     
-    // Add to card
-    card.appendChild(dropdown);
+    typeFilter.addEventListener('change', function() {
+        const activeTab = document.querySelector('.chart-tab.active');
+        updatePageUrl(this.value, activeTab.dataset.tab);
+        updateGenreFilterOptions();
+        updateSearchPlaceholder(this.value); // Add this line
+        applyFilters();
+    });
+    genreFilter.addEventListener('change', applyFilters);
+    ratingFilter.addEventListener('change', applyFilters);
     
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!dropdown.contains(e.target)) {
-            dropdownMenu.classList.remove('show');
+    function updatePageUrl(type, tab) {
+        const url = new URL(window.location);
+        url.searchParams.set('type', type);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url);
+    }
+
+    function applyFilters() {
+        const type = typeFilter.value;
+        const genre = genreFilter.value;
+        const ratingValue = ratingFilter.value;
+        
+        chartItems.style.display = 'none';
+        chartEmpty.style.display = 'none';
+        chartLoading.style.display = 'block';
+        
+        setTimeout(() => {
+            chartLoading.style.display = 'none';
+            
+            currentData = getFilteredDataWithOriginalRankings();
+            
+            renderChartItems(currentData);
+            
+            if (currentData.length > 0) {
+                chartItems.style.display = 'block';
+            } else {
+                chartEmpty.style.display = 'block';
+            }
+            
+            console.log(`Applied filters - Type: ${type}, Genre: ${genre}, Rating: ${ratingValue}`);
+        }, 300);
+    }
+
+    function parseViews(views) {
+        if (typeof views === 'number') return views;
+        if (typeof views === 'string') {
+            if (views.endsWith('M')) return parseFloat(views) * 1000000;
+            if (views.endsWith('K')) return parseFloat(views) * 1000;
+            return parseInt(views) || 0;
+        }
+        return 0;
+    }
+
+    function getFilteredDataWithOriginalRankings(searchTerm = '') {
+        let filteredData = entertainmentData.filter(item => {
+            if (typeFilter.value !== 'all' && item.type !== typeFilter.value) {
+                return false;
+            }
+            
+            if (genreFilter.value !== 'all' && !(item.genre && item.genre.toLowerCase().includes(genreFilter.value.toLowerCase()))) {
+                return false;
+            }
+            
+            if (ratingFilter.value !== 'all') {
+                const [minRating, maxRating] = ratingFilter.value.split('-').map(parseFloat);
+                if (maxRating) {
+                    if (item.rating < minRating || item.rating > maxRating) {
+                        return false;
+                    }
+                } else {
+                    if (item.rating < minRating) {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
+        });
+        
+        const activeTab = document.querySelector('.chart-tab.active');
+        const activeTabType = activeTab.dataset.tab;
+        
+        let topRatedData = [...filteredData].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+        let mostViewedData = [...filteredData].sort((a, b) => (parseViews(b.views) || 0) - (parseViews(a.views) || 0));
+        
+        const topRatedRankMap = new Map();
+        const mostViewedRankMap = new Map();
+        
+        topRatedData.forEach((item, index) => {
+            topRatedRankMap.set(item.id, index + 1);
+        });
+        
+        mostViewedData.forEach((item, index) => {
+            mostViewedRankMap.set(item.id, index + 1);
+        });
+        
+        if (activeTabType === 'top-rated') {
+            filteredData = topRatedData;
+        } else {
+            filteredData = mostViewedData;
+        }
+        
+        if (searchTerm) {
+            return filteredData.filter(item => 
+                (item.title && item.title.toLowerCase().includes(searchTerm)) ||
+                (item.description && item.description.toLowerCase().includes(searchTerm)) ||
+                (item.genre && item.genre.toLowerCase().includes(searchTerm)) ||
+                (item.author && item.author.toLowerCase().includes(searchTerm)) ||
+                (item.artist && item.artist.toLowerCase().includes(searchTerm)) ||
+                (item.director && item.director.toLowerCase().includes(searchTerm))
+            ).map(item => ({
+                ...item,
+                originalRank: activeTabType === 'top-rated' ? 
+                    topRatedRankMap.get(item.id) : 
+                    mostViewedRankMap.get(item.id)
+            }));
+        }
+        
+        return filteredData.map(item => ({
+            ...item,
+            originalRank: activeTabType === 'top-rated' ? 
+                topRatedRankMap.get(item.id) : 
+                mostViewedRankMap.get(item.id)
+        }));
+    }
+    
+    function updateGenreFilterOptions() {
+        const selectedType = typeFilter.value;
+        
+        while (genreFilter.options.length > 1) {
+            genreFilter.remove(1);
+        }
+        
+        if (selectedType === 'all') {
+            const allGenres = new Set();
+            entertainmentData.forEach(item => {
+                item.genre.split(' ').forEach(genre => allGenres.add(genre));
+            });
+            
+            Array.from(allGenres).sort().forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+                genreFilter.appendChild(option);
+            });
+        } else {
+            const typeGenres = new Set();
+            entertainmentData
+                .filter(item => item.type === selectedType)
+                .forEach(item => {
+                    item.genre.split(' ').forEach(genre => typeGenres.add(genre));
+                });
+            
+            Array.from(typeGenres).sort().forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+                genreFilter.appendChild(option);
+            });
+        }
+    }
+    
+    const searchInput = document.getElementById('chart-search');
+    const searchButton = document.getElementById('search-btn');
+    
+    searchButton.addEventListener('click', performSearch);
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch();
         }
     });
-}
 
-/**
- * Toggle dropdown menu visibility and populate with collections
- * @param {HTMLElement} menu - The dropdown menu element
- * @param {Object} item - The item data
- */
-function toggleDropdownMenu(menu, item) {
-    const isVisible = menu.classList.contains('show');
-    
-    // Hide all other dropdown menus
-    document.querySelectorAll('.collection-dropdown-menu').forEach(m => {
-        m.classList.remove('show');
+    searchInput.addEventListener('input', function() {
+        if (this.value.trim() === '') {
+            applyFilters();
+            console.log('Search cleared - resetting to default filtered view');
+        }
     });
-    
-    if (!isVisible) {
-        populateDropdownMenu(menu, item);
-        menu.classList.add('show');
+        
+    function performSearch() {
+        const searchTerm = searchInput.value.trim().toLowerCase();
+        
+        if (searchTerm === '') {
+            applyFilters();
+            return;
+        }
+        
+        chartItems.style.display = 'none';
+        chartEmpty.style.display = 'none';
+        chartLoading.style.display = 'block';
+        
+        setTimeout(() => {
+            chartLoading.style.display = 'none';
+            
+            currentData = getFilteredDataWithOriginalRankings(searchTerm);
+            
+            renderChartItems(currentData);
+            
+            if (currentData.length > 0) {
+                chartItems.style.display = 'block';
+            } else {
+                chartEmpty.style.display = 'block';
+            }
+            
+            console.log(`Performed search for: "${searchTerm}" with current filters`);
+        }, 300);
     }
-}
 
-/**
- * Populate dropdown menu with user collections
- * @param {HTMLElement} menu - The dropdown menu element
- * @param {Object} item - The item data
- */
-function populateDropdownMenu(menu, item) {
-    const userId = getCurrentUserId();
-    
-    if (!userId) {
-        menu.innerHTML = `
-            <div class="collection-dropdown-item no-collections">
-                <i class="fas fa-user"></i> Please log in to add to collections
-            </div>
-        `;
-        return;
+    function updateSearchPlaceholder(type) {
+        const searchInput = document.getElementById('chart-search');
+        
+        switch(type) {
+            case 'movies':
+                searchInput.placeholder = 'Search titles and directors...';
+                break;
+            case 'music':
+                searchInput.placeholder = 'Search titles and artists...';
+                break;
+            case 'books':
+                searchInput.placeholder = 'Search titles and authors...';
+                break;
+            default:
+                searchInput.placeholder = 'Search...';
+        }
     }
-    
-    if (userCollections.length === 0) {
-        menu.innerHTML = `
-            <div class="collection-dropdown-item loading">
-                <i class="fas fa-spinner fa-spin"></i> Loading collections...
-            </div>
+
+    function addMedalStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            /* Medal styles for rank numbers */
+            .chart-rank.rank-gold {
+                background-color: #FFD700; /* Gold */
+                color: var(--text-color);
+                box-shadow: 0 2px 5px rgba(255, 215, 0, 0.3);
+            }
+            
+            .chart-rank.rank-silver {
+                background-color: #C0C0C0; /* Silver */
+                color: var(--text-color);
+                box-shadow: 0 2px 5px rgba(192, 192, 192, 0.3);
+            }
+            
+            .chart-rank.rank-bronze {
+                background-color: #CD7F32; /* Bronze */
+                color: white;
+                box-shadow: 0 2px 5px rgba(205, 127, 50, 0.3);
+            }
         `;
         
-        // Reload collections and repopulate
-        loadUserCollections().then(() => {
-            populateDropdownMenu(menu, item);
-        });
-        return;
+        document.head.appendChild(style);
     }
     
-    // Clear menu
-    menu.innerHTML = '';
-    
-    // Add each collection as a dropdown item
-    userCollections.forEach(collection => {
+    function renderChartItems(data) {
+        const chartItemsContainer = document.querySelector('.chart-items');
+        
+        chartItemsContainer.innerHTML = '';
+        
+        data.forEach((item, index) => {
+            const chartItem = document.createElement('div');
+            chartItem.className = 'chart-item';
+            chartItem.dataset.type = item.type;
+            chartItem.dataset.genre = item.genre;
+            chartItem.dataset.rating = item.rating;
+            
+            let metaIcons = '';
+            let metaInfo = '';
+            
+            if (item.type === 'movies') {
+                metaIcons = `<i class="fas fa-film"></i>`;
+                metaInfo = `<span class="meta-item">${item.genre.split(' ').map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}</span>
+                            <span class="meta-item"><i class="fas fa-calendar"></i> ${item.year}</span>
+                            <span class="meta-item"><i class="fas fa-user"></i> ${item.director}</span>
+                            <span class="meta-item"><i class="fas fa-clock"></i> ${item.duration} min</span>`;
+            } else if (item.type === 'books') {
+                metaIcons = `<i class="fas fa-book"></i>`;
+                metaInfo = `<span class="meta-item">${item.genre.split(' ').map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}</span>
+                            <span class="meta-item"><i class="fas fa-calendar"></i> ${item.year}</span>
+                            <span class="meta-item"><i class="fas fa-user"></i> ${item.author}</span>`;
+            } else if (item.type === 'music') {
+                metaIcons = `<i class="fas fa-music"></i>`;
+                metaInfo = `<span class="meta-item">${item.genre.split(' ').map(g => g.charAt(0).toUpperCase() + g.slice(1)).join(', ')}</span>
+                            <span class="meta-item"><i class="fas fa-calendar"></i> ${item.year}</span>
+                            <span class="meta-item"><i class="fas fa-user"></i> ${item.artist}</span>`;
+            }
+            
+            const displayRank = item.originalRank || (index + 1);
+            
+            let rankClass = '';
+            if (displayRank === 1) {
+                rankClass = 'rank-gold';
+            } else if (displayRank === 2) {
+                rankClass = 'rank-silver';
+            } else if (displayRank === 3) {
+                rankClass = 'rank-bronze';
+            }
+            
+            chartItem.innerHTML = `
+                <div class="chart-rank ${rankClass}">${displayRank}</div>
+                <img src="${item.image}" alt="${item.title}" class="chart-thumbnail" data-id="${item.id}">
+                <div class="chart-info">
+                    <div class="chart-title-row">
+                        <h3 class="chart-item-title" data-id="${item.id}">${item.title}</h3>
+                        <div class="chart-rating-save">
+                            <div class="chart-rating">
+                                <i class="fas fa-star"></i>
+                                ${item.rating.toFixed(1)}
+                            </div>
+                        
+                            <div syle="position: relative;align-items: center;">
+                            <div class = "collection-dropdown">
+                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onfocus="dropdown('${item.id}',1,'${item.type}','${item.title}')" onblur="dropdown('${item.id}',2,'${item.type}','${item.id}','${item.title}')" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <div class="collection-dropdown-menu" id="menu-${item.id}">
+                                        
+                                    </div>
+                                </div>
+                        </div>                          
+                        </div>
+                    
+                    </div>
+                    <div class="chart-meta">
+                        <span>${metaIcons} ${metaInfo}</span>
+                    </div>
+                    <p class="chart-description">
+                        ${item.description}
+                    </p>
+                </div>
+            `;
+            
+            chartItemsContainer.appendChild(chartItem);
+        });
+        
+        attachEventListeners();
+    }
+    function dropdown(id,x, itemType,itemT) {
+        const menu = document.getElementById(`menu-${id}`);
+        if (x == 1) {
+            loadmenu(id, itemType,itemT);
+            menu.classList.add('show');
+        } else {
+            // menu.classList.remove('show');
+        }
+    }
+    function loadmenu(id, itemType,itemT) {
+        userId = getCurrentUserId();
+        const menu = document.getElementById(`menu-${id}`);
+        menu.innerHTML = ''; // Clear existing items
+        userCollections.forEach(collection => {
         const menuItem = document.createElement('div');
         menuItem.className = 'collection-dropdown-item';
         menuItem.innerHTML = `
@@ -746,42 +898,29 @@ function populateDropdownMenu(menu, item) {
         
         menuItem.addEventListener('click', (e) => {
             e.stopPropagation();
-            addToCollection(userId, collection.name, item);
+            addToCollection(userId, collection.name, id, itemType,itemT);
             menu.classList.remove('show');
         });
         
         menu.appendChild(menuItem);
     });
-}
-
-/**
- * Add item to a specific collection
- * @param {string} userId - User ID
- * @param {string} collectionName - Collection name
- * @param {Object} item - Item data
- */
-async function addToCollection(userId, collectionName, item) {
+    }
+async function addToCollection(userId, collectionName, itemId, itemType,itemT) {
     try {
         // Show loading feedback
-        showToast(`Adding "${item.title}" to ${collectionName}...`, 'info');
+        showToast(`Adding "${itemT}" to ${collectionName}...`, 'info');
         
         // Determine item type and ID
-        const itemType = item.type;
-        let itemId;
-        if (itemType === 'movie') {
-            itemId = item.tmdbId || item.id;
-        } else if (itemType === 'music' || itemType === 'book') {
-            itemId = item.id;
-        } 
-
-        console.log('🔍 Debug item data:', item);
+    
         console.log('🔍 Item type:', itemType);
-        console.log('🔍 Item ID:', itemId);
+        console.log('🔍 Item _id:', itemId);
         
         if (!itemId) {
             throw new Error('Item ID not found');
         }
-        
+        if (itemType.endsWith('s')) {
+        itemType = itemType.slice(0, -1); // Remove trailing 's' from type
+        }
         // Call your existing API function
         const response = await fetch(
             `http://localhost:3000/addToCollection?userId=${userId}&collectionName=${encodeURIComponent(collectionName)}&itemId=${encodeURIComponent(itemId)}&type=${encodeURIComponent(itemType)}`,
@@ -797,22 +936,16 @@ async function addToCollection(userId, collectionName, item) {
         const data = await response.json();
 
         if (data.success) {
-            showToast(`✅ "${item.title}" added to ${collectionName}!`, 'success');
+            showToast(`✅ "${itemT}" added to ${collectionName}!`, 'success');
         } else {
             throw new Error(data.message || 'Unknown server error');
         }
 
     } catch (error) {
         console.error('Error adding item to collection:', error);
-        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+        showToast(`❌ Failed to add "${itemT}": Already in ${collectionName}`, 'error');
     }
 }
-
-/**
- * Show toast notification
- * @param {string} message - Message to show
- * @param {string} type - Type of toast (success, error, info)
- */
 function showToast(message, type = 'info') {
     // Remove existing toast
     const existingToast = document.querySelector('.toast-notification');
@@ -886,4 +1019,177 @@ function showToast(message, type = 'info') {
         }
     }, 3000);
 }
-});
+
+    function initializeCollectionDropdowns() {
+        // Add CSS for dropdown styling
+        addDropdownStyles();
+        
+        // Load user collections if user is logged in
+        loadUserCollections();
+    }
+    
+    function addDropdownStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .collection-dropdown {
+                position: adsolute;
+                z-index: 1000;
+            }
+            
+            .collection-dropdown-btn {
+                background: rgba(0, 0, 0, 0.7);
+                border: none;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 1;
+            
+            }            
+            
+            .collection-dropdown-btn:hover {
+                background: rgba(0, 0, 0, 0.9);
+            }
+           
+            .collection-dropdown-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                min-width: 180px;
+                max-height: 200px;
+                overflow-y: auto;
+                display: none;
+                z-index: 1001;
+            }
+            
+            .collection-dropdown-menu.show {
+                display: block;
+            }
+            
+            .collection-dropdown-item {
+                padding: 10px 15px;
+                cursor: pointer;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s ease;
+            }
+            
+            .collection-dropdown-item:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .collection-dropdown-item:last-child {
+                border-bottom: none;
+            }
+            
+            .collection-dropdown-item.loading {
+                color: #666;
+                pointer-events: none;
+            }
+            
+            .collection-dropdown-item.no-collections {
+                color: #666;
+                text-align: center;
+                font-style: italic;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function attachEventListeners() {
+        const thumbnails = document.querySelectorAll('.chart-thumbnail');
+        const titles = document.querySelectorAll('.chart-item-title');
+        
+        thumbnails.forEach(thumbnail => {
+            thumbnail.addEventListener('click', function() {
+                const id = this.dataset.id;
+                navigateToContentPage(id);
+            });
+        });
+        
+        titles.forEach(title => {
+            title.addEventListener('click', function() {
+                const id = this.dataset.id;
+                navigateToContentPage(id);
+            });
+        });
+        
+        const saveButtons = document.querySelectorAll('.chart-save');
+        saveButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const icon = this.querySelector('i');
+                
+                if (icon.classList.contains('far')) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas');
+
+                    this.style.color = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+                } else {
+                    icon.classList.remove('fas');
+                    icon.classList.add('far');
+                    this.style.color = '';
+                }
+            });
+        });
+    }
+    
+    function navigateToContentPage(id) {
+        console.log(`Navigating to content page for ID: ${id}`);
+        
+        // use Squid Game as example first (ID: 25)
+        if (id == 25) {
+            window.location.href = "review.html";
+        } else {
+            alert(`Navigating to content page for: ${id}`);
+            // future implementation could use: window.location.href = `/content/${id}`;
+        }
+    }
+    
+    function initChart() {
+        const urlType = getUrlParameter('type');
+        if (urlType && ['movies', 'music', 'books'].includes(urlType)) {
+            typeFilter.value = urlType;
+        } else {
+            typeFilter.value = 'movies';
+        }
+        
+        updateGenreFilterOptions();
+        updateSearchPlaceholder(typeFilter.value);
+        
+        const urlTab = getUrlParameter('tab');
+        if (urlTab && ['top-rated', 'most-viewed'].includes(urlTab)) {
+            document.querySelectorAll('.chart-tab').forEach(tab => {
+                if (tab.dataset.tab === urlTab) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+        }
+        
+        const activeTab = document.querySelector('.chart-tab.active');
+        const activeTabType = activeTab.dataset.tab;
+        
+        currentData = [...entertainmentData];
+        
+        if (activeTabType === 'top-rated') {
+            currentData.sort((a, b) => b.rating - a.rating);
+        } else {
+            currentData.sort((a, b) => b.views - a.views);
+        }
+        
+        applyFilters();
+        
+        console.log(`Entertainment chart initialized with ${typeFilter.value} as type`);
+    }
+    initChart();
+
+    addMedalStyles();
