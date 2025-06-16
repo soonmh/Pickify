@@ -1,12 +1,55 @@
-const express=require('express');
-const mongoose=require('mongoose');
-const cors=require('cors');
-const Review=require('./models/Review');
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const Review = require('./models/Review');
 const axios = require('axios');
+const Entertainment = require('./Code/models/Entertainment');
+const Movie = require('./Code/models/Movie');
+const Music = require('./Code/models/Music');
+const Book = require('./Code/models/books');
 require('dotenv').config();
 
-const app=express();
-app.use(cors());
+const app = express();
+
+// MongoDB connection configuration
+const MONGODB_URI = 'mongodb+srv://engkejia:1234@cluster0.dadg8gh.mongodb.net/Pickify?retryWrites=true&w=majority&appName=Cluster0';
+
+// Connect to MongoDB
+console.log('Attempting to connect to MongoDB...');
+console.log('MongoDB URI:', MONGODB_URI);
+
+mongoose.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 5000 // Timeout after 5s instead of 30s
+})
+.then(() => {
+    console.log('✅ Successfully connected to MongoDB Atlas');
+    console.log('Database name:', mongoose.connection.name);
+    console.log('Connection state:', mongoose.connection.readyState);
+})
+.catch((err) => {
+    console.error('❌ MongoDB connection error details:');
+    console.error('Error name:', err.name);
+    console.error('Error message:', err.message);
+    console.error('Full error:', err);
+    process.exit(1); // Exit if cannot connect to database
+});
+
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+});
+
+// Configure CORS
+app.use(cors({
+    origin: ['http://localhost:5501', 'https://localhost:5501', 'http://127.0.0.1:5501'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
+}));
+
 app.use(express.json());
 app.use(express.static("public"));
 
@@ -14,14 +57,6 @@ app.use(express.static("public"));
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
-
-mongoose.connect('mongodb://localhost:27017/pickify')
-    .then(() => {
-        console.log('Connected to MongoDB');
-    })
-    .catch((err) => {
-        console.error('MongoDB connection error:', err);
-    });
 
 app.get('/api/reviews/:entertainmentId', async(req, res) => {
     const { entertainmentId } = req.params;
@@ -116,21 +151,34 @@ app.post('/api/reviews/:id/comment',async(req,res)=>{
     }
 })
 
-// Add entertainment details endpoint
-app.get('/api/entertainment/:type/:id', async(req, res) => {
-    const { type, id } = req.params;
-    
+// Entertainment routes
+app.get('/api/:type/:id', async(req, res) => {
     try {
-        let details = null;
+        const { type, id } = req.params;
+        console.log('🎬 Request received:', {
+            type,
+            id,
+            url: req.originalUrl,
+            method: req.method
+        });
 
-        if (type === 'movie') {
+        if (type.toLowerCase() === 'movie') {
             console.log('🔍 Searching for movie with tmdbId:', id);
-            // Fetch movie details from database
-            const movie = await mongoose.model('Movie').findOne({ tmdbId: parseInt(id) });
-            console.log('📽️ Found movie:', movie);
+            const movie = await Movie.findOne({ tmdbId: id });
+            console.log('📽️ Database query result:', {
+                found: !!movie,
+                tmdbId: id,
+                movieDetails: movie ? {
+                    _id: movie._id,
+                    tmdbId: movie.tmdbId,
+                    title: movie.title,
+                    genres: movie.genres
+                } : null
+            });
             
             if (movie) {
-                details = {
+                const details = {
+                    _id: movie._id,
                     tmdbId: movie.tmdbId,
                     poster_path: movie.poster_path,
                     title: movie.title,
@@ -139,68 +187,143 @@ app.get('/api/entertainment/:type/:id', async(req, res) => {
                     genres: movie.genres,
                     description: movie.overview,
                     director: movie.director,
-                    duration: movie.duration
+                    duration: movie.duration,
+                    vote_average: movie.vote_average,
+                    popularity: movie.popularity,
+                    vote_count: movie.vote_count
                 };
-                console.log('🎬 Processed movie details:', details);
+                console.log('🎬 Sending response:', {
+                    success: true,
+                    data: {
+                        _id: details._id,
+                        tmdbId: details.tmdbId,
+                        title: details.title,
+                        type: details.type
+                    }
+                });
+                return res.json({
+                    success: true,
+                    data: details
+                });
             } else {
                 console.log('❌ No movie found with tmdbId:', id);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Movie not found'
+                });
             }
-        } else if (type === 'book') {
-            // Fetch book details from your database
-            const book = await mongoose.model('Book').findOne({ _id: id });
+        } else if (type.toLowerCase() === 'books') {
+            console.log('📚 Searching for book with id:', id);
+            const book = await Book.findOne({ _id: id });
+            console.log('📚 Database query result:', {
+                found: !!book,
+                id: id,
+                bookDetails: book ? {
+                    _id: book._id,
+                    title: book.title,
+                    author: book.author
+                } : null
+            });
+            
             if (book) {
-                details = {
-                    tmdbId: book._id,
+                const details = {
+                    _id: book._id,
                     title: book.title,
                     type: 'book',
                     year: book.year,
                     genre: book.genre,
                     description: book.description,
                     image: book.image,
-                    author: book.author
+                    author: book.author,
+                    rating: book.rating,
+                    views: book.views,
+                    popularity: book.popularity
                 };
+                console.log('📚 Sending response:', {
+                    success: true,
+                    data: {
+                        _id: details._id,
+                        title: details.title,
+                        type: details.type
+                    }
+                });
+                return res.json({
+                    success: true,
+                    data: details
+                });
+            } else {
+                console.log('❌ No book found with id:', id);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Book not found'
+                });
             }
-        } else if (type === 'music') {
-            // Fetch music details from your database
-            const music = await mongoose.model('Music').findById(id);
-            if (music) {
-                console.log('Raw music data from DB:', music);  // Debug log
-                details = {
-                    _id: music._id,  // MongoDB _id
-                    id: music._id,   // Also include as id for compatibility
-                    title: music.name || music.title,  // Use name or title
-                    type: 'music',
-                    release_date: music.release,
-                    genres: music.genre,
-                    description: music.album || music.description,  // Use album or description
-                    poster_path: music.poster_url || music.image,  // Use poster_url or image
-                    artist: music.artists,
-                    popularity: music.popularity || 0
-                };
-                console.log('Formatted details:', details);    // Debug log
-            }
-        }
-
-        if (!details) {
-            console.log('❌ No details found for type:', type, 'id:', id);
-            return res.status(404).json({
-                success: false,
-                message: 'Entertainment not found'
+        } else if (type.toLowerCase() === 'music') {
+            console.log('🎵 Searching for music with id:', id);
+            // Try to find music by either id or _id
+            const music = await Music.findOne({
+                $or: [
+                    { id: id },
+                    { _id: id }
+                ]
             });
+            console.log('🎵 Database query result:', {
+                found: !!music,
+                id: id,
+                musicDetails: music ? {
+                    _id: music._id,
+                    id: music.id,
+                    title: music.title,
+                    artist: music.artist
+                } : null
+            });
+            
+            if (music) {
+                const details = {
+                    _id: music._id,
+                    id: music.id,
+                    poster_url: music.poster_url,
+                    title: music.title,
+                    type: 'music',
+                    artist: music.artist,
+                    album: music.album,
+                    release_date: music.release_date,
+                    genre: music.genre,
+                    description: music.album,
+                    duration: music.duration,
+                    popularity: music.popularity
+                };
+                console.log('🎵 Sending response:', {
+                    success: true,
+                    data: {
+                        _id: details._id,
+                        title: details.title,
+                        type: details.type
+                    }
+                });
+                return res.json({
+                    success: true,
+                    data: details
+                });
+            } else {
+                console.log('❌ No music found with id:', id);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Music not found'
+                });
+            }
         }
 
-        // Log the request and response for debugging
-        console.log('📤 Sending response:', details);
-
-        res.json({
-            success: true,
-            data: details
+        console.log('❌ No entertainment found for type:', type, 'and id:', id);
+        return res.status(404).json({
+            success: false,
+            message: 'Entertainment not found'
         });
-    } catch(err) {
-        console.error('❌ Error fetching entertainment details:', err);
+    } catch (error) {
+        console.error('❌ Error fetching entertainment details:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to fetch entertainment details'
+            message: error.message || 'Failed to fetch entertainment details'
         });
     }
 });
@@ -222,7 +345,10 @@ async function getMovieDirector(movieId) {
     }
 }
 
-const PORT = 5000;
-app.listen(PORT, () => console.log(`Server running at http://localhost:${PORT}`));
+// Start the server
+const PORT = process.env.PORT || 3000; 
+app.listen(PORT, () => {
+    console.log(`🚀 Server is running on port ${PORT}`);
+});
 
 

@@ -618,7 +618,7 @@ async function loadUserCollections() {
     }
     
     try {
-        const response = await fetch(`http://localhost:5000/collectionNameList?userId=${userId}`);
+        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }

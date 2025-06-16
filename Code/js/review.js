@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 // Function to populate entertainment details
@@ -23,11 +23,12 @@ function populateEntertainmentDetails(review) {
         const durationEl = document.querySelector('.item-duration');
 
         // Handle image URL
-        let imageUrl = details.image;
+        let imageUrl = details.poster_path;
         if (imageUrl) {
             if (imageUrl.startsWith('/')) {
                 imageUrl = `${TMDB_IMAGE_BASE_URL}${imageUrl}`;
             }
+            // No else if needed - use the URL directly from DB
         }
 
         // Update DOM elements with data
@@ -160,7 +161,6 @@ document.addEventListener('DOMContentLoaded', async () => {
            type;
 
     try {
-        // First, fetch the entertainment details
         const apiUrl = `${API_BASE_URL}/entertainment/${type}/${tmdbId}`;
         console.log('Fetching entertainment details from:', apiUrl);
         
@@ -222,3 +222,199 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.summary-container').prepend(errorMessage);
     }
 });
+
+async function fetchEntertainmentDetails(type, id) {
+    try {
+        const apiUrl = `${API_BASE_URL}/entertainment/${type}/${id}`;
+        console.log('🎬 Frontend request:', {
+            url: apiUrl,
+            type,
+            id,
+            timestamp: new Date().toISOString()
+        });
+        
+        const response = await fetch(apiUrl);
+        console.log('📡 Response received:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ API Error:', {
+                status: response.status,
+                message: errorText,
+                url: apiUrl
+            });
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Data received:', {
+            success: data.success,
+            type: data.data?.type,
+            id: data.data?.tmdbId || data.data?.id,
+            title: data.data?.title
+        });
+        
+        if (data.success && data.data) {
+            return data.data;
+        } else {
+            throw new Error(data.message || 'Failed to fetch entertainment details');
+        }
+    } catch (error) {
+        console.error('❌ Error in fetchEntertainmentDetails:', {
+            error: error.message,
+            type,
+            id,
+            timestamp: new Date().toISOString()
+        });
+        throw error;
+    }
+}
+
+/**
+ * Format movie data from MongoDB to match frontend expectations
+ */
+function formatMovieData(movie) {
+    const baseImageUrl = movie.poster_path ? 
+        `${TMDB_IMAGE_BASE_URL}${movie.poster_path}` : 
+        './assests/default-poster.png';
+        
+    return {
+        id: movie.id,
+        title: movie.title || 'Unknown Title',
+        type: "movie",
+        genre: movie.genres && movie.genres.length > 0 ? 
+            movie.genres[0].name.toLowerCase() : 'unknown',
+        rating: Math.round(movie.vote_average /2 * 10) /10|| 0,
+        views: formatViews(movie.popularity ? Math.round(movie.popularity * 1000) : Math.floor(Math.random() * 1000000)),
+        image: baseImageUrl,
+        year: movie.release_date ? new Date(movie.release_date).getFullYear() : 'Unknown',
+        genres: movie.genres || [],
+        tmdbId: movie.tmdbId ,
+        popularity: movie.popularity || 0,
+        vote_count: movie.vote_count || 0
+    };
+}
+
+/**
+ * Format music data from the API response
+ */
+function formatMusicData(music) {
+    const convertedRating = music.popularity ? 
+        parseFloat((music.popularity / 20).toFixed(1)) : 0;
+    return {
+        type: 'music',
+        tmdbId: music.id,
+        title: music.title || music.name || 'Unknown Title',
+        image: music.poster_url || './assets/default-music.png',
+        rating: convertedRating || 'N/A',
+        views: `${music.popularity}  `,
+        year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year'
+    };
+}
+
+/**
+ * Format book data from the API response
+ */
+function formatBookData(book) {
+    return {
+        type: 'book',
+        tmdbId: book._id,
+        title: book.title,
+        image: book.image,
+        rating: book.rating || 'N/A',
+        views: formatViews(book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 1000000)),
+        year: book.year || 'Unknown Year'
+    };
+}
+
+// Update the displayEntertainmentDetails function to use the new formatting
+function displayEntertainmentDetails(data) {
+    console.log('Displaying entertainment details:', data);
+    
+    let formattedData;
+    switch(data.type.toLowerCase()) {
+        case 'movie':
+            formattedData = formatMovieData(data);
+            break;
+        case 'music':
+            formattedData = formatMusicData(data);
+            break;
+        case 'book':
+            formattedData = formatBookData(data);
+            break;
+        default:
+            console.error('Unknown entertainment type:', data.type);
+            return;
+    }
+
+    // Debug item data
+    console.log('Debug item data:', {
+        genre: formattedData.genre,
+        genres: formattedData.genres,
+        id: formattedData.id,
+        image: formattedData.image,
+        popularity: formattedData.popularity,
+        rating: formattedData.rating,
+        title: formattedData.title,
+        tmdbId: formattedData.tmdbId,
+        type: formattedData.type,
+        views: formattedData.views,
+        vote_count: formattedData.vote_count,
+        year: formattedData.year
+    });
+
+    // Update the page title
+    document.title = `${formattedData.title} - Review | Pickify`;
+
+    // Update the header
+    const headerTitle = document.querySelector('.header-title');
+    if (headerTitle) {
+        headerTitle.textContent = formattedData.title;
+    }
+
+    // Update the poster
+    const posterImg = document.querySelector('.poster img');
+    if (posterImg) {
+        posterImg.src = formattedData.image;
+        posterImg.alt = formattedData.title;
+    }
+
+    // Update the details
+    const detailsContainer = document.querySelector('.details');
+    if (detailsContainer) {
+        detailsContainer.innerHTML = `
+            <h2>${formattedData.title}</h2>
+            <div class="meta-info">
+                <span class="year">${formattedData.year}</span>
+                <span class="genre">${formattedData.genre}</span>
+                ${formattedData.type === 'movie' ? `<span class="director">Director: ${formattedData.director}</span>` : ''}
+                ${formattedData.type === 'music' ? `<span class="artist">Artist: ${formattedData.artist}</span>` : ''}
+                ${formattedData.type === 'book' ? `<span class="author">Author: ${formattedData.author}</span>` : ''}
+            </div>
+            <div class="description">
+                <p>${formattedData.description}</p>
+            </div>
+            <div class="stats">
+                <div class="rating">
+                    <i class="fas fa-star"></i>
+                    <span>${formattedData.rating}</span>
+                </div>
+                <div class="views">
+                    <i class="fas fa-eye"></i>
+                    <span>${formattedData.views}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Update the review form
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) {
+        reviewForm.dataset.tmdbId = formattedData.tmdbId;
+        reviewForm.dataset.type = formattedData.type;
+    }
+}
