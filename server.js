@@ -23,13 +23,46 @@ mongoose.connect('mongodb://localhost:27017/pickify')
         console.error('MongoDB connection error:', err);
     });
 
-app.get('/api/reviews/:entertainmentId',async(req,res)=>{
-    const{entertainmentId}=req.params;
-    try{
-        const reviews=await Review.find({entertainmentId});
-        res.json(reviews);
-    }catch(err){
-        res.status(500).json({message:err.message});
+app.get('/api/reviews/:entertainmentId', async(req, res) => {
+    const { entertainmentId } = req.params;
+    try {
+        console.log('🔍 Fetching reviews for entertainmentId:', entertainmentId);
+        
+        // First try to find a music item with this ID
+        const music = await mongoose.model('Music').findById(entertainmentId);
+        if (music) {
+            // If it's a music item, use its _id for reviews
+            const reviews = await Review.find({ entertainmentId: music._id });
+            console.log(`✅ Found ${reviews.length} reviews for music`);
+            return res.json({
+                success: true,
+                data: reviews
+            });
+        }
+
+        // If not found as music, try as movie
+        const movie = await mongoose.model('Movie').findById(entertainmentId);
+        if (movie) {
+            const reviews = await Review.find({ entertainmentId: movie._id });
+            console.log(`✅ Found ${reviews.length} reviews for movie`);
+            return res.json({
+                success: true,
+                data: reviews
+            });
+        }
+
+        // If not found as either, return empty array
+        console.log('ℹ️ No entertainment found with ID:', entertainmentId);
+        return res.json({
+            success: true,
+            data: []
+        });
+    } catch(err) {
+        console.error('❌ Error fetching reviews:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
     }
 });
 
@@ -98,12 +131,13 @@ app.get('/api/entertainment/:type/:id', async(req, res) => {
             
             if (movie) {
                 details = {
+                    tmdbId: movie.tmdbId,
                     poster_path: movie.poster_path,
                     title: movie.title,
                     type: 'movie',
                     release_date: movie.release_date,
                     genres: movie.genres,
-                    description: movie.description,
+                    description: movie.overview,
                     director: movie.director,
                     duration: movie.duration
                 };
@@ -116,29 +150,34 @@ app.get('/api/entertainment/:type/:id', async(req, res) => {
             const book = await mongoose.model('Book').findOne({ _id: id });
             if (book) {
                 details = {
+                    tmdbId: book._id,
                     title: book.title,
                     type: 'book',
-                    year: book.publicationYear,
+                    year: book.year,
                     genre: book.genre,
                     description: book.description,
-                    image: book.coverImage,
+                    image: book.image,
                     author: book.author
                 };
             }
         } else if (type === 'music') {
             // Fetch music details from your database
-            const music = await mongoose.model('Music').findOne({ _id: id });
+            const music = await mongoose.model('Music').findById(id);
             if (music) {
+                console.log('Raw music data from DB:', music);  // Debug log
                 details = {
-                    tmdbId: music._id,
-                    title: music.name || music.title, 
+                    _id: music._id,  // MongoDB _id
+                    id: music._id,   // Also include as id for compatibility
+                    title: music.name || music.title,  // Use name or title
                     type: 'music',
-                    year: music.release,
-                    genre: music.genre,
-                    description: music.description,
-                    image: music.poster_url,
-                    artist: music.artists
+                    release_date: music.release,
+                    genres: music.genre,
+                    description: music.album || music.description,  // Use album or description
+                    poster_path: music.poster_url || music.image,  // Use poster_url or image
+                    artist: music.artists,
+                    popularity: music.popularity || 0
                 };
+                console.log('Formatted details:', details);    // Debug log
             }
         }
 

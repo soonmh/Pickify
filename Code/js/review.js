@@ -23,19 +23,15 @@ function populateEntertainmentDetails(review) {
         const durationEl = document.querySelector('.item-duration');
 
         // Handle image URL
-        let imageUrl = details.poster_path;
+        let imageUrl = details.image;
         if (imageUrl) {
             if (imageUrl.startsWith('/')) {
                 imageUrl = `${TMDB_IMAGE_BASE_URL}${imageUrl}`;
-            } else if (!imageUrl.startsWith('http')) {
-                imageUrl = `./assets/${imageUrl}`;
             }
-        } else {
-            imageUrl = './assets/placeholder.png';
         }
 
         // Update DOM elements with data
-        if (posterEl) posterEl.src = imageUrl;
+        if (posterEl) posterEl.src = imageUrl || '';  // Use empty string as fallback instead of placeholder
         if (titleEl) titleEl.textContent = details.title || 'Untitled';
         if (typeEl) typeEl.textContent = (details.type || 'unknown').charAt(0).toUpperCase() + (details.type || 'unknown').slice(1);
         if (yearEl) yearEl.textContent = details.year || (details.release_date ? details.release_date.split('-')[0] : 'Unknown Year');
@@ -186,6 +182,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const entertainmentData = entertainmentResult.data;
         console.log('Entertainment data:', entertainmentData);
+        console.log('Entertainment ID:', entertainmentData._id);  // Log the MongoDB _id
 
         if (!entertainmentData) {
             console.error('No entertainment data received');
@@ -200,13 +197,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Populate the entertainment details
         populateEntertainmentDetails(review);
 
-        // Then fetch the reviews
-        const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${tmdbId}`);
-        const reviewsResult = await reviewsResponse.json();
+        // Then fetch the reviews using the MongoDB _id
+        const reviewId = entertainmentData._id || entertainmentData.id;
+        if (entertainmentData && reviewId) {
+            console.log('Fetching reviews for ID:', reviewId);
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${reviewId}`);
+            const reviewsResult = await reviewsResponse.json();
 
-        if (reviewsResult.success) {
-            updateReviewStats(reviewsResult.data);
-            displayReviews(reviewsResult.data);
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+        } else {
+            console.warn('No valid ID found for fetching reviews. Data:', entertainmentData);
+            // Initialize with empty reviews
+            updateReviewStats([]);
+            displayReviews([]);
         }
     } catch (error) {
         console.error('Error:', error);

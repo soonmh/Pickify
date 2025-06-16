@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const Entertainment = require('../models/Entertainment');
 const app = express();
 
 // Connect to MongoDB
@@ -44,86 +45,64 @@ app.get('/api/entertainment/:type/:id', async(req, res) => {
     try {
         console.log('🎬 Fetching entertainment details:', {
             type: req.params.type,
-            tmdbId: req.params.id,
+            id: req.params.id,
             url: req.url,
             method: req.method
         });
 
         const { type, id } = req.params;
         
-        // For now, only handle movies
-        if (type === 'movie') {
-            // Convert id to number for comparison with tmdbId
-            const tmdbId = parseInt(id);
-            console.log('🔍 Looking for movie with tmdbId:', tmdbId);
-            
-            // Fetch movie from database
-            const movie = await mongoose.model('Movie').findOne({ tmdbId });
-            
-            if (!movie) {
-                console.log('❌ Movie not found with tmdbId:', tmdbId);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Movie not found'
-                });
-            }
+        // Debug: Log the search criteria
+        console.log('🔍 Searching for entertainment with criteria:', {
+            type: type,
+            $or: [
+                { tmdbId: id },
+                { _id: id }
+            ]
+        });
 
-            // Format the response
-            const formattedMovie = {
-                tmdbId: movie.tmdbId,
-                title: movie.title,
-                type: 'movie',
-                genre: movie.genres.join(', '),
-                image: movie.poster_path,
-                year: new Date(movie.release_date).getFullYear(),
-                description: movie.overview,
-                rating: movie.vote_average,
-                director: movie.director,
-                duration: movie.duration || movie.runtime
-            };
-
-            console.log('📤 Sending formatted response:', formattedMovie);
-
-            res.json({
-                success: true,
-                data: formattedMovie
-            });
-        } else if (type === 'music') {
-            // Fetch music from database
-            const music = await mongoose.model('Music').findOne({ _id: id });
-            
-            if (!music) {
-                console.log('❌ Music not found with id:', id);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Music not found'
-                });
-            }
-
-            // Format the response
-            const formattedMusic = {
-                tmdbId: music._id,
-                title: music.name || music.title,
-                type: 'music',
-                genre: music.genre || 'Unknown Genre',
-                image: music.poster_url || music.image,
-                year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year',
-                description: music.description || 'No description available',
-                rating: music.popularity ? parseFloat((music.popularity / 20).toFixed(1)) : 0
-            };
-
-            console.log('📤 Sending formatted response:', formattedMusic);
-
-            res.json({
-                success: true,
-                data: formattedMusic
-            });
-        } else {
-            res.status(404).json({
+        // Find entertainment item by type and id
+        const entertainment = await Entertainment.findOne({
+            type: type,
+            $or: [
+                { tmdbId: id },
+                { _id: id }
+            ]
+        });
+        
+        // Debug: Log the search result
+        console.log('🔍 Search result:', entertainment);
+        
+        if (!entertainment) {
+            console.log('❌ Entertainment item not found:', { type, id });
+            return res.status(404).json({
                 success: false,
-                message: 'Unsupported entertainment type'
+                message: 'Entertainment item not found'
             });
         }
+
+        // Format the response
+        const formattedItem = {
+            tmdbId: entertainment.tmdbId || entertainment._id,
+            title: entertainment.title,
+            type: entertainment.type || 'movie',
+            genre: entertainment.genres ? entertainment.genres.map(g => g.name).join(', ') : 'Unknown Genre',
+            image: entertainment.poster_path,
+            year: entertainment.year || (entertainment.release_date ? new Date(entertainment.release_date).getFullYear() : 'Unknown Year'),
+            description: entertainment.overview || entertainment.description || 'No description available',
+            director: entertainment.director,
+            duration: entertainment.duration || entertainment.runtime,
+            rating: entertainment.vote_average,
+            voteCount: entertainment.vote_count,
+            language: entertainment.original_language
+        };
+
+        console.log('📤 Sending formatted response:', formattedItem);
+
+        res.json({
+            success: true,
+            data: formattedItem
+        });
     } catch (error) {
         console.error('❌ Error fetching entertainment details:', error);
         res.status(500).json({
