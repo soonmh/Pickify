@@ -804,7 +804,7 @@ async function addToCollection(userId, collectionName, item) {
 
     } catch (error) {
         console.error('Error adding item to collection:', error);
-        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+        showToast(`❌ Item already exists in ${collectionName}`);
     }
 }
 
