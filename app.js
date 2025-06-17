@@ -11,16 +11,18 @@ const crypto = require('crypto');
 const path = require('path');
 const saltRounds=10;
 const nodemailer = require('nodemailer');   
+
 // const session = require('express-session');
 
 const allowedOrigins = [
   'http://127.0.0.1:5501',
   'http://localhost:5500',
   'http://localhost:3000',
+  'http://127.0.0.1:5500'
 ];
 
 const corsOptions = {
-  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
+  origin: 'http://127.0.0.1:5500', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // If you need to handle cookies or authorization headers
@@ -1936,5 +1938,171 @@ app.put('/admin/changeStatus', async (req, res) => {
     } catch (err) {
         console.error('Failed to update status:', err); // Add err to the log
         res.status(500).json({ success: false, error: err.message }); // Return the error message
+    }
+});
+
+
+
+app.get('/api/entertainment/movie/:id', async (req, res) => {
+    try {
+        const movieId = parseInt(req.params.id);
+        console.log(`🎬 Fetching movie with ID: ${movieId}`);
+        
+        const movie = await db.collection('Movie').findOne({ tmdbId: movieId });
+        
+        if (!movie) {
+            return res.status(404).json({
+                success: false,
+                error: 'Movie not found'
+            });
+        }
+        
+        // Format the movie data
+        const formattedMovie = {
+            id: movie._id,
+            tmdbId: movie.tmdbId,
+            title: movie.title,
+            overview: movie.overview,
+            poster_path: movie.poster_path,
+            release_date: movie.release_date,
+            vote_average: movie.vote_average,
+            genres: movie.genres,
+            director: movie.director,
+            runtime: movie.runtime || movie.duration,
+            popularity: movie.popularity
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: formattedMovie
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching movie:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch movie details'
+        });
+    }
+});
+app.get('/api/reviews/:entertainmentId', async (req, res) => {
+    const { entertainmentId } = req.params;
+    try {
+        console.log('🔍 Fetching reviews for entertainmentId:', entertainmentId);
+        
+        // Convert string ID to ObjectId for MongoDB queries
+        let objectId;
+        try {
+            objectId = new ObjectId(entertainmentId);
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid entertainment ID format'
+            });
+        }
+        
+        // Use native MongoDB driver instead of Mongoose
+        const reviews = await db.collection('reviews').find({ 
+            entertainmentId: objectId 
+        }).toArray();
+        
+        console.log(`✅ Found ${reviews.length} reviews`);
+        
+        return res.json({
+            success: true,
+            data: reviews
+        });
+        
+    } catch (err) {
+        console.error('❌ Error fetching reviews:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+app.post('/api/reviews', async (req, res) => {
+    const { entertainmentId, user, rating, text } = req.body;
+    try {
+        const review = {
+            entertainmentId: new ObjectId(entertainmentId),
+            user,
+            rating,
+            text,
+            createdAt: new Date(),
+            reported: false,
+            comments: []
+        };
+        
+        const result = await db.collection('reviews').insertOne(review);
+        res.status(201).json({
+            success: true,
+            data: { ...review, _id: result.insertedId }
+        });
+    } catch (err) {
+        console.error('❌ Error creating review:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+app.put('/api/reviews/:id', async (req, res) => {
+    const { rating, text } = req.body;
+    try {
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $set: { rating, text, updatedAt: new Date() } },
+            { returnDocument: 'after' }
+        );
+        
+        if (!result.value) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
+        }
+        
+        res.json({ success: true, data: result.value });
+    } catch (err) {
+        console.error('❌ Error updating review:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+app.patch('/api/reviews/:id/report', async (req, res) => {
+    try {
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $set: { reported: true } },
+            { returnDocument: 'after' }
+        );
+        
+        if (!result.value) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
+        }
+        
+        res.json({ success: true, data: result.value });
+    } catch (err) {
+        console.error('❌ Error reporting review:', err);
+        res.status(400).json({ success: false, message: err.message });
+    }
+});
+app.post('/api/reviews/:id/comment', async (req, res) => {
+    const { user, comment } = req.body;
+    try {
+        const newComment = {
+            user,
+            comment,
+            createdAt: new Date()
+        };
+        
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $push: { comments: newComment } },
+            { returnDocument: 'after' }
+        );
+        
+        if (!result.value) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
+        }
+        
+        res.json({ success: true, data: result.value });
+    } catch (err) {
+        console.error('❌ Error adding comment:', err);
+        res.status(400).json({ success: false, message: err.message });
     }
 });
