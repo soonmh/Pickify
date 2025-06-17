@@ -14,15 +14,9 @@ const nodemailer = require('nodemailer');
 
 // const session = require('express-session');
 
-const allowedOrigins = [
-  'http://127.0.0.1:5501',
-  'http://localhost:5500',
-  'http://localhost:3000',
-  'http://127.0.0.1:5500'
-];
 
 const corsOptions = {
-  origin: 'http://127.0.0.1:5500', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
+  origin: 'http://127.0.0.1:5501', // Replace with your frontend's actual IP and port e.g. 'http://192.168.1.100:5500'
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true, // If you need to handle cookies or authorization headers
@@ -852,13 +846,16 @@ app.post('/addToCollection', async (req, res) => {
     }
 });
 
+
+
 // GET /api/recommendation/:userId - Get personalized recommendations
 app.get('/api/recommendation/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+        const refresh = req.query.refresh === 'true'; // Add refresh parameter
 
-        console.log(`🎯 Fetching recommendations for user: ${userId}`);
+        console.log(`🎯 Fetching recommendations for user: ${userId}, refresh: ${refresh}`);
 
         // Validate userId
         let userObjectId;
@@ -868,17 +865,26 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
+        // Create a session-based seed for randomization
+        const timeSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Changes every hour
+        const userSeed = userId.slice(-4); // Use last 4 chars of userId
+        const randomSeed = refresh ? Math.random() : parseInt(userSeed, 16) + timeSeed;
+
+        console.log('🎲 Random seed:', randomSeed);
+
         // 1. Fetch user's favorite collection
         const userFavorites = await db.collection('userCollection')
             .findOne({ userId: userObjectId, collectionName: 'Favourite' });
 
         if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
+            // Return random popular items when no favorites
+            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
             return res.status(200).json({
                 success: true,
-                count: 0,
-                data: [],
-                type: 'no_collections',
-                message: 'No favorite items found. Add movies, music, or books to get recommendations!'
+                count: randomRecommendations.length,
+                data: randomRecommendations,
+                type: 'random_popular',
+                message: 'No favorite items found. Here are some popular recommendations!'
             });
         }
 
@@ -894,27 +900,16 @@ app.get('/api/recommendation/:userId', async (req, res) => {
                 musicIds.push(item.itemId);
             } else if (item.type === 'book' && item.itemId?.$oid) {
                 bookIds.push(new ObjectId(item.itemId.$oid));
-            } else {
-                console.warn(`⚠️ Skipping invalid item:`, item);
             }
         });
 
-        console.log('🎥 Movie IDs:', movieIds);
-        console.log('🎵 Music IDs:', musicIds);
-        console.log('📚 Book IDs:', bookIds);
-
-        // 3. Fetch item details from respective collections (FIXED QUERIES)
+        // 3. Fetch item details from respective collections
         const [movies, music, books] = await Promise.all([
             movieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: movieIds.map(id => parseInt(id)) } }).toArray() : [],
             musicIds.length > 0 ? db.collection('Music').find({ id: { $in: musicIds } }).toArray() : [],
             bookIds.length > 0 ? db.collection('books').find({ _id: { $in: bookIds } }).toArray() : []
         ]);
 
-        console.log('🎬 Fetched Movies:', movies.length);
-        console.log('🎵 Fetched Music:', music.length);
-        console.log('📚 Fetched Books:', books.length);
-
-        // Add type information to fetched items since it's not in the documents
         const moviesWithType = movies.map(item => ({ ...item, type: 'movie' }));
         const musicWithType = music.map(item => ({ ...item, type: 'music' }));
         const booksWithType = books.map(item => ({ ...item, type: 'book' }));
@@ -922,130 +917,113 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         const allUserItems = [...moviesWithType, ...musicWithType, ...booksWithType];
 
         if (!allUserItems.length) {
+            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
             return res.status(200).json({
                 success: true,
-                count: 0,
-                data: [],
-                type: 'invalid_items',
-                message: 'No valid items found in your collections. Try adding more items to get recommendations!'
+                count: randomRecommendations.length,
+                data: randomRecommendations,
+                type: 'random_popular',
+                message: 'No valid items found in your collections. Here are some popular recommendations!'
             });
         }
 
-        // 4. Analyze user preferences (UPDATED FOR DIFFERENT STRUCTURES)
+        // 4. Analyze user preferences with randomization
         const genreCounts = {};
         const typeCounts = { movie: 0, music: 0, book: 0 };
 
         allUserItems.forEach(item => {
-            // Handle different genre structures
             if (item.type === 'movie' && item.genres && Array.isArray(item.genres)) {
-                // Movies: genres as array of objects
                 item.genres.forEach(genre => {
                     genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
                 });
             } else if (item.type === 'music' && item.genre) {
-                // Music: genre as single string
                 genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
             } else if (item.type === 'book' && item.genre) {
-                // Books: genre as single string
                 genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
             }
-
-            // Count types
             typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
         });
 
-        console.log('📈 Genre Counts:', genreCounts);
-        console.log('📊 Type Counts:', typeCounts);
+        // Get preferred genres with some randomization
+        const allGenres = Object.entries(genreCounts)
+            .filter(([_, count]) => count >= 1)
+            .sort((a, b) => b[1] - a[1]);
 
-        // Determine preferred genres and types
-        const preferredGenres = Object.entries(genreCounts)
-            .filter(([_, count]) => count >= 1) // Changed from > 1 to >= 1 for more recommendations
-            .sort((a, b) => b[1] - a[1])
-            .map(([genre]) => genre);
+        // Randomly select 60-80% of top genres to add variety
+        const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500; // 0.6 to 0.8
+        const numGenresToSelect = Math.max(1, Math.floor(allGenres.length * genreSelectionRatio));
+        const preferredGenres = allGenres.slice(0, numGenresToSelect).map(([genre]) => genre);
+
+        // Add occasional random genres for discovery
+        if (Math.random() < 0.3) {
+            const randomGenres = ['Action', 'Comedy', 'Drama', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror'];
+            const randomGenre = randomGenres[Math.floor(Math.random() * randomGenres.length)];
+            if (!preferredGenres.includes(randomGenre)) {
+                preferredGenres.push(randomGenre);
+            }
+        }
 
         const preferredTypes = Object.entries(typeCounts)
             .filter(([_, count]) => count > 0)
             .sort((a, b) => b[1] - a[1])
             .map(([type]) => type);
 
-        console.log('🎭 User preferred genres:', preferredGenres);
-        console.log('📊 User preferred types:', preferredTypes);
+        console.log('🎭 Selected genres for this session:', preferredGenres);
+        console.log('📊 Preferred types:', preferredTypes);
 
-        // 5. Fetch recommendations (UPDATED QUERIES FOR DIFFERENT STRUCTURES)
+        // 5. Fetch recommendations with randomization
         const recommendations = [];
+        const recommendationStrategies = ['genre_based', 'popularity_based', 'rating_based', 'random'];
 
         for (const type of preferredTypes) {
-            let collectionName, query, excludeField;
-            
-            if (type === 'movie') {
-                collectionName = 'Movie';
-                excludeField = 'tmdbId';
-                query = {
-                    tmdbId: { $nin: movieIds.map(id => parseInt(id)) },
-                    $or: [
-                        { 'genres.name': { $in: preferredGenres } },
-                        { vote_average: { $gte: 6.0 } } // Fallback for highly rated
-                    ]
-                };
-            } else if (type === 'music') {
-                collectionName = 'Music';
-                excludeField = 'id';
-                query = {
-                    id: { $nin: musicIds },
-                    $or: [
-                        { genre: { $in: preferredGenres } },
-                        { popularity: { $gte: 40 } } // Fallback for popular music
-                    ]
-                };
-            } else if (type === 'book') {
-                collectionName = 'books';
-                excludeField = '_id';
-                query = {
-                    _id: { $nin: bookIds },
-                    $or: [
-                        { genre: { $in: preferredGenres } },
-                        { rating: { $gte: 4 } } // Fallback for highly rated books
-                    ]
-                };
+            const itemsPerType = Math.ceil(limit / preferredTypes.length);
+            const typeRecommendations = [];
+
+            // Try different strategies for variety
+            for (let i = 0; i < itemsPerType; i++) {
+                const strategy = recommendationStrategies[i % recommendationStrategies.length];
+                const strategyRecs = await getRecommendationsByStrategy(
+                    type, 
+                    strategy, 
+                    preferredGenres, 
+                    getExcludedIds(type, movieIds, musicIds, bookIds),
+                    Math.ceil(itemsPerType / recommendationStrategies.length),
+                    randomSeed + i
+                );
+                typeRecommendations.push(...strategyRecs);
             }
 
-            if (collectionName) {
-                console.log(`🔍 Querying ${collectionName} with:`, JSON.stringify(query, null, 2));
-                
-                const typeRecommendations = await db.collection(collectionName)
-                    .find(query)
-                    .sort({ 
-                        ...(type === 'movie' && { vote_average: -1, popularity: -1 }),
-                        ...(type === 'music' && { popularity: -1 }),
-                        ...(type === 'book' && { rating: -1, views: -1 })
-                    })
-                    .limit(Math.ceil(limit / preferredTypes.length))
-                    .toArray();
-
-                console.log(`✅ Found ${typeRecommendations.length} ${type} recommendations`);
-                
-                // Add type information to recommendations
-                recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
-            }
+            recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
         }
 
-        // 6. Shuffle and limit recommendations
-        const shuffled = recommendations.sort(() => 0.5 - Math.random()).slice(0, limit);
+        // 6. Advanced shuffling with weighted randomization
+        const shuffled = weightedShuffle(recommendations, randomSeed).slice(0, limit);
 
-        console.log(`✅ Generated ${shuffled.length} personalized recommendations`);
+        // 7. Add some completely random items for discovery (10% chance)
+        if (Math.random() < 0.1 && shuffled.length < limit) {
+            const discoveryItems = await getRandomPopularItems(
+                Math.min(2, limit - shuffled.length), 
+                randomSeed + 1000
+            );
+            shuffled.push(...discoveryItems);
+        }
+
+        console.log(`✅ Generated ${shuffled.length} varied recommendations`);
 
         return res.status(200).json({
             success: true,
             count: shuffled.length,
-            data: shuffled,
-            type: 'personalized',
+            data: shuffled.slice(0, limit),
+            type: 'personalized_varied',
             userPreferences: {
                 totalItemsInCollections: allUserItems.length,
-                preferredGenres,
-                preferredTypes
+                selectedGenres: preferredGenres,
+                preferredTypes,
+                randomSeed: randomSeed
             },
-            message: `Recommendations based on your ${allUserItems.length} favorite items`
+            message: `Varied recommendations based on your ${allUserItems.length} favorite items`
         });
+
     } catch (error) {
         console.error('❌ Error generating recommendations:', error);
         res.status(500).json({
@@ -1054,6 +1032,155 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         });
     }
 });
+// Helper function to get recommendations by different strategies
+async function getRecommendationsByStrategy(type, strategy, preferredGenres, excludedIds, limit, seed) {
+    let collectionName, query, sortCriteria;
+
+    // Set collection and base query
+    if (type === 'movie') {
+        collectionName = 'Movie';
+        query = { tmdbId: { $nin: excludedIds } };
+    } else if (type === 'music') {
+        collectionName = 'Music';
+        query = { id: { $nin: excludedIds } };
+    } else if (type === 'book') {
+        collectionName = 'books';
+        query = { _id: { $nin: excludedIds } };
+    }
+
+    // Apply strategy-specific modifications
+    switch (strategy) {
+        case 'genre_based':
+            if (type === 'movie') {
+                query['genres.name'] = { $in: preferredGenres };
+                sortCriteria = { vote_average: -1, popularity: -1 };
+            } else if (type === 'music') {
+                query.genre = { $in: preferredGenres };
+                sortCriteria = { popularity: -1 };
+            } else if (type === 'book') {
+                query.genre = { $in: preferredGenres };
+                sortCriteria = { rating: -1 };
+            }
+            break;
+
+        case 'popularity_based':
+            if (type === 'movie') {
+                query.popularity = { $gte: 20 };
+                sortCriteria = { popularity: -1 };
+            } else if (type === 'music') {
+                query.popularity = { $gte: 30 };
+                sortCriteria = { popularity: -1 };
+            } else if (type === 'book') {
+                query.views = { $gte: 100 };
+                sortCriteria = { views: -1 };
+            }
+            break;
+
+        case 'rating_based':
+            if (type === 'movie') {
+                query.vote_average = { $gte: 7.0 };
+                sortCriteria = { vote_average: -1 };
+            } else if (type === 'music') {
+                sortCriteria = { popularity: -1 }; // Use popularity as proxy for rating
+            } else if (type === 'book') {
+                query.rating = { $gte: 4.0 };
+                sortCriteria = { rating: -1 };
+            }
+            break;
+
+        case 'random':
+            // No additional filters, just random sampling
+            break;
+    }
+
+    try {
+        let results;
+        if (strategy === 'random') {
+            // Use MongoDB's $sample for true randomization
+            results = await db.collection(collectionName).aggregate([
+                { $match: query },
+                { $sample: { size: limit } }
+            ]).toArray();
+        } else {
+            // Add some randomness to skip items
+            const skip = Math.floor((seed % 10) * 2); // Skip 0-18 items randomly
+            results = await db.collection(collectionName)
+                .find(query)
+                .sort(sortCriteria)
+                .skip(skip)
+                .limit(limit)
+                .toArray();
+        }
+
+        return results || [];
+    } catch (error) {
+        console.error(`Error in ${strategy} strategy for ${type}:`, error);
+        return [];
+    }
+}
+// Helper function for weighted shuffling
+function weightedShuffle(array, seed) {
+    const shuffled = [...array];
+    
+    // Use seed for reproducible but varied shuffling
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(((seed + i) * 9301 + 49297) % 233280 / 233280) * (i + 1);
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    
+    return shuffled;
+}
+// Helper function to get excluded IDs based on type
+function getExcludedIds(type, movieIds, musicIds, bookIds) {
+    switch (type) {
+        case 'movie':
+            return movieIds.map(id => parseInt(id));
+        case 'music':
+            return musicIds;
+        case 'book':
+            return bookIds;
+        default:
+            return [];
+    }
+}
+// Helper function to get random popular items when no user preferences exist
+async function getRandomPopularItems(limit, seed) {
+    const recommendations = [];
+    
+    try {
+        // Get random movies
+        const movies = await db.collection('Movie').aggregate([
+            { $match: { vote_average: { $gte: 6.0 }, popularity: { $gte: 10 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        // Get random music
+        const music = await db.collection('Music').aggregate([
+            { $match: { popularity: { $gte: 20 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        // Get random books
+        const books = await db.collection('books').aggregate([
+            { $match: { rating: { $gte: 3.5 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        recommendations.push(
+            ...movies.map(item => ({ ...item, type: 'movie' })),
+            ...music.map(item => ({ ...item, type: 'music' })),
+            ...books.map(item => ({ ...item, type: 'book' }))
+        );
+        
+        return weightedShuffle(recommendations, seed).slice(0, limit);
+    } catch (error) {
+        console.error('Error getting random popular items:', error);
+        return [];
+    }
+}
+
+
+
 // GET /api/movies/top/:limit - Get top movies by popularity
 app.get('/api/movies/top', async (req, res) => {
     try {
