@@ -1109,6 +1109,7 @@ function populateDropdownMenu(menu, item) {
         
         menuItem.addEventListener('click', (e) => {
             e.stopPropagation();
+            console.log("Yay");
             addToCollection(userId, collection.name, item);
             menu.classList.remove('show');
         });
@@ -1131,11 +1132,13 @@ async function addToCollection(userId, collectionName, item) {
         // Determine item type and ID
         const itemType = item.type;
         let itemId;
-        if (itemType === 'movie') {
-            itemId = item.tmdbId;
-        } else if (itemType === 'music' || itemType === 'book') {
-            itemId = item.id;
-        } 
+        itemId = item.tmdbId;
+        // if (itemType === 'movie') {
+        //     itemId = item.tmdbId;
+        // } else if (itemType === 'music' || itemType === 'book') {
+        //     // console.log("Yay");
+        //     itemId = item.tmdbId;
+        // } 
 
         console.log('🔍 Debug item data:', item);
         console.log('🔍 Item type:', itemType);
