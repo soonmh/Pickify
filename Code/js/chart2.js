@@ -1067,7 +1067,7 @@ function showToast(message, type = 'info') {
                 max-height: 200px;
                 overflow-y: auto;
                 display: none;
-                z-index: 1001;
+                z-index: 10;
             }
             
             .collection-dropdown-menu.show {
