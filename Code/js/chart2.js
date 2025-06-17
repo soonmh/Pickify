@@ -851,7 +851,7 @@ function getDummyData() {
                         
                             <div syle="position: relative;align-items: center;">
                             <div class = "collection-dropdown">
-                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onfocus="dropdown('${item.id}',1,'${item.type}','${item.title}')" onblur="dropdown('${item.id}',2,'${item.type}','${item.id}','${item.title}')" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
+                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onclick="dropdown('${item.id}','${item.type}','${item.title}')">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                     <div class="collection-dropdown-menu" id="menu-${item.id}">
@@ -876,13 +876,13 @@ function getDummyData() {
         
         attachEventListeners();
     }
-    function dropdown(id,x, itemType,itemT) {
+    function dropdown(id, itemType,itemT) {
         const menu = document.getElementById(`menu-${id}`);
-        if (x == 1) {
+        if (!menu.classList.contains('show')) {
             loadmenu(id, itemType,itemT);
             menu.classList.add('show');
         } else {
-            // menu.classList.remove('show');
+            menu.classList.remove('show');
         }
     }
     function loadmenu(id, itemType,itemT) {
@@ -1067,7 +1067,7 @@ function showToast(message, type = 'info') {
                 max-height: 200px;
                 overflow-y: auto;
                 display: none;
-                z-index: 1001;
+                z-index: 10;
             }
             
             .collection-dropdown-menu.show {
@@ -1144,17 +1144,12 @@ function showToast(message, type = 'info') {
     function navigateToContentPage(id) {
         console.log(`Navigating to content page for ID: ${id}`);
         
-        // Find the item in the entertainment data
-        const item = entertainmentData.find(item => item.id === parseInt(id));
-        
-        if (item) {
-            console.log(`Found item: ${item.title}`);
-            // Store the item in localStorage for the review page
-            localStorage.setItem('currentItem', JSON.stringify(item));
-            // Navigate to review page with item details
-            window.location.href = `review.html?tmdbId=${item.id}&type=${item.type}`;
+        // use Squid Game as example first (ID: 25)
+        if (id == 25) {
+            window.location.href = "review.html";
         } else {
-            console.error(`Item with ID ${id} not found`);
+            alert(`Navigating to content page for: ${id}`);
+            // future implementation could use: window.location.href = `/content/${id}`;
         }
     }
     
