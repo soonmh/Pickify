@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
             parseFloat((music.popularity / 20).toFixed(1)) : 0;
         return {
             type: 'music',
-            tmdbId: music.id,
+            id: music.id,
             title: music.title || music.name || 'Unknown Title',
             image: music.poster_url || './assets/default-music.png',
             rating: convertedRating || 'N/A',
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function formatBookData(book) {
         return {
             type: 'book',
-            tmdbId: book._id,
+            id: book._id,
             title: book.title,
             image: book.image,
             rating: book.rating || 'N/A',
