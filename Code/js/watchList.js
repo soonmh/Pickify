@@ -17,6 +17,7 @@ const nothingInside = document.getElementById("nothingInside");
 
 document.addEventListener("DOMContentLoaded", function(){
     checkUserLogin();
+    watchListHome();
     buttonCreation();
     addSideBarEvent();
     addListButtonEvent();
@@ -50,6 +51,95 @@ function checkUserLogin(){
     if(isLoggedIn){
         userObj = JSON.parse(isLoggedIn);
         userId=userObj.userId;
+    }
+}
+
+async function watchListHome(){
+    const movieGrid=watchlistPage.querySelector(".movie-grid");
+    movieGrid.innerHTML="";
+    if(userId){
+        try {
+            
+            const response = await fetch(
+                `http://localhost:3000/api/recommendation/${userId}?limit=4`
+            );
+            
+            // console.log("yay");
+            if (!response.ok) {
+                throw new Error(`Server responded with status ${response.status}`);
+            }
+            
+
+            const result = await response.json();
+            console.log('📥 Received recommendations:', result);
+            
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to fetch recommendations');
+            }
+
+            const recommendations = result.data || [];
+            console.log(recommendations);
+            recommendations.forEach((recommendation) => {
+                const baseUrl = "https://image.tmdb.org/t/p/w342";
+                let recommendationId;
+                let recommendationImg;
+                let recommendationName;
+                let recommendationDate;
+                if(recommendation.type=="movie"){
+                    recommendationId=recommendation.tmdbId;
+                    recommendationImg=`${baseUrl}${recommendation.poster_path}`;
+                    recommendationName=recommendation.title;
+                    recommendationDate=recommendation.release_date;
+                }else if(recommendation.type=="music"){
+                    recommendationId=recommendation.id
+                    recommendationImg=recommendation.poster_url;
+                    recommendationName=recommendation.name;
+                    recommendationDate=recommendation.release;
+                }else{
+                    recommendationId=recommendation.id;
+                    recommendationImg=recommendation.image;
+                    recommendationName=recommendation.title;
+                    recommendationDate=recommendation.year;
+                }
+                // console.log(recommendation.image);
+                const movieCard=document.createElement("div");
+                movieCard.className="movie-card";
+
+                const movieImage=document.createElement("img");
+                movieImage.src=recommendationImg;
+                movieImage.alt=recommendationName;
+
+                const info=document.createElement("div");
+                info.className="info";
+
+                const releaseDate=document.createElement("p");
+                releaseDate.textContent=recommendationDate;
+                releaseDate.style.color="#C2D4ED";
+                releaseDate.style.fontWeight="bold";
+                releaseDate.style.marginBottom="0px";
+
+                const language=document.createElement("p");
+                language.textContent=recommendation.type.toUpperCase();
+                language.style.color="#8CA2D1";
+                language.style.fontWeight="bold";
+
+                const title=document.createElement("div");
+                title.className="title";
+                title.textContent=recommendationName;
+                // movie
+                info.appendChild(releaseDate);
+                info.appendChild(language);
+                info.appendChild(title);
+                movieCard.appendChild(movieImage);
+                movieCard.appendChild(info);
+                movieGrid.appendChild(movieCard);
+                
+                
+            })
+
+        } catch (error) {
+            console.error('Error fetching collection movies:', error);
+        }
     }
 }
 
