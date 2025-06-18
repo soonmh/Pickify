@@ -621,7 +621,7 @@ app.get('/userCollection', async (req, res) => {
 
             if (entry.type === 'movie') {
                 data = await db.collection('Movie')
-                .findOne({ tmdbId: parseInt(entry.itemId)},
+                .findOne({ tmdbId: parseInt(entry.itemId) },
                     {
                         projection: {
                             title: 1,
@@ -655,9 +655,9 @@ app.get('/userCollection', async (req, res) => {
                 if (data) {
                     data = {
                         title: data.title,
-                        poster_path: data.image,
+                        image: data.image,
                         release_date: data.year,
-                        director: data.author
+                        info: data.author
                     };
                 }
             } else if (entry.type === 'music') {
@@ -688,7 +688,6 @@ app.get('/userCollection', async (req, res) => {
                 enrichedItems.push({
                     type: entry.type,
                     objId: entry.objId,
-                    itemId: entry.itemId,
                     infomation: data
                 });
             }
@@ -1783,7 +1782,7 @@ app.get('/api/search', async (req, res) => {
                 
             // Transform music data
             const formattedMusic = music.map(track => ({
-                id: track.id,
+                id: track._id,
                 title: track.name,
                 type: 'music',
                 genre: track.genre || 'unknown',
@@ -2073,13 +2072,9 @@ app.put('/admin/changeStatus', async (req, res) => {
 
 app.get('/api/entertainment/movie/:id', async (req, res) => {
     try {
-
         const movieId = parseInt(req.params.id);
-
         console.log(`🎬 Fetching movie with ID: ${movieId}`);
-
         
-
         const movie = await db.collection('Movie').findOne({ tmdbId: movieId });
         
         if (!movie) {
@@ -2178,12 +2173,10 @@ app.get('/api/entertainment/book/:id', async (req, res) => {
             overview: book.description,
             poster_path: book.image,
             release_date: book.year,
-            rating: book.rating,  // Changed from vote_average to rating
-            genre: book.genre,
-            author: book.author,
-            views: book.views,
-            popularity: book.popularity,
-            type: 'book'
+            vote_average: book.rating,
+            genres: book.genre,
+            director: book.author,
+            popularity: book.views
         };
         
         res.status(200).json({
@@ -2235,147 +2228,43 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
         });
     }
 });
-
 app.post('/api/reviews', async (req, res) => {
     const { entertainmentId, user, rating, text } = req.body;
-
     try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(entertainmentId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid entertainment ID'
-            });
-        }
-
-        // Check if user has already reviewed this entertainment
-        const userDoc = await db.collection('users').findOne({
-            $or: [
-                { username: user },
-                { name: user }
-            ]
-        });
-        
-        if (!userDoc) {
-            // If user not found, create a new user document
-            const newUser = {
-                username: user,
-                name: user,
-                hasReviewed: {}
-            };
-            await db.collection('users').insertOne(newUser);
-        }
-
-        // Check if there's an existing review
-        const existingReview = await db.collection('reviews').findOne({
-            entertainmentId: new ObjectId(entertainmentId),
-            user: user
-        });
-
-        if (existingReview) {
-            return res.status(400).json({
-                success: false,
-                message: 'You have already submitted a review for this entertainment'
-            });
-        }
-
-        // Create the review
         const review = {
             entertainmentId: new ObjectId(entertainmentId),
             user,
-            rating: parseInt(rating),
+            rating,
             text,
             createdAt: new Date(),
+            reported: false,
             comments: []
         };
-
-        // Insert the review
+        
         const result = await db.collection('reviews').insertOne(review);
-
-        if (!result.insertedId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to create review'
-            });
-        }
-
-        // Update the hasReviewed flag
-        await db.collection('users').updateOne(
-            { 
-                $or: [
-                    { username: user },
-                    { name: user }
-                ]
-            },
-            { $set: { [`hasReviewed.${entertainmentId}`]: true } }
-        );
-
-        res.json({
+        res.status(201).json({
             success: true,
-            message: 'Review submitted successfully',
-            reviewId: result.insertedId
+            data: { ...review, _id: result.insertedId }
         });
     } catch (err) {
-        console.error('❌ Error submitting review:', err);
+        console.error('❌ Error creating review:', err);
         res.status(400).json({ success: false, message: err.message });
     }
 });
-app.put('/api/reviews/:reviewId', async (req, res) => {
-    const { reviewId } = req.params;
-    const { user, rating, text } = req.body;
-
+app.put('/api/reviews/:id', async (req, res) => {
+    const { rating, text } = req.body;
     try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(reviewId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review ID'
-            });
-        }
-
-        // Find the review first
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Check if the user is the owner of the review
-        if (review.user !== user) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only edit your own reviews'
-            });
-        }
-
-        // Update the review
-        const result = await db.collection('reviews').updateOne(
-            { _id: new ObjectId(reviewId) },
-            { 
-                $set: { 
-                    rating: parseInt(rating),
-                    text,
-                    updatedAt: new Date()
-                }
-            }
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $set: { rating, text, updatedAt: new Date() } },
+            { returnDocument: 'after' }
         );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to update review'
-            });
+        
+        if (!result.value) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
         }
-
-        res.json({
-            success: true,
-            message: 'Review updated successfully'
-        });
+        
+        res.json({ success: true, data: result.value });
     } catch (err) {
         console.error('❌ Error updating review:', err);
         res.status(400).json({ success: false, message: err.message });
@@ -2399,543 +2288,26 @@ app.patch('/api/reviews/:id/report', async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 });
-
-// Delete a review
-app.delete('/api/reviews/:reviewId', async (req, res) => {
-    const { reviewId } = req.params;
-    const { user } = req.body;
-
-    try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(reviewId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review ID'
-            });
-        }
-
-        // Find the review first to get the entertainment ID
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Check if the user is the owner of the review
-        if (review.user !== user) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only delete your own reviews'
-            });
-        }
-
-        // Delete the review
-        const result = await db.collection('reviews').deleteOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (result.deletedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to delete review'
-            });
-        }
-
-        // Update the hasReviewed flag in the database
-        await db.collection('users').updateOne(
-            { username: user },
-            { $set: { [`hasReviewed.${review.entertainmentId}`]: false } }
-        );
-
-        res.json({
-            success: true,
-            message: 'Review deleted successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error deleting review:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Edit a review
-app.put('/api/reviews/:reviewId', async (req, res) => {
-    const { reviewId } = req.params;
-    const { user, rating, text } = req.body;
-
-    try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(reviewId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review ID'
-            });
-        }
-
-        // Find the review first
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Check if the user is the owner of the review
-        if (review.user !== user) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only edit your own reviews'
-            });
-        }
-
-        // Update the review
-        const result = await db.collection('reviews').updateOne(
-            { _id: new ObjectId(reviewId) },
-            { 
-                $set: { 
-                    rating: parseInt(rating),
-                    text,
-                    updatedAt: new Date()
-                }
-            }
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to update review'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Review updated successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error updating review:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Report inappropriate content
-app.post('/api/reports', async (req, res) => {
-    const { reviewId, commentId, user, reason } = req.body;
-
-    try {
-        if (!reviewId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Review ID is required'
-            });
-        }
-
-        // Find the review
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // If reporting a comment, verify it exists
-        if (commentId) {
-            const comment = review.comments.find(c => c._id.toString() === commentId);
-            if (!comment) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Comment not found'
-                });
-            }
-        }
-
-        // Create the report
-        const report = {
-            reviewId: new ObjectId(reviewId),
-            commentId: commentId ? new ObjectId(commentId) : null,
-            reportedBy: user,
-            reason,
-            createdAt: new Date(),
-            status: 'pending'
-        };
-
-        await db.collection('reports').insertOne(report);
-
-        // Update the review or comment to mark it as reported
-        if (commentId) {
-            await db.collection('reviews').updateOne(
-                { 
-                    _id: new ObjectId(reviewId),
-                    'comments._id': new ObjectId(commentId)
-                },
-                { 
-                    $set: { 
-                        'comments.$.reported': true 
-                    }
-                }
-            );
-        } else {
-            await db.collection('reviews').updateOne(
-                { _id: new ObjectId(reviewId) },
-                { 
-                    $set: { 
-                        reported: true 
-                    }
-                }
-            );
-        }
-
-        res.json({
-            success: true,
-            message: 'Report submitted successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error submitting report:', err);
-        res.status(400).json({ 
-            success: false, 
-            message: err.message 
-        });
-    }
-});
-
-// Edit a comment
-app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
-    const { reviewId, commentId } = req.params;
+app.post('/api/reviews/:id/comment', async (req, res) => {
     const { user, comment } = req.body;
-
     try {
-        // Validate ObjectIds
-        if (!ObjectId.isValid(reviewId) || !ObjectId.isValid(commentId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review or comment ID'
-            });
-        }
-
-        // Find the review first
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Find the comment
-        const commentIndex = review.comments.findIndex(c => c._id && c._id.toString() === commentId);
-        if (commentIndex === -1) {
-            return res.status(404).json({
-                success: false,
-                message: 'Comment not found'
-            });
-        }
-
-        // Check if the user is the owner of the comment
-        if (review.comments[commentIndex].user !== user) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only edit your own comments'
-            });
-        }
-
-        // Update the comment
-        const result = await db.collection('reviews').updateOne(
-            { 
-                _id: new ObjectId(reviewId),
-                'comments._id': new ObjectId(commentId)
-            },
-            { 
-                $set: { 
-                    'comments.$.comment': comment,
-                    'comments.$.updatedAt': new Date()
-                }
-            }
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to update comment'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Comment updated successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error updating comment:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Delete a comment
-app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
-    const { reviewId, commentId } = req.params;
-    const { user } = req.body;
-
-    try {
-        // Validate ObjectIds
-        if (!ObjectId.isValid(reviewId) || !ObjectId.isValid(commentId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review or comment ID'
-            });
-        }
-
-        // Find the review first
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Find the comment
-        const comment = review.comments.find(c => c._id && c._id.toString() === commentId);
-        if (!comment) {
-            return res.status(404).json({
-                success: false,
-                message: 'Comment not found'
-            });
-        }
-
-        // Check if the user is the owner of the comment
-        if (comment.user !== user) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only delete your own comments'
-            });
-        }
-
-        // Delete the comment
-        const result = await db.collection('reviews').updateOne(
-            { _id: new ObjectId(reviewId) },
-            { 
-                $pull: { 
-                    comments: { _id: new ObjectId(commentId) }
-                }
-            }
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to delete comment'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Comment deleted successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error deleting comment:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Reset hasReviewed flags for a user (for testing)
-app.post('/api/reset-reviews', async (req, res) => {
-    const { user } = req.body;
-
-    try {
-        const result = await db.collection('users').updateOne(
-            { username: user },
-            { $set: { hasReviewed: {} } }
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to reset reviews'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Review flags reset successfully'
-        });
-    } catch (err) {
-        console.error('❌ Error resetting reviews:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Submit a review
-app.post('/api/reviews', async (req, res) => {
-    const { entertainmentId, user, rating, text } = req.body;
-
-    try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(entertainmentId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid entertainment ID'
-            });
-        }
-
-        // Check if user has already reviewed this entertainment
-        const userDoc = await db.collection('users').findOne({
-            $or: [
-                { username: user },
-                { name: user }
-            ]
-        });
-        
-        if (!userDoc) {
-            // If user not found, create a new user document
-            const newUser = {
-                username: user,
-                name: user,
-                hasReviewed: {}
-            };
-            await db.collection('users').insertOne(newUser);
-        }
-
-        // Check if there's an existing review
-        const existingReview = await db.collection('reviews').findOne({
-            entertainmentId: new ObjectId(entertainmentId),
-            user: user
-        });
-
-        if (existingReview) {
-            return res.status(400).json({
-                success: false,
-                message: 'You have already submitted a review for this entertainment'
-            });
-        }
-
-        // Create the review
-        const review = {
-            entertainmentId: new ObjectId(entertainmentId),
-            user,
-            rating: parseInt(rating),
-            text,
-            createdAt: new Date(),
-            comments: []
-        };
-
-        // Insert the review
-        const result = await db.collection('reviews').insertOne(review);
-
-        if (!result.insertedId) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to create review'
-            });
-        }
-
-        // Update the hasReviewed flag
-        await db.collection('users').updateOne(
-            { 
-                $or: [
-                    { username: user },
-                    { name: user }
-                ]
-            },
-            { $set: { [`hasReviewed.${entertainmentId}`]: true } }
-        );
-
-        res.json({
-            success: true,
-            message: 'Review submitted successfully',
-            reviewId: result.insertedId
-        });
-    } catch (err) {
-        console.error('❌ Error submitting review:', err);
-        res.status(400).json({ success: false, message: err.message });
-    }
-});
-
-// Add a comment to a review
-app.post('/api/reviews/:reviewId/comments', async (req, res) => {
-    const { reviewId } = req.params;
-    const { user, comment, userAvatar } = req.body;
-
-    try {
-        // Validate ObjectId
-        if (!ObjectId.isValid(reviewId)) {
-            return res.status(400).json({
-                success: false,
-                message: 'Invalid review ID'
-            });
-        }
-
-        // Find the review first
-        const review = await db.collection('reviews').findOne({
-            _id: new ObjectId(reviewId)
-        });
-
-        if (!review) {
-            return res.status(404).json({
-                success: false,
-                message: 'Review not found'
-            });
-        }
-
-        // Check if the user has already commented recently (within last 5 seconds)
-        const recentComment = review.comments?.find(c => 
-            c.user === user && 
-            new Date() - new Date(c.createdAt) < 5000
-        );
-
-        if (recentComment) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please wait a moment before posting another comment'
-            });
-        }
-
-        // Create the comment
         const newComment = {
-            _id: new ObjectId(),
             user,
             comment,
-            userAvatar,
             createdAt: new Date()
         };
-
-        // Add the comment to the review
-        const result = await db.collection('reviews').updateOne(
-            { _id: new ObjectId(reviewId) },
-            { 
-                $push: { 
-                    comments: newComment
-                }
-            }
+        
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(req.params.id) },
+            { $push: { comments: newComment } },
+            { returnDocument: 'after' }
         );
-
-        if (result.modifiedCount === 0) {
-            return res.status(400).json({
-                success: false,
-                message: 'Failed to add comment'
-            });
+        
+        if (!result.value) {
+            return res.status(404).json({ success: false, message: 'Review not found' });
         }
-
-        res.json({
-            success: true,
-            message: 'Comment added successfully',
-            comment: newComment
-        });
+        
+        res.json({ success: true, data: result.value });
     } catch (err) {
         console.error('❌ Error adding comment:', err);
         res.status(400).json({ success: false, message: err.message });
