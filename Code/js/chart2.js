@@ -1148,6 +1148,7 @@ function showToast(message, type = 'info') {
         const item = entertainmentData.find(item => item.id === parseInt(id));
         
         if (item) {
+            
             console.log(`Found item: ${item.title}`);
             // Store the item in localStorage for the review page
             localStorage.setItem('currentItem', JSON.stringify(item));

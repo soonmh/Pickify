@@ -72,6 +72,13 @@ body {
     color: #666;
 }
 
+.review-summary {
+    background-color: #8F94FB; /* A light, airy blue */
+    padding: 15px; /* Add some padding for better visual spacing */
+    border-radius: 8px; /* Slightly rounded corners */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+}
+
 .breakdown {
     margin-top: 10px;
 }
@@ -229,17 +236,32 @@ body {
     background-color: #f0ad4e; /* A common color for 'report' (e.g., orange/amber) */
     color: white;
     border: none;
-    padding: 4px 8px;
+    padding: 5px 10px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.8em;
-    transition: background-color 0.2s;
+    font-size: 12px;
+    margin-left: 5px;
 }
 
 .report-btn:hover {
-    background-color: #ec971f; /* A darker shade for hover effect */
+    background-color: #c82333;
 }
 
+.report-comment-btn {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    padding: 3px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-left: 5px;
+    transition: background-color 0.2s ease;
+}
+
+.report-comment-btn:hover {
+    background-color: #ff5252;
+}
 
 #footer-placeholder {
     margin-top: auto;
@@ -762,7 +784,11 @@ body {
     justify-content: flex-start !important;
     gap: 5px !important;
     margin-bottom: 15px !important;
-    flex-direction: row-reverse !important;
+}
+.rating-container .star-rating-bar{
+    flex-direction: row-reverse;
+    margin-left: -145%;
+
 }
 
 .star-rating-bar input[type="radio"] {
@@ -787,4 +813,3 @@ body {
     color: #666 !important;
     margin-top: 8px !important;
 }
-

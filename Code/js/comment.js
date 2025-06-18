@@ -15,6 +15,25 @@ function getApiUrl() {
     return `${protocol}//${hostname}:${port}`;
 }
 
+// Function to refresh reviews
+async function refreshReviews(entertainmentId) {
+    try {
+        const response = await fetch(`${getApiUrl()}/api/reviews/${entertainmentId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update the reviews display
+            const reviewList = document.querySelector('.review-list');
+            if (reviewList) {
+                // Trigger a page reload to refresh the reviews
+                window.location.reload();
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing reviews:', error);
+    }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
     document.querySelector(".review-list").addEventListener("click", (event) => {
         if (event.target.classList.contains("comment-btn")) {
@@ -45,7 +64,7 @@ window.addEventListener("DOMContentLoaded", () => {
                     comment: commentText
                 };
 
-                const apiUrl = `${getApiUrl()}/api/reviews/${reviewId}/comment`;
+                const apiUrl = `${getApiUrl()}/api/reviews/${reviewId}/comments`;
                 console.log('Sending comment data:', commentData);
                 console.log('Review ID:', reviewId);
                 console.log('API URL:', apiUrl);

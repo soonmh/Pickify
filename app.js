@@ -2232,6 +2232,19 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
 app.post('/api/reviews', async (req, res) => {
     const { entertainmentId, user, rating, text } = req.body;
     try {
+        // Check if user has already reviewed this entertainment item
+        const existingReview = await db.collection('reviews').findOne({
+            entertainmentId: new ObjectId(entertainmentId),
+            user: user
+        });
+        
+        if (existingReview) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'You already reviewed this entertainment' 
+            });
+        }
+        
         const review = {
             entertainmentId: new ObjectId(entertainmentId),
             user,
@@ -2261,9 +2274,6 @@ app.put('/api/reviews/:id', async (req, res) => {
             { returnDocument: 'after' }
         );
         
-        if (!result.value) {
-            return res.status(404).json({ success: false, message: 'Review not found' });
-        }
         
         res.json({ success: true, data: result.value });
     } catch (err) {
@@ -2289,28 +2299,314 @@ app.patch('/api/reviews/:id/report', async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 });
-app.post('/api/reviews/:id/comment', async (req, res) => {
+
+app.post('/api/reviews/:id/comments', async (req, res) => {
     const { user, comment } = req.body;
+    const { id } = req.params;
+    
     try {
+        console.log('💬 Attempting to add comment:', { id, user, comment });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+
+        
         const newComment = {
+            _id: new ObjectId(), // Add unique ID for the comment
             user,
             comment,
             createdAt: new Date()
         };
         
         const result = await db.collection('reviews').findOneAndUpdate(
-            { _id: new ObjectId(req.params.id) },
+            { _id: new ObjectId(id) },
             { $push: { comments: newComment } },
             { returnDocument: 'after' }
         );
         
-        if (!result.value) {
-            return res.status(404).json({ success: false, message: 'Review not found' });
-        }
-        
+        console.log('✅ Comment added successfully');
         res.json({ success: true, data: result.value });
     } catch (err) {
         console.error('❌ Error adding comment:', err);
-        res.status(400).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE endpoint for reviews
+app.delete('/api/reviews/:id', async (req, res) => {
+    const { id } = req.params;
+    const { user } = req.body;
+    
+    try {
+        console.log('🗑️ Attempting to delete review:', { id, user });
+        
+        // First, check if the review exists and belongs to the user
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (!review) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Review not found' 
+            });
+        }
+        
+        // Check if the user owns this review
+        if (review.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only delete your own reviews' 
+            });
+        }
+        
+        // Delete the review
+        const result = await db.collection('reviews').deleteOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (result.deletedCount === 0) {
+        }
+        
+        console.log('✅ Review deleted successfully');
+        res.json({ success: true, message: 'Review deleted successfully' });
+    } catch (err) {
+        console.error('❌ Error deleting review:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE endpoint for comments
+app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
+    const { reviewId, commentId } = req.params;
+    const { user } = req.body;
+    
+    try {
+        console.log('🗑️ Attempting to delete comment:', { reviewId, commentId, user });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(reviewId) 
+        });
+
+        
+        // Find the comment in the review
+        const comment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
+        
+        
+        // Check if the user owns this comment
+        if (comment.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only delete your own comments' 
+            });
+        }
+        
+        // Remove the comment from the review
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(reviewId) },
+            { $pull: { comments: { _id: new ObjectId(commentId) } } },
+            { returnDocument: 'after' }
+        );
+        
+        
+        console.log('✅ Comment deleted successfully');
+        res.json({ success: true, message: 'Comment deleted successfully' });
+    } catch (err) {
+        console.error('❌ Error deleting comment:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// PUT endpoint for updating comments
+app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
+    const { reviewId, commentId } = req.params;
+    const { user, comment } = req.body;
+    
+    try {
+        console.log('✏️ Attempting to update comment:', { reviewId, commentId, user });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(reviewId) 
+        });
+        
+        
+        // Find the comment in the review
+        const existingComment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
+        
+
+        
+        // Check if the user owns this comment
+        if (existingComment.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only edit your own comments' 
+            });
+        }
+        
+        // Update the comment
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { 
+                _id: new ObjectId(reviewId),
+                'comments._id': new ObjectId(commentId)
+            },
+            { 
+                $set: { 
+                    'comments.$.comment': comment,
+                    'comments.$.updatedAt': new Date()
+                } 
+            },
+            { returnDocument: 'after' }
+        );
+        
+        console.log('✅ Comment updated successfully');
+        res.json({ success: true, message: 'Comment updated successfully' });
+    } catch (err) {
+        console.error('❌ Error updating comment:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Reports endpoint for both reviews and comments
+app.post('/api/reports', async (req, res) => {
+    const { reviewId, commentId, user, reason } = req.body;
+    
+    try {
+        console.log('🚨 Attempting to submit report:', { reviewId, commentId, user, reason });
+        
+        // Validate required fields
+        if (!user || !reason) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'User and reason are required' 
+            });
+        }
+        
+        if (!reviewId && !commentId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Either reviewId or commentId is required' 
+            });
+        }
+        
+        // Create report object
+        const report = {
+            _id: new ObjectId(),
+            user,
+            reason,
+            createdAt: new Date(),
+            status: 'pending' // pending, reviewed, resolved
+        };
+        
+        if (commentId) {
+            // Report for a comment
+            report.type = 'comment';
+            report.commentId = commentId;
+            report.reviewId = reviewId;
+            
+            // Verify the comment exists
+            const review = await db.collection('reviews').findOne({ 
+                _id: new ObjectId(reviewId),
+                'comments._id': new ObjectId(commentId)
+            });
+            
+            if (!review) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Comment not found' 
+                });
+            }
+            
+            // Add report to the comment
+            const result = await db.collection('reviews').findOneAndUpdate(
+                { 
+                    _id: new ObjectId(reviewId),
+                    'comments._id': new ObjectId(commentId)
+                },
+                { 
+                    $push: { 
+                        'comments.$.reports': report 
+                    } 
+                },
+                { returnDocument: 'after' }
+            );
+            
+            console.log('✅ Comment report submitted successfully');
+            res.json({ success: true, message: 'Comment report submitted successfully' });
+            
+        } else {
+            // Report for a review
+            report.type = 'review';
+            report.reviewId = reviewId;
+            
+            // Verify the review exists
+            const review = await db.collection('reviews').findOne({ 
+                _id: new ObjectId(reviewId)
+            });
+            
+            if (!review) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Review not found' 
+                });
+            }
+            
+            // Add report to the review
+            const result = await db.collection('reviews').findOneAndUpdate(
+                { _id: new ObjectId(reviewId) },
+                { $push: { reports: report } },
+                { returnDocument: 'after' }
+            );
+            
+            console.log('✅ Review report submitted successfully');
+            res.json({ success: true, message: 'Review report submitted successfully' });
+        }
+        
+    } catch (err) {
+        console.error('❌ Error submitting report:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Get reports for admin (optional endpoint for future admin panel)
+app.get('/api/reports', async (req, res) => {
+    try {
+        const reports = await db.collection('reviews').aggregate([
+            {
+                $unwind: {
+                    path: '$comments',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    reviewId: '$_id',
+                    reviewUser: '$user',
+                    reviewText: '$text',
+                    commentId: '$comments._id',
+                    commentUser: '$comments.user',
+                    commentText: '$comments.comment',
+                    reviewReports: '$reports',
+                    commentReports: '$comments.reports'
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        { reviewReports: { $exists: true, $ne: [] } },
+                        { commentReports: { $exists: true, $ne: [] } }
+                    ]
+                }
+            }
+        ]).toArray();
+        
+        res.json({ success: true, data: reports });
+    } catch (err) {
+        console.error('❌ Error fetching reports:', err);
+        res.status(500).json({ success: false, message: err.message });
     }
 });
