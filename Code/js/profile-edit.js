@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     
-    // Modal elements
     const closeModalBtn = editOptionsModalOverlay.querySelector('.edit-profile-options-modal-close-btn');
     const editModalProfilePicBtn = document.getElementById('editModalProfilePicBtn');
     const modalProfilePicPreview = document.getElementById('modalProfilePicPreview');
@@ -21,12 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const saveProfileEditsBtn = document.getElementById('saveProfileEditsBtn');
     const cancelProfileEditsBtn = document.getElementById('cancelProfileEditsBtn');
 
-    // Main page elements to update
     const mainProfilePic = document.querySelector('.profile-section .profile-pic');
     const mainHeaderImg = document.querySelector('.profile-section .header-img');
     const mainUsernameDisplay = document.querySelector('.profile-info .name');
 
-    // Hidden file inputs
     const profilePicFileInput = document.createElement('input');
     profilePicFileInput.type = 'file';
     profilePicFileInput.accept = 'image/*';
@@ -43,24 +40,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showModal = () => {
-        // Pre-fill username from main page
         if (mainUsernameDisplay && modalUsernameInput) {
             modalUsernameInput.value = mainUsernameDisplay.textContent || '';
         }
-        // Reset previews to current main images when modal opens
         if (mainProfilePic && modalProfilePicPreview) {
             modalProfilePicPreview.src = mainProfilePic.src || 'assests/blank-profile-picture.webp';
         }
         if (mainHeaderImg && modalBackgroundPreview) {
             modalBackgroundPreview.src = mainHeaderImg.src || 'assests/foster-lake.jpg';
         }
-        checkUsernameAndToggleButtonState(); // Set initial button state when modal opens
+        checkUsernameAndToggleButtonState(); 
         editOptionsModalOverlay.classList.add('active');
     };
 
     const hideModal = () => {
         editOptionsModalOverlay.classList.remove('active');
-        // Clear file input values to allow re-selection of the same file if needed
         profilePicFileInput.value = '';
         backgroundPicFileInput.value = '';
     };
@@ -79,15 +73,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     
     editOptionsModalOverlay.addEventListener('click', (event) => {
-        if (event.target === editOptionsModalOverlay) { // Clicked on the overlay itself
+        if (event.target === editOptionsModalOverlay) { 
             hideModal();
         }
     });
 
-    // Handle Profile Picture Edit
     if (editModalProfilePicBtn) {
         editModalProfilePicBtn.addEventListener('click', () => {
-            profilePicFileInput.click(); // Trigger hidden file input
+            profilePicFileInput.click(); 
         });
     }
     profilePicFileInput.addEventListener('change', (event) => {
@@ -101,10 +94,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle Background Picture Edit
     if (editModalBackgroundBtn) {
         editModalBackgroundBtn.addEventListener('click', () => {
-            backgroundPicFileInput.click(); // Trigger hidden file input
+            backgroundPicFileInput.click(); 
         });
     }
     backgroundPicFileInput.addEventListener('change', (event) => {
@@ -118,17 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add event listener to username input to enable/disable save button
     if (modalUsernameInput) {
         modalUsernameInput.addEventListener('input', () => {
             checkUsernameAndToggleButtonState();
         });
     }
 
-    // Handle Save Changes
     if (saveProfileEditsBtn) {
         saveProfileEditsBtn.addEventListener('click', async () => {
-            saveProfileEditsBtn.disabled = true; // Prevent multiple clicks
+            saveProfileEditsBtn.disabled = true; 
             saveProfileEditsBtn.textContent = 'Saving...';
 
             const profilePicFile = profilePicFileInput.files[0];
@@ -140,7 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let usernameUpdated = false;
 
             try {
-                // 1. Upload Profile Picture if changed
                 if (profilePicFile && mainProfilePic) {
                     const formData = new FormData();
                     formData.append('profileImageFile', profilePicFile);
@@ -159,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Profile picture updated successfully.');
                 }
 
-                // 2. Upload Background Picture if changed
                 if (backgroundFile && mainHeaderImg) {
                     const formData = new FormData();
                     formData.append('backgroundImageFile', backgroundFile);
@@ -178,14 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log('Background picture updated successfully.');
                 }
 
-                // 3. Update Username (locally for now, backend update would be similar)
                 if (mainUsernameDisplay && newUsername !== mainUsernameDisplay.textContent) {
                     const usernameResponse = await fetch(`http://localhost:3000/user/username?userId=${user.userId}`, {
                         method: 'POST',
                         headers: { 
                             'Content-Type': 'application/json',
                         },
-                        credentials: 'include', // Send cookies
+                        credentials: 'include', 
                         body: JSON.stringify({ newUsername: newUsername })
                     });
                     const usernameResult = await usernameResponse.json();
@@ -194,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!usernameResponse.ok || !usernameResult.success) {
                         throw new Error(usernameResult.error || 'Failed to update username.');
                     }
-                    mainUsernameDisplay.textContent = usernameResult.username; // Update with username from server response
+                    mainUsernameDisplay.textContent = usernameResult.username; 
                     user.name = usernameResult.username;
                     sessionStorage.setItem('loggedInUser', JSON.stringify(user));
                     localStorage.setItem('loggedInUser', JSON.stringify(user));

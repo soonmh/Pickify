@@ -199,7 +199,8 @@ app.post('/googleLogin', async (req, res) => {
                     userId: user._id.toString(), // Ensure _id is string
                     email: user.email,
                     name: user.name,
-                    picture: user.picture
+                    picture: user.picture,
+                    active: user.active
                 }
             });
         }
@@ -1311,13 +1312,8 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// --- GridFS Image Upload and Serving ---
-// --- Profile Picture ---
-// Endpoint to upload/update a profile picture
+
 app.post('/user/profile-picture', upload.single('profileImageFile'), async (req, res) => {
-    // if (!req.session.user || !req.session.user.id) {
-    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
-    // }
     const id = req.query.userId;
 
     if (!req.file) {
@@ -1326,7 +1322,6 @@ app.post('/user/profile-picture', upload.single('profileImageFile'), async (req,
 
     const bucket = new GridFSBucket(db, { bucketName: 'profile_pictures' });
     
-    // Create a readable stream from the buffer
     const readablePhotoStream = new stream.PassThrough();
     readablePhotoStream.end(req.file.buffer);
 
@@ -1344,24 +1339,15 @@ app.post('/user/profile-picture', upload.single('profileImageFile'), async (req,
             console.log(`File ${req.file.originalname} uploaded to GridFS with id: ${fileId}`);
             try {
                 const userId = new ObjectId(id);
-                // Update the user document with the new GridFS file ID for profilePic
-                // Assuming your User collection has a field like 'profilePic' to store this ID
                 await db.collection('User').updateOne(
                     { _id: userId },
-                    { $set: { profilePic: fileId } } // Store the GridFS file ID
+                    { $set: { profilePic: fileId } } 
                 );
 
                 res.json({ success: true, message: 'Profile picture updated!', fileId: fileId.toString() });
 
-                // Update session
-                // req.session.user.profilePicId = fileId.toString(); // Store as string in session
-                // req.session.save(err => {
-                //     if (err) console.error("Session save error after pic update:", err);
-                //     res.json({ success: true, message: 'Profile picture updated!', fileId: fileId.toString() });
-                // });
             } catch (dbError) {
                 console.error("DB update error after GridFS upload:", dbError);
-                // If DB update fails, you might want to delete the orphaned GridFS file
                 bucket.delete(fileId, (deleteErr) => {
                     if (deleteErr) console.error("Failed to delete orphaned GridFS file:", deleteErr);
                 });
@@ -1370,21 +1356,14 @@ app.post('/user/profile-picture', upload.single('profileImageFile'), async (req,
         });
 });
 
-// --- Background Picture ---
-// Endpoint to upload/update a background picture
 app.post('/user/background-picture', upload.single('backgroundImageFile'), async (req, res) => {
-    // if (!req.session.user || !req.session.user.id) {
-    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
-    // }
-
     const id = req.query.userId;
 
     if (!req.file) {
         return res.status(400).json({ success: false, error: 'No file uploaded.' });
     }
 
-    const bucket = new GridFSBucket(db, { bucketName: 'background_pictures' }); // Use a different bucket
-    
+    const bucket = new GridFSBucket(db, { bucketName: 'background_pictures' });
     const readablePhotoStream = new stream.PassThrough();
     readablePhotoStream.end(req.file.buffer);
 
@@ -1402,19 +1381,12 @@ app.post('/user/background-picture', upload.single('backgroundImageFile'), async
             console.log(`Background file ${req.file.originalname} uploaded to GridFS with id: ${fileId}`);
             try {
                 const userId = new ObjectId(id);
-                // Update the user document with the new GridFS file ID for backgroundPic
                 await db.collection('User').updateOne(
                     { _id: userId },
-                    { $set: { backgroundPic: fileId } } // Store the GridFS file ID in 'backgroundPic' field
+                    { $set: { backgroundPic: fileId } } 
                 );
                 res.json({ success: true, message: 'Background picture updated!', fileId: fileId.toString() });
 
-                // Update session
-                // req.session.user.backgroundPicId = fileId.toString(); // Store as string in session
-                // req.session.save(err => {
-                //     if (err) console.error("Session save error after background pic update:", err);
-                //     res.json({ success: true, message: 'Background picture updated!', fileId: fileId.toString() });
-                // });
             } catch (dbError) {
                 console.error("DB update error after background GridFS upload:", dbError);
                 bucket.delete(fileId, (deleteErr) => {
@@ -1445,7 +1417,6 @@ app.get('/user/getImage', async (req, res) => {
     }
 });
 
-// Generalized Endpoint to serve images from specified GridFS bucket
 app.get('/image/:bucketName/:fileId', async (req, res) => {
     try {
         const { bucketName, fileId: fileIdString } = req.params;
@@ -1463,7 +1434,7 @@ app.get('/image/:bucketName/:fileId', async (req, res) => {
         const downloadStream = bucket.openDownloadStream(fileId);
         downloadStream.pipe(res);
         downloadStream.on('error', () => res.status(404).send('Image not found or error streaming'));
-    } catch (error) { // Catch ObjectId creation error for invalid fileIdString
+    } catch (error) { 
         console.error("Error serving image from GridFS:", error);
         res.status(500).send('Server error');
     }
@@ -1471,10 +1442,7 @@ app.get('/image/:bucketName/:fileId', async (req, res) => {
 
 // Endpoint to update username
 app.post('/user/username', async (req, res) => {
-    // if (!req.session.user || !req.session.user.id) {
-    //     return res.status(401).json({ success: false, error: 'Not authenticated' });
-    // }
-    const userIdString = req.query.userId; // Renamed for clarity
+    const userIdString = req.query.userId; 
 
     const { newUsername } = req.body;
 
@@ -1484,9 +1452,8 @@ app.post('/user/username', async (req, res) => {
     
 
     try {
-        const userObjectId = new ObjectId(userIdString); // Use userObjectId consistently
+        const userObjectId = new ObjectId(userIdString); 
 
-        // Proactively check if the new username is already taken by ANOTHER user
         const existingUserWithNewName = await db.collection('User').findOne({
             name: newUsername.trim()
         });
@@ -1497,19 +1464,16 @@ app.post('/user/username', async (req, res) => {
             return res.status(409).json({ success: false, error: 'Username already taken. Please choose another.' });
         }
 
-        // Proceed with the update
         const result = await db.collection('User').updateOne(
             { _id: userObjectId },
             { $set: { name: newUsername.trim() } }
         );
 
         if (result.matchedCount === 0) {
-            // This case should ideally not happen if userId is valid and user exists
             return res.status(404).json({ success: false, error: 'User not found.' });
         }
 
         if (result.modifiedCount === 0 && result.matchedCount > 0) {
-            // Username was the same as before, no actual update needed by the database
             return res.status(200).json({ 
                 success: true, 
                 message: 'Username is the same as before. No update performed.', 
@@ -1517,7 +1481,6 @@ app.post('/user/username', async (req, res) => {
             });
         }
         
-        // Successfully updated
         res.json({ 
             success: true, 
             message: 'Username updated successfully!', 
@@ -1526,19 +1489,16 @@ app.post('/user/username', async (req, res) => {
 
     } catch (error) {
         console.error('Error updating username:', error);
-        // The unique index constraint error (11000) is a good fallback,
-        // but the proactive check above should catch most cases.
-        if (error.code === 11000) { // MongoDB duplicate key error code
+        if (error.code === 11000) { 
             return res.status(409).json({ success: false, error: 'Username already taken. Please ensure it is unique.' });
         }
-        if (error.name === 'BSONTypeError') { // Handle invalid ObjectId format
+        if (error.name === 'BSONTypeError') { 
             return res.status(400).json({ success: false, error: 'Invalid user ID format.' });
         }
         res.status(500).json({ success: false, error: 'Server error while updating username.' });
     }
 });
 
-// Helper function to delete a file from GridFS
 async function deleteGridFSFile(db, bucketName, fileIdString) {
     if (!fileIdString) {
         console.log(`No fileId provided for bucket ${bucketName}, skipping deletion.`);
@@ -1550,62 +1510,37 @@ async function deleteGridFSFile(db, bucketName, fileIdString) {
         await bucket.delete(fileId);
         console.log(`Successfully deleted file ${fileIdString} from bucket ${bucketName}.`);
     } catch (error) {
-        // Log error but don't necessarily stop the entire account deletion
         console.error(`Error deleting file ${fileIdString} from bucket ${bucketName}:`, error.message);
-        // If the error is "FileNotFound", it's not critical if we're trying to clean up.
         if (error.message.includes('FileNotFound')) {
             console.warn(`File ${fileIdString} not found in ${bucketName} during deletion, might have been already deleted.`);
-        } else {
-            // For other errors, you might want to re-throw or handle differently
         }
     }
 }
 
 // Endpoint to delete a user account
 app.delete('/user/delete', async (req, res) => {
-    // if (!req.session.user || !req.session.user.id) {
-    //     return res.status(401).json({ success: false, error: 'Not authenticated. Please log in.' });
-    // }
-
     const userIdString = req.query.userId;
     const profilePicId = req.query.profileId;
     const backgroundPicId = req.query.backgroundId;
 
-    // const userIdString = req.session.user.id;
     const userObjectId = new ObjectId(userIdString);
-    // const { profilePicId, backgroundPicId } = req.session.user; // Get from session
 
     try {
         console.log(`Attempting to delete account for user ID: ${userIdString}`);
 
-        // 1. Delete Profile Picture from GridFS
         await deleteGridFSFile(db, 'profile_pictures', profilePicId);
 
-        // 2. Delete Background Picture from GridFS
         await deleteGridFSFile(db, 'background_pictures', backgroundPicId);
 
-        // 3. Delete user's collections (e.g., from 'userCollection')
         const collectionDeleteResult = await db.collection('userCollection').deleteMany({ userId: userObjectId });
         console.log(`Deleted ${collectionDeleteResult.deletedCount} entries from userCollection for user ${userIdString}.`);
 
-        // 4. Delete the user document from 'User' collection
         const userDeleteResult = await db.collection('User').deleteOne({ _id: userObjectId });
         if (userDeleteResult.deletedCount === 0) {
-            // This case should ideally not happen if session is valid and user exists
             return res.status(404).json({ success: false, error: 'User not found for deletion.' });
         }
         console.log(`Successfully deleted user document for ${userIdString}.`);
         res.status(200).json({ success: true, message: 'Account deleted successfully.' });
-
-        // // 5. Destroy session and clear cookie
-        // req.session.destroy(err => {
-        //     if (err) {
-        //         console.error('Session destruction error during account deletion:', err);
-        //         // Still attempt to clear cookie and respond positively as user data is deleted
-        //     }
-        //     res.clearCookie('connect.sid'); // Default session cookie name
-        //     res.status(200).json({ success: true, message: 'Account deleted successfully.' });
-        // });
 
     } catch (error) {
         console.error('Error during account deletion process:', error);
@@ -1644,20 +1579,17 @@ app.post('/user/getPassword', async (req, res) => {
             return res.status(404).json({ success: false, error: 'User not found' });
         }
 
-        // Correctly await the result of bcrypt.compare
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log('Password match result (isMatch): ' + isMatch); // This will log true or false
+        console.log('Password match result (isMatch): ' + isMatch); 
 
         if (!isMatch) {
             return res.status(401).json({ success: false, error: 'Incorrect password' });
         }
 
-        // Successfully verified old password
         res.status(200).json({success: true, message: 'Password verified.'});
 
     } catch (err) {
         console.error('Error in /user/getPassword:', err);
-        // Send a more generic error message to the client for security
         res.status(500).json({success: false, error: 'Server error during password verification.'});
     }
 });
@@ -2032,7 +1964,7 @@ app.get('/api/autocomplete', async (req, res) => {
         res.json({ suggestions: allSuggestions });
         
     } catch (error) {
-        console.error('❌ Autocomplete error:', error);
+        console.error('Autocomplete error:', error);
         res.status(500).json({
             success: false,
             error: 'Failed to get suggestions'
@@ -2055,17 +1987,17 @@ app.get('/admin/getUser', async (req, res) => {
 });
 
 app.put('/admin/changeStatus', async (req, res) => {
-    const { username, active } = req.body; // Changed 'status' to 'active'
+    const { username, active } = req.body; 
 
     try {
         await db.collection('User').updateOne(
-            { name: username },           // Filter
-            { $set: { active: active.toString() } }  // Use 'active' here
+            { name: username },          
+            { $set: { active: active.toString() } }  
         );
         res.status(200).json({ success: true, message: 'Status updated' });
     } catch (err) {
-        console.error('Failed to update status:', err); // Add err to the log
-        res.status(500).json({ success: false, error: err.message }); // Return the error message
+        console.error('Failed to update status:', err); 
+        res.status(500).json({ success: false, error: err.message }); 
     }
 });
 
