@@ -1,13 +1,12 @@
-/* Edit Profile Options Modal Styles */
 .edit-profile-options-modal-overlay {
-    display: none; /* Hidden by default, shown by .active class */
+    display: none; 
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%; /* Make overlay full screen */
-    height: 100%; /* Make overlay full screen */
+    width: 100%; 
+    height: 100%;
     background-color: rgba(0, 0, 0, 0.6);
-    z-index: 1000; /* Ensure it's above other content */
+    z-index: 1000; 
     justify-content: center;
     align-items: center;
 }
@@ -24,8 +23,8 @@
     text-align: left;
     position: relative;
     min-width: 320px;
-    max-width: 800px; /* Slightly wider if needed for new content */
-    overflow-y: auto; /* Enable vertical scrolling if content exceeds max-height */
+    max-width: 800px; 
+    overflow-y: auto; 
 }
 
 .edit-profile-options-modal-close-btn {
@@ -45,28 +44,28 @@
 
 .edit-profile-options-modal-content h2 {
     margin-top: 0;
-    margin-bottom: 1.5rem; /* More space before options */
+    margin-bottom: 1.5rem; 
     color: var(--text-dark, #333333);
     text-align: center;
 }
 
 .edit-profile-options-modal-actions {
     display: flex;
-    flex-direction: column; /* Stack buttons vertically */
-    gap: 1rem; /* Increased gap for better separation */
+    flex-direction: column; 
+    gap: 1rem; 
 }
 
 .edit-profile-options-modal-actions div{
     display: flex;
-    flex-direction: row; /* Stack buttons vertically */
+    flex-direction: row; 
     justify-content: space-between;
     align-items: center;
 }
 
 .edit-profile-options-modal-actions .btn-modal-option {
     box-sizing: border-box;
-    background-color: var(--primary-light, white); /* A lighter primary or a neutral color */
-    color: var(--primary, #007bff); /* Text color matching primary */
+    background-color: var(--primary-light, white); 
+    color: var(--primary, #007bff); 
     border: 1px solid var(--primary, #007bff);
     padding: 0.4rem 0.8rem;
     border-radius: var(--border-radius, 5px);
@@ -82,7 +81,6 @@
     color: var(--white, #ffffff);
 }
 
-/* Styles for the new sections within the modal */
 .edit-profile-options-modal-actions .edit-profile-pic,
 .edit-profile-options-modal-actions .edit-background-pic,
 .edit-profile-options-modal-actions .edit-username {
@@ -114,7 +112,7 @@
     padding: 0;
     border-radius: var(--border-radius-sm, 5rem);
     object-fit: cover;
-    align-self: center; /* Center the image preview */
+    align-self: center; 
     margin-bottom: 0.5rem;
 }
 
@@ -131,7 +129,7 @@
     padding: 0;
     border-radius: var(--border-radius-sm, 1rem);
     object-fit: cover;
-    align-self: center; /* Center the image preview */
+    align-self: center; 
     margin-bottom: 0.5rem;
 }
 
@@ -151,7 +149,7 @@
 
 .edit-profile-options-modal-actions .buttons {
     display: block;
-    text-align: center; /* Or center, depending on preference */
+    text-align: center; 
 }
 
 .buttons button,
@@ -189,9 +187,9 @@
 }
 
 #saveProfileEditsBtn:disabled {
-    background-color: #cccccc; /* Lighter background color */
-    color: #666666;           /* Darker text for contrast on light gray */
-    cursor: not-allowed;      /* "Stop" cursor */
-    opacity: 0.7;             /* Slightly transparent */
-    box-shadow: none;         /* Remove shadow when disabled */
+    background-color: #cccccc; 
+    color: #666666;          
+    cursor: not-allowed;     
+    opacity: 0.7;            
+    box-shadow: none;        
 }

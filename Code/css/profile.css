@@ -60,11 +60,11 @@ body {
   .edit-profile-button button {
     background-color: var(--primary);
     color: var(--white);
-    padding: 1rem 2rem; /* Matching the target style */
+    padding: 1rem 2rem; 
     border-radius: var(--border-radius);
     transition: all 0.3s ease;
     border: none;
-    display: inline-flex; /* For icon alignment and inline behavior */
+    display: inline-flex; 
     align-items: center;
     gap: 0.5em;
     cursor: pointer;

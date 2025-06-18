@@ -1,19 +1,18 @@
-/* Modal Styles */
 .delete-account-modal-overlay {
     display: none; 
-    position: fixed; /* Stay in place */
+    position: fixed; 
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Black background with opacity */
-    z-index: 1000; /* Sit on top */
-    justify-content: center; /* Center content horizontally */
-    align-items: center; /* Center content vertically */
+    background-color: rgba(0, 0, 0, 0.6); 
+    z-index: 1000; 
+    justify-content: center; 
+    align-items: center; 
   }
   
   .delete-account-modal-overlay.active {
-    display: flex; /* Use flex to enable centering */
+    display: flex; 
   }
   
   .delete-account-modal-content {
@@ -22,7 +21,7 @@
     border-radius: var(--border-radius-lg, 10px);
     box-shadow: var(--shadow, 0 5px 15px rgba(0,0,0,0.3));
     text-align: center;
-    position: relative; /* For positioning the close button */
+    position: relative; 
     min-width: 320px;
     max-width: 450px;
   }
@@ -55,18 +54,18 @@
   }
   
   .delete-account-modal-actions button {
-    padding: 1rem 2rem; /* Consistent with other buttons on the page */
+    padding: 1rem 2rem; 
     border: none;
     border-radius: var(--border-radius, 5px);
     cursor: pointer;
     font-size: 1rem;
     margin: 0 0.5rem;
     transition: background-color 0.3s ease, transform 0.2s ease, color 0.3s ease;
-    color: var(--white, #ffffff); /* Default text color for modal buttons */
+    color: var(--white, #ffffff); 
   }
   
   .delete-account-modal-actions .btn-danger {
-    background-color: var(--danger, #dc3545); /* Red for destructive actions */
+    background-color: var(--danger, #dc3545); 
   }
   
   .delete-account-modal-actions .btn-danger:hover {
@@ -75,7 +74,7 @@
   }
   
   .delete-account-modal-actions .btn-secondary {
-    background-color: var(--secondary, #6c757d); /* Grey for cancel/secondary actions */
+    background-color: var(--secondary, #6c757d); 
     color: black;
   }
   
