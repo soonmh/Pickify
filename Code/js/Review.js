@@ -5,9 +5,9 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 let currentEntertainmentId = null;
 
 // Function to submit a review
-async function submitReview(entertainmentId, user, rating, text) {
+async function submitReview(entertainmentId, user, rating, text, userAvatar) {
     try {
-        console.log('Submitting review with data:', { entertainmentId, user, rating, text });
+        console.log('Submitting review with data:', { entertainmentId, user, rating, text, userAvatar });
         
         const response = await fetch(`${API_BASE_URL}/reviews`, {
             method: 'POST',
@@ -18,7 +18,8 @@ async function submitReview(entertainmentId, user, rating, text) {
                 entertainmentId,
                 user,
                 rating: parseInt(rating),
-                text
+                text,
+                userAvatar
             })
         });
 
@@ -27,26 +28,65 @@ async function submitReview(entertainmentId, user, rating, text) {
         
         if (result.success) {
             console.log('Review submitted successfully');
+            
             // Clear the form
-            document.getElementById('rating').value = 0;
-            document.getElementById('review-text').value = '';
+            const reviewText = document.getElementById('review-text');
+            if (reviewText) {
+                reviewText.value = '';
+            }
+            
+            // Clear the star rating
+            const starInputs = document.querySelectorAll('.star-rating-bar input');
+            starInputs.forEach(input => {
+                input.checked = false;
+            });
+            
+            // Update the rating value display
+            const ratingValue = document.querySelector('.rating-value');
+            if (ratingValue) {
+                ratingValue.textContent = 'Select rating';
+            }
             
             // Refresh the reviews
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${entertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
+                // Get the entertainment details to update TMDB rating
+                const entertainmentResponse = await fetch(`${API_BASE_URL}/entertainment/${reviewsResult.data[0]?.type || 'movie'}/${entertainmentId}`);
+                const entertainmentResult = await entertainmentResponse.json();
+                
+                if (entertainmentResult.success) {
+                    const details = entertainmentResult.data;
+                    // Update TMDB rating display
+                    const voteAverageEl = document.querySelector('.tmdb-rating-text');
+                    if (voteAverageEl) {
+                        const voteAverage = details.vote_average ? (details.vote_average / 2).toFixed(1) : '0.0';
+                        const fullStars = Math.round(voteAverage);
+                        const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+                        const voteCount = Math.max(1, details.vote_count ? Math.floor(details.vote_count) : 
+                            Math.floor((details.popularity || 0) / 2));
+                        voteAverageEl.innerHTML = `
+                            <div class="tmdb-rating">
+                                <span class="tmdb-rating-text">Average Rating: ${voteAverage}/5 (${voteCount} rated)</span>
+                                <div class="tmdb-stars">${stars}</div>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // Update review statistics
                 updateReviewStats(reviewsResult.data);
                 displayReviews(reviewsResult.data);
             }
             
             alert('Review submitted successfully!');
         } else {
-            throw new Error(result.message || 'Failed to submit review');
+            alert(result.message || 'Failed to submit review');
         }
     } catch (error) {
         console.error('Error submitting review:', error);
-        alert('Failed to submit review. Please try again.');
+        alert(error.message || 'Failed to submit review. Please try again.');
     }
 }
 
@@ -70,6 +110,7 @@ function populateEntertainmentDetails(review) {
         const descriptionEl = document.querySelector('.item-description');
         const directorEl = document.querySelector('.item-director');
         const durationEl = document.querySelector('.item-duration');
+        const voteAverageEl = document.querySelector('.vote-average');
 
         // Handle image URL
         let imageUrl = details.poster_path;
@@ -81,11 +122,62 @@ function populateEntertainmentDetails(review) {
 
         // Update DOM elements with data (with null checks)
         if (posterEl) posterEl.src = imageUrl || '';
-        if (titleEl) titleEl.textContent = details.title || 'Untitled';
-        if (typeEl) typeEl.textContent = (details.type || 'unknown').charAt(0).toUpperCase() + (details.type || 'unknown').slice(1);
-        if (yearEl) yearEl.textContent = details.year || (details.release_date ? details.release_date.split('-')[0] : 'Unknown Year');
-        if (genreEl) genreEl.textContent = details.genre || details.genres || 'No Genre';
+        if (titleEl) {
+            const year = details.year || (details.release_date ? details.release_date.split('-')[0] : 'Unknown Year');
+            let genreText = 'No Genre';
+            if (details.genres && Array.isArray(details.genres)) {
+                genreText = details.genres.map(g => typeof g === 'object' ? g.name : g).join(', ');
+            } else if (details.genre) {
+                genreText = details.genre;
+            }
+            titleEl.innerHTML = `${details.title || 'Untitled'}<br><span class="subtitle">${year} | ${genreText}</span>`;
+        }
+        if (typeEl) typeEl.textContent = (details.type||"").charAt(0).toUpperCase() + (details.type || "").slice(1);
+        if (yearEl) yearEl.style.display = 'none';  // Hide the separate year element
+        if (genreEl) genreEl.style.display = 'none';  // Hide the separate genre element
         if (descriptionEl) descriptionEl.textContent = details.description || details.overview || 'No description available';
+        if (voteAverageEl) {
+            let voteAverage, voteCount;
+            console.log('Processing type:', details.type);
+            
+            if (details.type === 'book' || details.type === 'books') {
+                console.log('Processing as book');
+                voteAverage = parseFloat(details.rating || 0).toFixed(1);
+                voteCount = Math.floor((details.views || 0) / 100);
+                console.log('Book rating:', { voteAverage, voteCount });
+            
+            } else if (details.type === 'movie' || details.type === 'movies') {
+                console.log('Processing as movie');
+                voteAverage = details.vote_average ? (details.vote_average / 2).toFixed(1) : '0.0';
+                voteCount = Math.max(1, details.vote_count ? Math.floor(details.vote_count) : 
+                    Math.floor((details.popularity || 0) / 2));
+            } else if (details.type === 'music') {
+                console.log('Processing as music');
+                const convertedRating = details.popularity ? 
+                parseFloat((details.popularity / 20).toFixed(1)) : 0;
+                voteAverage = convertedRating || '0.0';
+                voteCount = Math.floor(details.popularity) || '0.0';
+            } else {
+                console.log('Unknown type, defaulting to music calculation');
+                const convertedRating = details.popularity ? 
+                parseFloat((details.popularity / 20).toFixed(1)) : 0;
+                voteAverage = convertedRating || '0.0';
+                voteCount = Math.floor(details.popularity) || '0.0';
+            }
+            
+            const fullStars = Math.round(voteAverage);
+            const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+            
+            // If rating is 0, show "0 rated"
+            const ratingText = voteAverage === 0 ? '0 rated' : `Average Rating: ${voteAverage}/5 (${voteCount} rated)`;
+            
+            voteAverageEl.innerHTML = `
+                <div class="tmdb-rating">
+                    <span class="tmdb-rating-text">${ratingText}</span>
+                    <div class="tmdb-stars">${stars}</div>
+                </div>
+            `;
+        }
 
         // Show/hide and populate type-specific details
         [directorEl, durationEl].forEach(el => {
@@ -133,59 +225,456 @@ function updateReviewStats(reviews) {
         });
         return;
     }
-    
-    if (!reviews || reviews.length === 0) {
-        // Set default values when no reviews
-        averageRatingEl.textContent = '0.0';
-        totalReviewsEl.textContent = '0';
-        
-        // Reset rating breakdown
-        for (let i = 1; i <= 5; i++) {
-            const ratingEl = document.querySelector(`.rating-${i}`);
-            if (ratingEl) {
-                ratingEl.textContent = '0%';
-            } else {
-                console.warn(`Rating element .rating-${i} not found`);
-            }
-        }
-        
-        // Reset star rating display
-        starRatingEl.textContent = '☆☆☆☆☆';
-        return;
-    }
 
-    const totalReviews = reviews.length;
+    // Initialize rating counts
     const ratingCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
     let totalRating = 0;
 
-    reviews.forEach(review => {
-        if (review.rating >= 1 && review.rating <= 5) {
-            ratingCounts[review.rating]++;
-            totalRating += review.rating;
-        }
-    });
+    // Count ratings from reviews
+    if (reviews && reviews.length > 0) {
+        reviews.forEach(review => {
+            const rating = Math.round(parseFloat(review.rating));
+            if (rating >= 1 && rating <= 5) {
+                ratingCounts[rating]++;
+                totalRating += rating;
+            }
+        });
+    }
 
-    const averageRating = (totalRating / totalReviews).toFixed(1);
+    const totalReviews = reviews ? reviews.length : 0;
     
-    // Update DOM
-    averageRatingEl.textContent = averageRating;
-    totalReviewsEl.textContent = totalReviews;
-    
+    // Update DOM elements
+    if (averageRatingEl) {
+        const averageRating = totalReviews > 0 ? (totalRating / totalReviews).toFixed(1) : '0.0';
+        averageRatingEl.textContent = averageRating;
+    }
+
+    if (totalReviewsEl) {
+        totalReviewsEl.textContent = totalReviews;
+    }
+
     // Update rating breakdown
     for (let i = 1; i <= 5; i++) {
         const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
-            const percentage = ((ratingCounts[i] / totalReviews) * 100).toFixed(0);
+            const percentage = totalReviews > 0 ? Math.round((ratingCounts[i] / totalReviews) * 100) : 0;
             ratingEl.textContent = `${percentage}%`;
-        } else {
-            console.warn(`Rating element .rating-${i} not found`);
         }
     }
 
     // Update star rating display
-    const fullStars = Math.floor(averageRating);
-    const hasHalfStar = averageRating % 1 >= 0.5;
-    starRatingEl.textContent = '★'.repeat(fullStars) + (hasHalfStar ? '½' : '') + '☆'.repeat(5 - fullStars - (hasHalfStar ? 1 : 0));
+    if (starRatingEl) {
+        const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+        const fullStars = Math.round(averageRating);
+        starRatingEl.innerHTML = '<span style="color: #ffd700">★</span>'.repeat(fullStars) + 
+            '<span style="color: #ddd">☆</span>'.repeat(5 - fullStars);
+    }
+}
+
+// Function to delete a review
+async function deleteReview(reviewId, user) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // Refresh the reviews
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();
+            
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+            
+            alert('Review deleted successfully!');
+        } else {
+            throw new Error(result.message || 'Failed to delete review');
+        }
+    } catch (error) {
+        console.error('Error deleting review:', error);
+        alert(error.message || 'Failed to delete review. Please try again.');
+    }
+}
+
+// Function to create star rating HTML
+function createStarRatingHTML(currentRating = 0, isEditForm = false) {
+    return `
+        <div class="rating-container">
+            <div class="star-rating-bar">
+                ${[1,2,3,4,5].map(num => `
+                    <input type="radio" id="star${num}${isEditForm ? '-edit' : ''}" name="rating" value="${num}" ${num === currentRating ? 'checked' : ''}>
+                    <label for="star${num}${isEditForm ? '-edit' : ''}">★</label>
+                `).join('')}
+            </div>
+            <div class="rating-value">${currentRating ? currentRating + ' stars' : 'Select rating'}</div>
+        </div>
+    `;
+}
+
+// Function to show edit form
+function showEditForm(reviewId, currentRating, currentText) {
+    console.log('Showing edit form for review:', { reviewId, currentRating, currentText });
+    const reviewElement = document.getElementById(`review-${reviewId}`);
+    if (!reviewElement) {
+        console.error('Review element not found:', reviewId);
+        return;
+    }
+    
+    const reviewContent = reviewElement.querySelector('.review-content');
+    const originalContent = reviewContent.innerHTML;
+
+    // Store the original content in a data attribute
+    reviewElement.dataset.originalContent = originalContent;
+
+    const editForm = `
+        <div class="edit-form">
+            <div class="rating-input">
+                <label>Rating:</label>
+                ${createStarRatingHTML(parseInt(currentRating), true)}
+            </div>
+            <textarea id="edit-text" rows="4">${currentText}</textarea>
+            <div class="edit-buttons">
+                <button class="save-edit-btn" onclick="saveEdit('${reviewId}')">Save</button>
+                <button class="cancel-edit-btn" onclick="cancelEdit('${reviewId}')">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    reviewContent.innerHTML = editForm;
+
+    // Add event listeners for star rating
+    const starInputs = reviewContent.querySelectorAll('.star-rating-bar input');
+    const ratingValue = reviewContent.querySelector('.rating-value');
+    
+    starInputs.forEach(input => {
+        input.addEventListener('change', () => {
+            ratingValue.textContent = input.value + ' stars';
+        });
+    });
+}
+
+// Function to save edit
+async function saveEdit(reviewId) {
+    const reviewEl = document.getElementById(`review-${reviewId}`);
+    if (!reviewEl) {
+        console.error('Review element not found');
+        return;
+    }
+
+    const rating = reviewEl.querySelector('.star-rating-bar input:checked')?.value;
+    const text = reviewEl.querySelector('#edit-text')?.value;
+
+    if (!rating) {
+        alert('Please select a rating');
+        return;
+    }
+
+    if (!text) {
+        alert('Please write a review');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                user: currentUser,
+                rating,
+                text
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Refresh the reviews
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();
+            
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+        } else {
+            alert(data.message || 'Failed to update review');
+        }
+    } catch (err) {
+        console.error('Error updating review:', err);
+        alert('Failed to update review');
+    }
+}
+
+// Function to cancel edit
+function cancelEdit(reviewId) {
+    const reviewElement = document.getElementById(`review-${reviewId}`);
+    if (!reviewElement) return;
+
+    const reviewContent = reviewElement.querySelector('.review-content');
+    const originalContent = reviewElement.dataset.originalContent;
+    
+    if (originalContent) {
+        reviewContent.innerHTML = originalContent;
+    }
+}
+
+// Function to show report form
+function showReportForm(reviewId, commentId = null) {
+    const reason = prompt('Please enter the reason for reporting this content:');
+    if (reason === null) return; // User cancelled
+
+    if (!reason.trim()) {
+        alert('Please provide a reason for reporting');
+        return;
+    }
+
+    submitReport(reviewId, commentId, reason);
+}
+
+// Function to submit report
+async function submitReport(reviewId, commentId = null, reason) {
+    try {
+        // Get current user
+        let userData = sessionStorage.getItem('loggedInUser');
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
+        
+        if (!userData) {
+            alert('Please log in to report content');
+            return;
+        }
+
+        const user = JSON.parse(userData).username || JSON.parse(userData).name;
+
+        const response = await fetch(`${API_BASE_URL}/reports`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                reviewId, 
+                commentId, 
+                user, 
+                reason: 'Inappropriate content' 
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('Report submitted successfully. Thank you for helping keep our community safe.');
+        } else {
+            throw new Error(result.message || 'Failed to submit report');
+        }
+    } catch (error) {
+        console.error('Error submitting report:', error);
+        alert(error.message || 'Failed to submit report. Please try again.');
+    }
+}
+
+// Function to delete comment
+async function deleteComment(reviewId, commentId) {
+    try {
+        // Get current user
+        let userData = sessionStorage.getItem('loggedInUser');
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
+        
+        if (!userData) {
+            alert('Please log in to delete your comment');
+            return;
+        }
+
+        const user = JSON.parse(userData).username || JSON.parse(userData).name;
+
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // Refresh the reviews
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();
+            
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+            
+            alert('Comment deleted successfully!');
+        } else {
+            throw new Error(result.message || 'Failed to delete comment');
+        }
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert(error.message || 'Failed to delete comment. Please try again.');
+    }
+}
+
+// Function to edit comment
+function showEditCommentForm(reviewId, commentId, currentComment) {
+    const commentElement = document.querySelector(`#comment-${commentId}`);
+    if (!commentElement) return;
+
+    const commentContent = commentElement.querySelector('.comment-content');
+    const originalContent = commentContent.innerHTML;
+
+    // Store the original content
+    commentElement.dataset.originalContent = originalContent;
+
+    const editForm = `
+        <div class="edit-comment-form">
+            <textarea class="edit-comment-text">${currentComment}</textarea>
+            <div class="edit-comment-buttons">
+                <button onclick="saveCommentEdit('${reviewId}', '${commentId}')">Save</button>
+                <button onclick="cancelCommentEdit('${commentId}')">Cancel</button>
+            </div>
+        </div>
+    `;
+
+    commentContent.innerHTML = editForm;
+}
+
+// Function to save edited comment
+async function saveCommentEdit(reviewId, commentId) {
+    try {
+        const commentElement = document.querySelector(`#comment-${commentId}`);
+        if (!commentElement) return;
+
+        const newComment = commentElement.querySelector('.edit-comment-text').value.trim();
+        
+        if (!newComment) {
+            alert('Comment cannot be empty');
+            return;
+        }
+
+        // Get current user
+        let userData = sessionStorage.getItem('loggedInUser');
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
+        
+        if (!userData) {
+            alert('Please log in to edit your comment');
+            return;
+        }
+
+        const user = JSON.parse(userData).username || JSON.parse(userData).name;
+
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user, comment: newComment })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // Refresh the reviews
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();
+            
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+            
+            alert('Comment updated successfully!');
+        } else {
+            throw new Error(result.message || 'Failed to update comment');
+        }
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        alert(error.message || 'Failed to update comment. Please try again.');
+    }
+}
+
+// Function to cancel comment edit
+function cancelCommentEdit(commentId) {
+    const commentElement = document.querySelector(`#comment-${commentId}`);
+    if (!commentElement) return;
+
+    const commentContent = commentElement.querySelector('.comment-content');
+    const originalContent = commentElement.dataset.originalContent;
+    
+    if (originalContent) {
+        commentContent.innerHTML = originalContent;
+    }
+}
+
+// Function to submit comment
+async function submitComment(reviewId, user, comment, userAvatar) {
+    try {
+        if (!comment.trim()) {
+            alert('Please write a comment');
+            return;
+        }
+
+        if (!user) {
+            alert('Please log in to post a comment');
+            return;
+        }
+
+        console.log('Submitting comment with data:', { reviewId, user, comment, userAvatar });
+        
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user,
+                comment,
+                userAvatar
+            })
+        });
+
+        const result = await response.json();
+        console.log('Submit comment response:', result);
+        
+        if (result.success) {
+            console.log('Comment submitted successfully');
+            
+            // Clear the comment input
+            const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
+            if (commentInput) {
+                commentInput.value = '';
+            }
+            
+            // Refresh the reviews
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();
+            
+            if (reviewsResult.success) {
+                updateReviewStats(reviewsResult.data);
+                displayReviews(reviewsResult.data);
+            }
+        } else {
+            alert(result.message || 'Failed to post comment');
+        }
+    } catch (error) {
+        console.error('Error submitting comment:', error);
+        alert('Failed to post comment. Please try again.');
+    }
 }
 
 // Function to display reviews
@@ -198,34 +687,76 @@ function displayReviews(reviews) {
         return;
     }
 
+    // Get current user
+    let userData = sessionStorage.getItem('loggedInUser');
+    if (!userData) {
+        userData = localStorage.getItem('loggedInUser');
+    }
+    const currentUser = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
+    const userAvatar = userData ? JSON.parse(userData).profilePicture || './assests/profilepic3.png' : './assests/profilepic3.png';
+
     reviews.forEach(review => {
         const reviewElement = document.createElement('div');
         reviewElement.className = 'review';
         reviewElement.id = `review-${review._id}`;
         reviewElement.dataset.user = review.user;
+        reviewElement.dataset.reviewId = review._id;
+
+        // Escape special characters in the review text
+        const escapedText = review.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+
+        // Add edit, delete, and report buttons
+        const actionButtons = `
+            <div class="review-actions">
+                ${currentUser === review.user ? `
+                    <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${escapedText}')">Edit</button>
+                    <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
+                ` : ''}
+                <button class="report-btn" onclick="submitReport('${review._id}')">Report</button>
+            </div>`;
 
         reviewElement.innerHTML = `
-            <div class="user-info">
-                <img src="${review.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
-            </div>
             <div class="review-content">
-                <strong>${review.user}</strong>
-                <span class="star-rating" data-rating="${review.rating}">${'★'.repeat(review.rating)}${'☆'.repeat(5-review.rating)}</span>
+                <div class="user-info">
+                    <img src="${review.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
+                    <strong>${review.user}</strong>
+                </div>
+                <div class="review-header">
+                    <div class="star-rating-bar">
+                        ${[1,2,3,4,5].map(num => `
+                            <span class="star ${num <= review.rating ? 'filled' : ''}">★</span>
+                        `).join('')}
+                    </div>
+                    ${actionButtons}
+                </div>
                 <p class="review-text">${review.text}</p>
                 <div class="comment-section">
                     <div class="comments">
                         ${review.comments ? review.comments.map(comment => `
-                            <div class="comment">
-                                <img src="${comment.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
-                                <div class="comment-content">
+                            <div class="comment" id="comment-${comment._id}">
+                                <div class="user-info">
+                                    <img src="${comment.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
                                     <strong>${comment.user}</strong>
+                                </div>
+                                <div class="comment-content">
                                     <p>${comment.comment}</p>
+                                    <div class="comment-actions">
+                                        ${currentUser === comment.user ? `
+                                            <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
+                                            <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
+                                        ` : ''}
+                                        ${currentUser !== comment.user ? `
+                                            <button class="report-comment-btn" onclick="submitReport('${review._id}', '${comment._id}')">Report</button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             </div>
                         `).join('') : ''}
                     </div>
-                    <input type="text" class="comment-input" placeholder="Write a comment...">
-                    <button class="comment-btn">Post</button>
+                    <div class="comment-input-section">
+                        <input type="text" class="comment-input" placeholder="Write a comment...">
+                        <button class="comment-btn" onclick="submitComment('${review._id}', '${currentUser}', document.querySelector('#review-${review._id} .comment-input').value, '${userAvatar}')">Post</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -279,7 +810,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const entertainmentData = entertainmentResult.data;
         console.log('Entertainment data:', entertainmentData);
-        console.log('Entertainment ID:', entertainmentData._id);
+        console.log('Entertainment type:', entertainmentData.type);
 
         if (!entertainmentData) {
             console.error('No entertainment data received');
@@ -292,8 +823,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Create a review object with the entertainment details
         const review = {
-            entertainmentDetails: entertainmentData
+            entertainmentDetails: {
+                ...entertainmentData,
+                type: type  // Ensure type is set correctly
+            }
         };
+
+        console.log('Review object with details:', review);
 
         // Populate the entertainment details
         populateEntertainmentDetails(review);
@@ -326,20 +862,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.summary-container').prepend(errorMessage);
     }
 
-    // Add event listener for submit button - MOVED INSIDE DOMContentLoaded
+    // Add event listener for submit button
     const submitButton = document.getElementById('submit-review');
     if (submitButton) {
+        // Replace the rating select with star rating bar
+        const ratingInput = document.getElementById('rating');
+        if (ratingInput) {
+            const ratingContainer = ratingInput.parentElement;
+            ratingContainer.innerHTML = `
+                <label>Rating:</label>
+                ${createStarRatingHTML()}
+            `;
+
+            // Add event listeners for star rating
+            const starInputs = ratingContainer.querySelectorAll('.star-rating-bar input');
+            const ratingValue = ratingContainer.querySelector('.rating-value');
+            
+            starInputs.forEach(input => {
+                input.addEventListener('change', () => {
+                    ratingValue.textContent = input.value + ' stars';
+                });
+            });
+        }
+
         submitButton.addEventListener('click', async () => {
             console.log('Submit button clicked!');
             
-            const rating = document.getElementById('rating').value;
+            const rating = document.querySelector('.star-rating-bar input:checked')?.value;
             const reviewText = document.getElementById('review-text').value.trim();
             
             console.log('Form values:', { rating, reviewText, currentEntertainmentId });
             
             // Validate input
-            if (!rating || rating < 1 || rating > 5) {
-                alert('Please select a rating between 1 and 5');
+            if (!rating) {
+                alert('Please select a rating');
                 return;
             }
             
@@ -353,17 +909,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return;
             }
             
-            // Get current user (you'll need to implement user authentication)
-            // For now, using localStorage or a placeholder
-            let currentUser = localStorage.getItem('currentUser');
-            if (!currentUser) {
-                // If no user is logged in, prompt for a name or use Anonymous
-                currentUser = prompt('Please enter your name:') || 'Anonymous User';
+            // Get current user from storage
+            let userData = sessionStorage.getItem('loggedInUser');
+            if (!userData) {
+                userData = localStorage.getItem('loggedInUser');
             }
+            
+            if (!userData) {
+                alert('Please log in to submit a review');
+                return;
+            }
+            
+            const user = JSON.parse(userData);
+            const currentUser = user.username || user.name;
+            const userAvatar = user.profilePicture || './assests/profilepic3.png';
             
             console.log('Submitting review as:', currentUser);
             
-            await submitReview(currentEntertainmentId, currentUser, rating, reviewText);
+            await submitReview(currentEntertainmentId, currentUser, rating, reviewText, userAvatar);
         });
     } else {
         console.error('Submit button not found!');

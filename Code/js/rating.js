@@ -38,7 +38,6 @@ function updateAverageRating(){
 function percentage(count,total){
     return total?`${Math.round((count/total)*100)}%`:"0.00%";
 }
-
 function setupStarRating(){
     const stars=document.querySelectorAll(".star-rating .star");
     const ratingValue=document.getElementById("rating-value");
@@ -64,3 +63,4 @@ function setupStarRating(){
     });
     
 }
+

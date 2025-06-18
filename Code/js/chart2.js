@@ -1142,14 +1142,25 @@ function showToast(message, type = 'info') {
     }
     
     function navigateToContentPage(id) {
-        console.log(`Navigating to content page for ID: ${id}`);
+        // Find the item by checking multiple possible ID fields
+        // We also use == to handle cases where one ID is a number and the other is a string.
+        const item = entertainmentData.find(item => item.id == id || item.tmdbId == id);
         
-        // use Squid Game as example first (ID: 25)
-        if (id == 25) {
-            window.location.href = "review.html";
+        if (item) {
+            console.log(`Found item: ${item.title}`);
+            
+            // Ensure the item has a 'type' property before navigating
+            if (!item.type) {
+                console.error("Navigation failed: The found item does not have a 'type' property.", item);
+                return; // Stop the function
+            }
+            
+            // Use the correct ID for the URL
+            const itemId = item.id || item.tmdbId;
+            window.location.href = `review.html?tmdbId=${itemId}&type=${item.type}`;
+    
         } else {
-            alert(`Navigating to content page for: ${id}`);
-            // future implementation could use: window.location.href = `/content/${id}`;
+            console.error(`Item with ID ${id} not found in entertainmentData.`);
         }
     }
     
