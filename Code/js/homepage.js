@@ -547,19 +547,36 @@ document.addEventListener('DOMContentLoaded', function () {
         // Redirect to searchresult.js with the query as a URL parameter
         window.location.href = `searchresult.html?query=${encodeURIComponent(query)}`;
     }
-
+    /**
+     * Creates a unique localStorage key for the current user's search history.
+     * @returns {string|null} The user-specific key or null if no user is logged in.
+     */
+    function getHistoryStorageKey() {
+        const userId = getCurrentUserId();
+        if (!userId) {
+            return null; // No user logged in, no history to manage.
+        }
+        // This creates a key like: 'pickifySearchHistory_60b8d295f1d2a50015e2b3c4'
+        return `pickifySearchHistory_${userId}`;
+    }
     /**
      * Add a search query to the search history
      * @param {string} query - The search query to add
      */
     function addToSearchHistory(query) {
-        // Prevent duplicate entries
-        if (!searchHistory.includes(query)) {
-            searchHistory.unshift(query); // Add to the beginning of the history
-            if (searchHistory.length > 5) {
-                searchHistory.pop(); // Keep only the last 5 entries
-            }
+        const storageKey = getHistoryStorageKey();
+        if (!storageKey) {
+            return; // Don't save history if no one is logged in.
         }
+
+        // Add to the beginning of the array and remove duplicates
+        searchHistory = [query, ...searchHistory.filter(item => item !== query)];
+        
+        // Keep only the last 5 entries
+        if (searchHistory.length > 5) {
+            searchHistory = searchHistory.slice(0, 5);
+        }
+
         saveSearchHistoryToStorage();
         renderSearchHistory();
 
@@ -570,15 +587,28 @@ document.addEventListener('DOMContentLoaded', function () {
      * Save search history to localStorage
      */
     function saveSearchHistoryToStorage() {
-        localStorage.setItem('pickifySearchHistory', JSON.stringify(searchHistory));
+        const storageKey = getHistoryStorageKey();
+        if (storageKey) {
+            localStorage.setItem(storageKey, JSON.stringify(searchHistory));
+        }
     }
     /**
      * Load search history from localStorage
      */
     function loadSearchHistoryFromStorage() {
-        const savedHistory = localStorage.getItem('pickifySearchHistory');
+        const storageKey = getHistoryStorageKey();
+        if (!storageKey) {
+            // No user is logged in, so ensure history is empty.
+            searchHistory = [];
+            return;
+        }
+
+        const savedHistory = localStorage.getItem(storageKey);
         if (savedHistory) {
             searchHistory = JSON.parse(savedHistory);
+        } else {
+            // No history for this specific user yet.
+            searchHistory = [];
         }
     }
 
