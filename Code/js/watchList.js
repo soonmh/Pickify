@@ -460,77 +460,74 @@ function calculateAndUpdate(typeCount){
     bookCount.textContent=typeCount["book"] || 0;
 }
 
-function updateListItem(data) {
-    collectionPage.style.display = 'flex';
-    updateTitleAndDescription(data.collectionName, data.description);
-    const movieGrid = document.querySelector(".collection-list .movie-grid");
+function updateListItem(data){
+    collectionPage.style.display='flex'
+    updateTitleAndDescription(data.collectionName,data.description);
+    const movieGrid=document.querySelector(".collection-list .movie-grid");
     movieGrid.innerHTML = "";
-    const analysisCard = collectionPage.querySelector(".analysis");
-
-    if (data.items.length > 0) {
-        analysisCard.style.display = "flex";
-        const typeCount = {};
-
+    const analysisCard=collectionPage.querySelector(".analysis");
+    if(data.items.length>0){
+        analysisCard.style.display="flex";
+        const typeCount={};
         data.items.forEach(item => {
             const type = item.type;
             if (!typeCount[type]) {
                 typeCount[type] = 0;
             }
 
+            // Increment the count
             typeCount[type] += 1;
 
+            // Debug log for music items
             if (type === 'music') {
                 console.log('Music item data:', item);
                 console.log('Music item information:', item.infomation);
             }
 
-            const card = document.createElement("div");
-            card.className = "movie-card";
-
+            const card=document.createElement("div");
+            card.className="movie-card";
+            
             // Add click event to navigate to review page
             card.addEventListener('click', () => {
-                    let detailUrl;
-                    if (item.type === 'movie') {
-                        detailUrl = `review.html?tmdbId=${item.itemId}&type=movie`;
-                    } else if (item.type === 'music') {
-                        detailUrl = `review.html?tmdbId=${item.itemId}&type=music`;
-                    } else if (item.type === 'book') {
-                        detailUrl = `review.html?tmdbId=${item.itemId}&type=book`;
-                    }
-                    
-                    if (detailUrl) {
-                        console.log('Navigating to:', detailUrl);
-                        window.location.href = detailUrl;
-                    }
+                let reviewUrl;
+                if (item.type === 'movie') {
+                    reviewUrl = `review.html?tmdbId=${item.itemId}&type=movie`;
+                } else if (item.type === 'music') {
+                    reviewUrl = `review.html?tmdbId=${item.itemId}&type=music`;
+                } else if (item.type === 'book') {
+                    reviewUrl = `review.html?tmdbId=${item.itemId}&type=book`;
                 }
-            );
+                
+                if (reviewUrl) {
+                    window.location.href = reviewUrl;
+                }
+            });
 
-            const img = document.createElement("img");
+            const img=document.createElement("img");
             img.src = item.infomation.image;
             img.alt = item.infomation.title;
 
-            const infoDiv = document.createElement("div");
-            infoDiv.className = "info";
+            const infoDiv=document.createElement("div");
+            infoDiv.className="info";
 
-            const languageDiv = document.createElement("div");
-            languageDiv.className = "language";
-
-            const releaseDate = document.createElement("p");
-            releaseDate.textContent = item.infomation.release_date;
-            releaseDate.style.color = "#C2D4ED";
-            releaseDate.style.fontWeight = "bold";
-
-            const language = document.createElement("p");
-            language.textContent = item.type.toUpperCase();
-            language.style.color = "#8CA2D1";
-            language.style.fontWeight = "bold";
-
-            const titleDiv = document.createElement("div");
-            titleDiv.className = "title";
+            const languageDiv=document.createElement("div");
+            languageDiv.className="language";
+            const releaseDate=document.createElement("p");
+            releaseDate.textContent=item.infomation.release_date;
+            releaseDate.style.color="#C2D4ED";
+            releaseDate.style.fontWeight="bold";
+            const language=document.createElement("p");
+            language.textContent=item.type.toUpperCase();
+            language.style.color="#8CA2D1";
+            language.style.fontWeight="bold";
+            
+            const titleDiv=document.createElement("div");
+            titleDiv.className="title";
+            // Debug log for title
             if (type === 'music') {
                 console.log('Setting music title:', item.infomation.title);
             }
-            titleDiv.textContent = item.infomation.title;
+            titleDiv.textContent=item.infomation.title;
 
             languageDiv.appendChild(releaseDate);
             languageDiv.appendChild(language);
@@ -540,16 +537,13 @@ function updateListItem(data) {
             card.appendChild(infoDiv);
             movieGrid.appendChild(card);
         });
-
         calculateAndUpdate(typeCount);
-    } else {
-        analysisCard.style.display = "none";
-        nothingInside.style.display = "block";
+    }else {
+        analysisCard.style.display="none";
+        nothingInside.style.display="block";
     }
 }
 
-
- 
 // Add List Page
 document.querySelector('.sidebar').addEventListener('click', async function (e) {
     const link = e.target.closest('.create-btn');
