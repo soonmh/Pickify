@@ -215,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
             parseFloat((music.popularity / 20).toFixed(1)) : 0;
         return {
             type: 'music',
-            tmdbId: music.id,
+            id: music.id,
             title: music.title || music.name || 'Unknown Title',
             image: music.poster_url || './assets/default-music.png',
             rating: convertedRating || 'N/A',
@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function () {
     function formatBookData(book) {
         return {
             type: 'book',
-            tmdbId: book._id,
+            id: book._id,
             title: book.title,
             image: book.image,
             rating: book.rating || 'N/A',
@@ -247,16 +247,16 @@ document.addEventListener('DOMContentLoaded', function () {
         
         // Your existing dummy data arrays
         const top10Movies = [
-            { tmdbId: 142061, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
-            { tmdbId: 2164, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
-            { tmdbId: 27205, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
-            { tmdbId: 550, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
-            { tmdbId: 680, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
-            { tmdbId: 624860, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
-            { tmdbId: 13, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
-            { tmdbId: 278, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
-            { tmdbId: 240, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
-            { tmdbId: 1003596, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
+            { tmdbId: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
+            { tmdbId: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
+            { tmdbId: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
+            { tmdbId: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
+            { tmdbId: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
+            { tmdbId: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
+            { tmdbId: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
+            { tmdbId: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
+            { tmdbId: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
+            { tmdbId: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
         ];
 
         const top10Music = [
@@ -520,7 +520,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!e.target.closest('.collection-dropdown')) {
                     console.log(`Clicked on ${mediaType} item: ${item.title}`);
                     // Navigate to review page with item details
-                    window.location.href = `review.html?tmdbId=${item.tmdbId}&type=${mediaType}`;
+                    
+                    window.location.href = `review.html?tmdbId=${item.id || item.tmdbId}&type=${mediaType}`;
                 }
             });
             
@@ -1131,6 +1132,7 @@ async function addToCollection(userId, collectionName, item) {
         // Determine item type and ID
         const itemType = item.type;
         let itemId;
+        // itemId = item.tmdbId;
         if (itemType === 'movie') {
             itemId = item.tmdbId;
         } else if (itemType === 'music' || itemType === 'book') {
