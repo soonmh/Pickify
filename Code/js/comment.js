@@ -15,6 +15,25 @@ function getApiUrl() {
     return `${protocol}//${hostname}:${port}`;
 }
 
+// Function to refresh reviews
+async function refreshReviews(entertainmentId) {
+    try {
+        const response = await fetch(`${getApiUrl()}/api/reviews/${entertainmentId}`);
+        const result = await response.json();
+        
+        if (result.success) {
+            // Update the reviews display
+            const reviewList = document.querySelector('.review-list');
+            if (reviewList) {
+                // Trigger a page reload to refresh the reviews
+                window.location.reload();
+            }
+        }
+    } catch (error) {
+        console.error('Error refreshing reviews:', error);
+    }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
     document.querySelector(".review-list").addEventListener("click", (event) => {
         if (event.target.classList.contains("comment-btn")) {
@@ -25,7 +44,13 @@ window.addEventListener("DOMContentLoaded", () => {
             }
 
             const reviewElement = event.target.closest(".review");
-            const reviewId = reviewElement.id.split("-")[1];
+            console.log('Review element:', reviewElement);
+            console.log('Review element ID:', reviewElement.id);
+            
+            // Extract the MongoDB ID from the review element ID
+            const reviewId = reviewElement.id.replace('review-', '');
+            console.log('Extracted review ID:', reviewId);
+            
             const commentSection = event.target.closest(".comment-section");
             const input = commentSection.querySelector(".comment-input");
             const commentList = commentSection.querySelector(".comments");
@@ -34,12 +59,12 @@ window.addEventListener("DOMContentLoaded", () => {
             if (commentText !== "") {
                 // Create comment data
                 const commentData = {
-                    user: currentUser.name,
-                    userAvatar: currentUser.picture || "./assests/profilepic3.png",
+                    user: currentUser.username || currentUser.name,
+                    userAvatar: currentUser.profilePicture || "./assests/profilepic3.png",
                     comment: commentText
                 };
 
-                const apiUrl = `${getApiUrl()}/api/reviews/${reviewId}/comment`;
+                const apiUrl = `${getApiUrl()}/api/reviews/${reviewId}/comments`;
                 console.log('Sending comment data:', commentData);
                 console.log('Review ID:', reviewId);
                 console.log('API URL:', apiUrl);
@@ -48,33 +73,16 @@ window.addEventListener("DOMContentLoaded", () => {
                 fetch(apiUrl, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
+                        'Content-Type': 'application/json'
                     },
-                    mode: 'cors',
-                    credentials: 'include',
                     body: JSON.stringify(commentData)
                 })
-                .then(async response => {
-                    console.log('Server response status:', response.status);
-                    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-                    
-                    const contentType = response.headers.get('content-type');
-                    console.log('Content-Type:', contentType);
-                    
-                    if (!contentType || !contentType.includes('application/json')) {
-                        const text = await response.text();
-                        console.error('Non-JSON response:', text);
-                        throw new Error('Server response was not JSON');
-                    }
-                    
-                    const data = await response.json();
-                    console.log('Parsed response data:', data);
-                    
+                .then(response => {
+                    console.log('Response status:', response.status);
                     if (!response.ok) {
-                        throw new Error(data.message || `HTTP error! status: ${response.status}`);
+                        throw new Error(`HTTP error! status: ${response.status}`);
                     }
-                    return data;
+                    return response.json();
                 })
                 .then(data => {
                     console.log('Server response data:', data);
@@ -82,46 +90,18 @@ window.addEventListener("DOMContentLoaded", () => {
                         throw new Error(data.message || 'Failed to add comment');
                     }
 
-                    // Create comment element
-                    const comment = document.createElement("div");
-                    comment.className = "comment";
-
-                    const userInfo = document.createElement("div");
-                    userInfo.className = "user-info";
-
-                    const profilePic = document.createElement("img");
-                    profilePic.src = currentUser.picture || "./assests/profilepic3.png";
-                    profilePic.alt = "User Profile";
-                    userInfo.appendChild(profilePic);
-
-                    const commentContent = document.createElement("div");
-                    commentContent.className = "comment-content";
-
-                    const username = document.createElement("strong");
-                    username.textContent = currentUser.name;
-
-                    const text = document.createElement("p");
-                    text.className = "comment-text";
-                    text.textContent = commentText;
-
-                    const reportBtn = document.createElement("a");
-                    reportBtn.className = "report-btn edit-btn";
-                    reportBtn.innerText = "Report";
-                    reportBtn.href = "#";
-
-                    commentContent.appendChild(username);
-                    commentContent.appendChild(text);
-                    commentContent.appendChild(reportBtn);
-
-                    comment.appendChild(userInfo);
-                    comment.appendChild(commentContent);
-
-                    commentList.appendChild(comment);
+                    // Get the entertainment ID from the URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const entertainmentId = urlParams.get('tmdbId');
+                    
+                    // Refresh all reviews to show updated profile pictures
+                    refreshReviews(entertainmentId);
+                    
+                    // Clear the input
                     input.value = "";
                 })
                 .catch(error => {
-                    console.error('Error posting comment:', error);
-                    alert('Failed to post comment: ' + error.message);
+                    console.error('Error posting comment:', error)
                 });
             }
         }

@@ -121,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('login-form').addEventListener('submit', async function (event) {
         event.preventDefault();
-        console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         const inputUsername = document.getElementById('username').value.trim();
         const inputPassword = document.getElementById('password').value;
 
@@ -215,13 +214,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const existingUser = await userLoginRes.json();
 
-                if (existingUser.user) {
+                console.log('existingUser.active: ', existingUser.user.active);
+                if (existingUser.user && (existingUser.user.active === 'true')) {
                     sessionStorage.setItem('loggedInUser', JSON.stringify(existingUser.user));
                     localStorage.setItem('loggedInUser', JSON.stringify(existingUser.user)); // Remember me for Google login
                     window.location.href = existingUser.user.email === "pickify125@gmail.com" ? "admin.html" : "homepage.html";
                 } else {
-                    // This case should ideally not be hit if email exists, but good for debugging
+                    alert('Account is deactivated');
                     console.error("Existing user data not returned after google login.");
+                    // throw new Error('Failed to log in Google user.');
                 }
             } else {
                 // If email is available, prompt for username for a new Google user
@@ -262,7 +263,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 email: googlePayload.email, // Use lowercase 'email'
                 picture: googlePayload.picture, // Optional: store picture
                 googleId: googlePayload.sub, // Optional: store GoogleId
-                password: null // Google users don't have a password in your system
+                password: null, // Google users don't have a password in your system
+                profilePic: null,
+                backgroundPic: null,
+                active: 'true'
             };
 
             const addRes = await fetch('http://localhost:3000/User', {

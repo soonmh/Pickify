@@ -54,12 +54,11 @@ document.addEventListener('DOMContentLoaded', async function() {
         userTable.addEventListener('click', async function(event) {
             const target = event.target;
 
-            // Check if the clicked element is an action button
             if (target.classList.contains('action-btn')) {
-                const row = target.closest('tr'); // Get the parent table row
+                const row = target.closest('tr'); 
                 if (!row) return;
 
-                const statusCell = row.querySelector('td:nth-child(4)'); // The 4th cell is the Status cell
+                const statusCell = row.querySelector('td:nth-child(4)'); 
                 const name = row.querySelector('td:nth-child(2)').textContent;
                 
                 if (target.classList.contains('deactivate-btn')) {
@@ -78,7 +77,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     catch (err) {
                         return console.error('Failed to change status', err.message);
                     }
-                    // Current status is Active, change to Inactive
                     statusCell.textContent = 'Inactive';
                     statusCell.classList.remove('status-active');
                     statusCell.classList.add('status-inactive');
@@ -102,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                     catch (err) {
                         return console.error('Failed to change status', err.message);
                     }
-                    // Current status is Inactive, change to Active
                     statusCell.textContent = 'Active';
                     statusCell.classList.remove('status-inactive');
                     statusCell.classList.add('status-active');

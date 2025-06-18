@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const changePasswordBtn = document.querySelector('.change-password-button button');
-    const modalOverlay = document.getElementById('changePasswordModal'); // This ID still targets the overlay
+    const modalOverlay = document.getElementById('changePasswordModal'); 
 
     if (!changePasswordBtn || !modalOverlay) {
         console.warn('Change password button or its modal overlay not found.');
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const closeModalBtn = modalOverlay.querySelector('.change-password-modal-close-btn');
-    const cancelChangeBtn = modalOverlay.querySelector('#cancelChangePasswordBtn'); // Use ID for specific button
+    const cancelChangeBtn = modalOverlay.querySelector('#cancelChangePasswordBtn'); 
     const saveChangesBtn = modalOverlay.querySelector('#savePasswordBtn');
 
     const currentPasswordInput = document.getElementById('currentPassword');
@@ -27,11 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const passwordForm = document.getElementById('changePasswordForm');
 
-    // Success Modal Elements
     const successModalOverlay = document.getElementById('successMessageModal');
     const successModalOkBtn = document.getElementById('successModalOkBtn');
 
-    // Password complexity regex: At least 8 chars, 1 uppercase, 1 symbol
     const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 
     const showError = (inputElement, errorElement, message) => {
@@ -47,12 +45,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const validatePasswords = () => {
         let isValid = true;
 
-        // Clear previous errors
         clearError(currentPasswordInput, currentPasswordError);
         clearError(newPasswordInput, newPasswordError);
         clearError(confirmNewPasswordInput, confirmNewPasswordError);
 
-        // 1. All inputs must be filled
         if (currentPasswordInput.value.trim() === '') {
             // showError(currentPasswordInput, currentPasswordError, 'Current password is required.');
             isValid = false;
@@ -61,7 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // showError(newPasswordInput, newPasswordError, 'New password is required.');
             isValid = false;
         } else if (!passwordRegex.test(newPasswordInput.value)) {
-            // 2. New password must meet complexity requirements
             showError(newPasswordInput, newPasswordError, 'Password must be at least 8 characters with 1 uppercase letter and 1 symbol.');
             isValid = false;
         }
@@ -69,12 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // showError(confirmNewPasswordInput, confirmNewPasswordError, 'Confirm new password is required.');
             isValid = false;
         } else if (newPasswordInput.value !== confirmNewPasswordInput.value) {
-            // 3. Confirm password must be the same as new password
             showError(confirmNewPasswordInput, confirmNewPasswordError, 'Passwords do not match.');
             isValid = false;
         }
 
-        // 4. Update save button state
         if (isValid) {
             saveChangesBtn.disabled = false;
             saveChangesBtn.classList.remove('disabled');
@@ -87,19 +80,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const showModal = () => {
         modalOverlay.classList.add('active');
-        validatePasswords(); // Validate on show to set initial button state
+        validatePasswords(); 
     };
 
     const hideModal = () => {
         modalOverlay.classList.remove('active');
         if (passwordForm) {
-            passwordForm.reset(); // Clears input values
-            // Clear all error messages and input styles manually after reset
+            passwordForm.reset(); 
             clearError(currentPasswordInput, currentPasswordError);
             clearError(newPasswordInput, newPasswordError);
             clearError(confirmNewPasswordInput, confirmNewPasswordError);
         }
-        validatePasswords(); // Re-validate to set button state (should be disabled)
+        validatePasswords(); 
     };
 
     const showSuccessModal = () => {
@@ -123,10 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cancelChangeBtn) cancelChangeBtn.addEventListener('click', hideModal);
 
     if (modalOverlay) modalOverlay.addEventListener('click', (event) => {
-        if (event.target === modalOverlay) hideModal(); // Close if overlay is clicked
+        if (event.target === modalOverlay) hideModal(); 
     });
 
-    // Add input event listeners for real-time validation
     [currentPasswordInput, newPasswordInput, confirmNewPasswordInput].forEach(input => {
         if (input) {
             input.addEventListener('input', validatePasswords);
@@ -134,14 +125,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     if (saveChangesBtn) saveChangesBtn.addEventListener('click', async (event) => {
-        event.preventDefault(); // Prevent form submission for now
-        // Simulate successful password change
+        event.preventDefault(); 
         const vp = validatePasswords();
         const op = await validateOldPassword(currentPasswordInput.value);
         console.log(`vp ${vp} op ${op}`);
         if (vp && op === true) {
             clearError(currentPasswordInput, currentPasswordError);
-            console.log('Passssssssssssssssssssssss');
             fetch(`http://localhost:3000/user/changePassword?userId=${userId}`, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
@@ -151,9 +140,8 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 if (data.success) {
                     console.log('Password change submitted. Implement actual logic here.');
-                    // In a real app, you'd wait for a success response from the server here.
-                    hideModal(); // Hide the change password modal
-                    showSuccessModal(); // Show the success message
+                    hideModal(); 
+                    showSuccessModal(); 
                 }
                 else {
                     alert('Passwowrd is not updated');
@@ -166,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Event listener for the OK button on the success modal
     if (successModalOkBtn) successModalOkBtn.addEventListener('click', hideSuccessModal);
 });
 
@@ -182,12 +169,11 @@ const validateOldPassword = async oldPassword => {
         return data.success;
     }catch (err) {
         console.error('Error validating old password:', err);
-        // Attempt to log error details if it's a JSON response, otherwise log the error itself
         try {
-            const errorDetails = await err.json(); // If the error response is JSON
+            const errorDetails = await err.json(); 
             console.error('Error details:', errorDetails);
         } catch (parseError) {
-            // If err.json() fails, it means the error response wasn't JSON
+            console.error('Error details:', parseError);
         }
         return false;
     }

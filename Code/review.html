@@ -11,7 +11,7 @@
         <script src="./js/comment.js" defer></script>
         <script src="./js/delete.js" defer></script>
         <script src="./js/rating.js" defer></script>
-        <script src="./js/review.js" defer></script>
+        <script src="./js/Review.js" defer></script>
     </head>
 
     <body data-page-type="main">
@@ -36,29 +36,28 @@
                     <p class="item-description"></p>
                 </div>
             </div>
-    
+
             <div class="review-summary">
-                <h2>Average Rating: <span class="average-rating">0.0</span>/5</h2>
-                <div class="star-rating">☆☆☆☆☆</div>
+            
+                <span class="vote-average"></span>
                 <div class="breakdown">
-                    <p>5 stars: <span class="rating-5">0%</span> | 4 stars: <span class="rating-4">0%</span> | 3 stars: <span class="rating-3">0%</span> | 2 stars: <span class="rating-2">0%</span> | 1 star: <span class="rating-1">0%</span></p>
-                    <p><span class="total-reviews">0</span> Reviews Total</p>
+                    <p>5 stars: <span class="rating-5">0%</span> | 4 stars: <span class="rating-4">0%</span> | 3 stars: <span class="rating-3">0%</span> | 2 stars: <span class="rating-2">0%</span> | 1 stars: <span class="rating-1">0%</span></p>
                 </div>
             </div>
+        </div>
+
+        <div class="review-list">
+            <!-- Reviews will be dynamically added here -->
         </div>
 
         <div class="review-form">
             <h3>Write a Review</h3>
             <div class="rating-input">
                 <label for="rating">Your Rating:</label>
-                <input type="number" id="rating" name="rating" min="1" max="5" value="1" step="1">
+                <input type="number" id="rating" name="rating" min="1" max="5" value="0" step="1">
             </div>
             <textarea id="review-text" placeholder="Write your review here..."></textarea>
             <button id="submit-review">Submit Review</button>
-        </div>
-
-        <div class="review-list">
-            <!-- Reviews will be dynamically added here -->
         </div>
 
         <div id="footer-placeholder"></div>

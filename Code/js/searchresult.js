@@ -337,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsContainer.appendChild(col);
     });
 }
+
+
     
     // Update results count
     function updateResultsCount() {

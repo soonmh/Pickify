@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (deleteAccountBtn && modalOverlay) {
         deleteAccountBtn.addEventListener('click', (event) => {
-            event.preventDefault(); // Prevent any default button action
+            event.preventDefault(); 
             modalOverlay.classList.add('active');
         });
     }
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (closeModalBtn) closeModalBtn.addEventListener('click', hideModal);
     if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', hideModal);
     if (modalOverlay) modalOverlay.addEventListener('click', (event) => {
-        if (event.target === modalOverlay) hideModal(); // Close if overlay is clicked
+        if (event.target === modalOverlay) hideModal(); 
     });
 
     if (confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', async () => {
@@ -46,10 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok && result.success) {
                 alert('Account deleted successfully.');
-                // Clear any local/session storage related to the user
                 localStorage.removeItem('loggedInUser');
                 sessionStorage.removeItem('loggedInUser');
-                window.location.replace('landingpage.html'); // Redirect to landing page
+                window.location.replace('landingpage.html'); 
             }
             else {
                 alert(`Failed to delete account: ${result.error || 'Unknown error'}`);
