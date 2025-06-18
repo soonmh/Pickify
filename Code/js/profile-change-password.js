@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     const isLoggedIn = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
     if(isLoggedIn){
         user = JSON.parse(isLoggedIn);
@@ -7,6 +7,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const changePasswordBtn = document.querySelector('.change-password-button button');
     const modalOverlay = document.getElementById('changePasswordModal'); 
+
+    console.log('testingggggggg');
+    try {
+        const testPassword = await fetch(`http://localhost:3000/user/checkPasswordNull?userId=${userId}`);
+        const testPasswordRes = await testPassword.json();
+        console.log('testPasswordRes.password ', testPasswordRes.res);
+        if (testPasswordRes.success && testPasswordRes.res) {
+            console.log('Hiding Change Password Button');
+            changePasswordBtn.disabled = true;
+            changePasswordBtn.style.display = 'none';
+            // hideModal(); 
+        }
+    }
+    catch (err) {
+        console.error('Error in checking user password', err);
+    }
+
+    
 
     if (!changePasswordBtn || !modalOverlay) {
         console.warn('Change password button or its modal overlay not found.');

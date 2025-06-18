@@ -1612,6 +1612,29 @@ app.post('/user/getPassword', async (req, res) => {
     }
 });
 
+app.get('/user/checkPasswordNull', async (req, res) => {
+    const {userId} = req.query;
+    
+    try {
+        const id = new ObjectId(userId);
+        const user = await db.collection('User').findOne({_id: id});
+
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found', res: false});
+        }
+        if (user.password === null) {
+            res.status(200).json({success: true, res: true});
+        }
+        else {
+            res.status(200).json({success: true, res: false});
+        }
+
+    } catch (err) {
+        console.error('Error in /user/checkPasswordNull:', err);
+        res.status(500).json({success: false, error: 'Server error during password verification.', res: false});
+    }
+});
+
 // Enhanced search API with better debugging - replace your existing search API
 app.get('/api/search', async (req, res) => {
     try {
