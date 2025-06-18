@@ -1,3 +1,4 @@
+
 const API_BASE_URL = 'http://localhost:3000/api';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
@@ -23,8 +24,18 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
             })
         });
 
+        console.log('🚨 Response status:', response.status);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const textResponse = await response.text();
+            console.error('❌ Non-JSON response received:', textResponse);
+            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
+        }
+        
         const result = await response.json();
-        console.log('Submit review response:', result);
+        console.log('🚨 Response result:', result);
         
         if (result.success) {
             console.log('Review submitted successfully');
@@ -82,7 +93,24 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
             
             alert('Review submitted successfully!');
         } else {
-            alert(result.message || 'Failed to submit review');
+            // Handle specific error for already reviewed
+            if (result.message && result.message.includes('already reviewed')) {
+                alert('You already reviewed this entertainment');
+                // Optionally hide the review form or show a message
+                const reviewForm = document.querySelector('.review-form');
+                if (reviewForm) {
+                    const existingMessage = reviewForm.querySelector('.already-reviewed-message');
+                    if (!existingMessage) {
+                        const message = document.createElement('div');
+                        message.className = 'already-reviewed-message';
+                        message.style.cssText = 'color: #ff6b6b; text-align: center; padding: 10px; margin: 10px 0; background: #ffe6e6; border-radius: 5px;';
+                        message.textContent = 'You already reviewed this entertainment';
+                        reviewForm.insertBefore(message, reviewForm.firstChild);
+                    }
+                }
+            } else {
+                alert(result.message || 'Failed to submit review');
+            }
         }
     } catch (error) {
         console.error('Error submitting review:', error);
@@ -292,6 +320,16 @@ async function deleteReview(reviewId, user) {
             if (reviewsResult.success) {
                 updateReviewStats(reviewsResult.data);
                 displayReviews(reviewsResult.data);
+                
+                // Show the review form again since user can now submit a new review
+                const reviewForm = document.querySelector('.review-form');
+                if (reviewForm) {
+                    reviewForm.style.display = 'block';
+                }
+                
+                // Remove any "already reviewed" messages
+                const existingMessages = document.querySelectorAll('.already-reviewed-message');
+                existingMessages.forEach(msg => msg.remove());
             }
             
             alert('Review deleted successfully!');
@@ -444,20 +482,19 @@ function cancelEdit(reviewId) {
 
 // Function to show report form
 function showReportForm(reviewId, commentId = null) {
-    const reason = prompt('Please enter the reason for reporting this content:');
-    if (reason === null) return; // User cancelled
-
-    if (!reason.trim()) {
-        alert('Please provide a reason for reporting');
-        return;
-    }
-
-    submitReport(reviewId, commentId, reason);
+    const contentType = commentId ? 'comment' : 'review';
+    const defaultReason = 'Inappropriate content';
+    
+    // Automatically submit report with default reason
+    submitReport(reviewId, commentId, defaultReason);
 }
 
 // Function to submit report
 async function submitReport(reviewId, commentId = null, reason) {
     try {
+        console.log('🚨 Submitting report:', { reviewId, commentId, reason });
+        console.log('🚨 API_BASE_URL:', API_BASE_URL);
+        
         // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
@@ -470,29 +507,46 @@ async function submitReport(reviewId, commentId = null, reason) {
         }
 
         const user = JSON.parse(userData).username || JSON.parse(userData).name;
+        console.log('🚨 Reporting user:', user);
+
+        const requestBody = { 
+            reviewId, 
+            commentId, 
+            user, 
+            reason 
+        };
+        console.log('🚨 Request body:', requestBody);
+        console.log('🚨 Full URL being called:', `${API_BASE_URL}/reports`);
 
         const response = await fetch(`${API_BASE_URL}/reports`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ 
-                reviewId, 
-                commentId, 
-                user, 
-                reason: 'Inappropriate content' 
-            })
+            body: JSON.stringify(requestBody)
         });
 
+        console.log('🚨 Response status:', response.status);
+        
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const textResponse = await response.text();
+            console.error('❌ Non-JSON response received:', textResponse);
+            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
+        }
+        
         const result = await response.json();
+        console.log('🚨 Response result:', result);
         
         if (result.success) {
-            alert('Report submitted successfully. Thank you for helping keep our community safe.');
+            const contentType = commentId ? 'comment' : 'review';
+            alert(`${contentType.charAt(0).toUpperCase() + contentType.slice(1)} reported successfully. Thank you for helping keep our community safe.`);
         } else {
             throw new Error(result.message || 'Failed to submit report');
         }
     } catch (error) {
-        console.error('Error submitting report:', error);
+        console.error('❌ Error submitting report:', error);
         alert(error.message || 'Failed to submit report. Please try again.');
     }
 }
@@ -500,6 +554,8 @@ async function submitReport(reviewId, commentId = null, reason) {
 // Function to delete comment
 async function deleteComment(reviewId, commentId) {
     try {
+        console.log('🗑️ Attempting to delete comment:', { reviewId, commentId });
+        
         // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
@@ -512,6 +568,7 @@ async function deleteComment(reviewId, commentId) {
         }
 
         const user = JSON.parse(userData).username || JSON.parse(userData).name;
+        console.log('Current user:', user);
 
         const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}`, {
             method: 'DELETE',
@@ -521,19 +578,29 @@ async function deleteComment(reviewId, commentId) {
             body: JSON.stringify({ user })
         });
 
+        console.log('Delete comment response status:', response.status);
         const result = await response.json();
+        console.log('Delete comment response:', result);
         
         if (result.success) {
-            // Refresh the reviews
-            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
-            const reviewsResult = await reviewsResponse.json();
-            
-            if (reviewsResult.success) {
-                updateReviewStats(reviewsResult.data);
-                displayReviews(reviewsResult.data);
+            // Immediately remove the comment from the UI
+            const commentElement = document.querySelector(`#comment-${commentId}`);
+            if (commentElement) {
+                commentElement.remove();
+                console.log('✅ Comment element removed from UI immediately');
+                alert('Comment deleted successfully!');
+            } else {
+                console.warn('⚠️ Comment element not found in UI, refreshing all reviews');
+                // Fallback: refresh all reviews
+                const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
+                const reviewsResult = await reviewsResponse.json();
+                
+                if (reviewsResult.success) {
+                    updateReviewStats(reviewsResult.data);
+                    displayReviews(reviewsResult.data);
+                }
+                alert('Comment deleted successfully!');
             }
-            
-            alert('Comment deleted successfully!');
         } else {
             throw new Error(result.message || 'Failed to delete comment');
         }
@@ -636,7 +703,6 @@ function cancelCommentEdit(commentId) {
     }
 }
 
-// Function to submit comment
 async function submitComment(reviewId, user, comment, userAvatar) {
     try {
         if (!comment.trim()) {
@@ -692,7 +758,62 @@ async function submitComment(reviewId, user, comment, userAvatar) {
     }
 }
 
-// Function to display reviews
+// Function to check if user has already reviewed this entertainment item
+function hasUserReviewed(reviews, currentUser) {
+    if (!reviews || !currentUser) return false;
+    return reviews.some(review => review.user === currentUser);
+}
+
+// Function to update review form visibility based on user's review status
+function updateReviewFormVisibility(reviews, currentUser) {
+    const reviewForm = document.querySelector('.review-form');
+    if (!reviewForm) return;
+    
+    const hasReviewed = hasUserReviewed(reviews, currentUser);
+    const existingMessage = reviewForm.querySelector('.already-reviewed-message');
+    
+    if (hasReviewed) {
+        // Hide the review form and show message
+        reviewForm.style.display = 'none';
+        
+        // Add a prominent paragraph message below the review list
+        const reviewList = document.querySelector('.review-list');
+        if (reviewList) {
+            const message = document.createElement('div');
+            message.className = 'already-reviewed-message';
+            message.style.cssText = ' text-align: center; padding: 20px; margin: 20px 0; border-radius: 10px; font-size: 16px; line-height: 1.5;';
+            message.innerHTML = `
+            
+                <p style="margin: 0; color: #636e72;">
+                    You have previously submitted a review for this entertainment item. 
+                </p>
+            `;
+            
+            // Remove any existing message first
+            const existingMessage = reviewList.parentElement.querySelector('.already-reviewed-message');
+            if (existingMessage) {
+                existingMessage.remove();
+            }
+            
+            // Insert the message after the review list
+            reviewList.parentElement.insertBefore(message, reviewList.nextSibling);
+        }
+    } else {
+        // Show the review form and remove any existing messages
+        reviewForm.style.display = 'block';
+        
+        if (existingMessage) {
+            existingMessage.remove();
+        }
+        
+        // Remove section message if it exists
+        const existingSectionMessage = document.querySelector('.already-reviewed-message');
+        if (existingSectionMessage) {
+            existingSectionMessage.remove();
+        }
+    }
+}
+
 function displayReviews(reviews) {
     const reviewList = document.querySelector('.review-list');
     reviewList.innerHTML = '';
@@ -709,6 +830,9 @@ function displayReviews(reviews) {
     }
     const currentUser = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
     const userAvatar = userData ? JSON.parse(userData).profilePicture || './assests/profilepic3.png' : './assests/profilepic3.png';
+
+    // Update review form visibility based on whether user has already reviewed
+    updateReviewFormVisibility(reviews, currentUser);
 
     reviews.forEach(review => {
         const reviewElement = document.createElement('div');
@@ -727,7 +851,9 @@ function displayReviews(reviews) {
                     <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${escapedText}')">Edit</button>
                     <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
                 ` : ''}
-                <button class="report-btn" onclick="submitReport('${review._id}')">Report</button>
+                ${currentUser !== review.user ? `
+                    <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>
+                ` : ''}
             </div>`;
 
         reviewElement.innerHTML = `
@@ -761,7 +887,7 @@ function displayReviews(reviews) {
                                             <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
                                         ` : ''}
                                         ${currentUser !== comment.user ? `
-                                            <button class="report-comment-btn" onclick="submitReport('${review._id}', '${comment._id}')">Report</button>
+                                            <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
                                         ` : ''}
                                     </div>
                                 </div>
@@ -835,6 +961,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Store the entertainment ID globally for review submission
         currentEntertainmentId = entertainmentData._id || entertainmentData.id;
         console.log('Set currentEntertainmentId to:', currentEntertainmentId);
+        console.log('Entertainment data _id:', entertainmentData._id);
+        console.log('Entertainment data id:', entertainmentData.id);
 
         // Create a review object with the entertainment details
         const review = {
@@ -849,9 +977,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Populate the entertainment details
         populateEntertainmentDetails(review);
 
-        // Then fetch the reviews using the MongoDB _id
+        // Then fetch the reviews using the entertainment's MongoDB _id
         if (currentEntertainmentId) {
-            console.log('Fetching reviews for ID:', currentEntertainmentId);
+            console.log('Fetching reviews for entertainment ID:', currentEntertainmentId);
+            console.log('Type of currentEntertainmentId:', typeof currentEntertainmentId);
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             console.log('Reviews response:', reviewsResult);
@@ -865,7 +994,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 displayReviews([]);
             }
         } else {
-            console.warn('No valid ID found for fetching reviews. Data:', entertainmentData);
+            console.warn('No valid entertainment ID found for fetching reviews. Data:', entertainmentData);
             updateReviewStats([]);
             displayReviews([]);
         }
