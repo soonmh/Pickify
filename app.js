@@ -846,16 +846,16 @@ app.post('/addToCollection', async (req, res) => {
     }
 });
 
-
+//Recommendation endpoint and helper functions
 
 // GET /api/recommendation/:userId - Get personalized recommendations
 app.get('/api/recommendation/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
-        const refresh = req.query.refresh === 'true'; // Add refresh parameter
+        
 
-        console.log(`🎯 Fetching recommendations for user: ${userId}, refresh: ${refresh}`);
+        console.log('🎯 Fetching recommendations for user: ${userId}');
 
         // Validate userId
         let userObjectId;
@@ -865,10 +865,7 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
-        // Create a session-based seed for randomization
-        const timeSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Changes every hour
-        const userSeed = userId.slice(-4); // Use last 4 chars of userId
-        const randomSeed = refresh ? Math.random() : parseInt(userSeed, 16) + timeSeed;
+        const randomSeed = Date.now() + Math.floor(Math.random() * 100000);
 
         console.log('🎲 Random seed:', randomSeed);
 
@@ -877,7 +874,6 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             .findOne({ userId: userObjectId, collectionName: 'Favourite' });
 
         if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
-            // Return random popular items when no favorites
             const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
             return res.status(200).json({
                 success: true,
@@ -944,17 +940,14 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
         });
 
-        // Get preferred genres with some randomization
         const allGenres = Object.entries(genreCounts)
             .filter(([_, count]) => count >= 1)
             .sort((a, b) => b[1] - a[1]);
 
-        // Randomly select 60-80% of top genres to add variety
-        const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500; // 0.6 to 0.8
+        const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500;
         const numGenresToSelect = Math.max(1, Math.floor(allGenres.length * genreSelectionRatio));
         const preferredGenres = allGenres.slice(0, numGenresToSelect).map(([genre]) => genre);
 
-        // Add occasional random genres for discovery
         if (Math.random() < 0.3) {
             const randomGenres = ['Action', 'Comedy', 'Drama', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror'];
             const randomGenre = randomGenres[Math.floor(Math.random() * randomGenres.length)];
@@ -979,7 +972,6 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             const itemsPerType = Math.ceil(limit / preferredTypes.length);
             const typeRecommendations = [];
 
-            // Try different strategies for variety
             for (let i = 0; i < itemsPerType; i++) {
                 const strategy = recommendationStrategies[i % recommendationStrategies.length];
                 const strategyRecs = await getRecommendationsByStrategy(
@@ -996,24 +988,38 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
         }
 
-        // 6. Advanced shuffling with weighted randomization
-        const shuffled = weightedShuffle(recommendations, randomSeed).slice(0, limit);
+        // 6. **REMOVE DUPLICATES BEFORE SHUFFLING**
+        const uniqueRecommendations = removeDuplicates(recommendations);
+        console.log(`🔧 Removed duplicates: ${recommendations.length} -> ${uniqueRecommendations.length}`);
 
-        // 7. Add some completely random items for discovery (10% chance)
+        // 7. Advanced shuffling with weighted randomization
+        const shuffled = weightedShuffle(uniqueRecommendations, randomSeed);
+
+        // 8. Add discovery items if needed (and remove duplicates again)
         if (Math.random() < 0.1 && shuffled.length < limit) {
             const discoveryItems = await getRandomPopularItems(
                 Math.min(2, limit - shuffled.length), 
                 randomSeed + 1000
             );
-            shuffled.push(...discoveryItems);
+            // Remove duplicates between main recommendations and discovery items
+            const filteredDiscoveryItems = discoveryItems.filter(discoveryItem => 
+                !shuffled.some(existingItem => 
+                    getItemUniqueKey(discoveryItem) === getItemUniqueKey(existingItem)
+                )
+            );
+            shuffled.push(...filteredDiscoveryItems);
         }
 
-        console.log(`✅ Generated ${shuffled.length} varied recommendations`);
+        // 9. Final slice and duplicate check
+        const finalRecommendations = shuffled.slice(0, limit);
+        const finalUnique = removeDuplicates(finalRecommendations);
+
+        console.log(`✅ Generated ${finalUnique.length} unique varied recommendations`);
 
         return res.status(200).json({
             success: true,
-            count: shuffled.length,
-            data: shuffled.slice(0, limit),
+            count: finalUnique.length,
+            data: finalUnique,
             type: 'personalized_varied',
             userPreferences: {
                 totalItemsInCollections: allUserItems.length,
@@ -1032,11 +1038,35 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         });
     }
 });
-// Helper function to get recommendations by different strategies
+function getItemUniqueKey(item) {
+    if (item.type === 'movie') {
+        return `movie-${item.tmdbId}`;
+    } else if (item.type === 'music') {
+        return `music-${item.id}`;
+    } else if (item.type === 'book') {
+        return `book-${item._id}`;
+    }
+    return `unknown-${item.id || item._id || item.tmdbId}`;
+}
+function removeDuplicates(recommendations) {
+    const seen = new Set();
+    const unique = [];
+    
+    for (const item of recommendations) {
+        const key = getItemUniqueKey(item);
+        if (!seen.has(key)) {
+            seen.add(key);
+            unique.push(item);
+        } else {
+            console.log(`🔍 Duplicate found and removed: ${key}`);
+        }
+    }
+    
+    return unique;
+}
 async function getRecommendationsByStrategy(type, strategy, preferredGenres, excludedIds, limit, seed) {
     let collectionName, query, sortCriteria;
 
-    // Set collection and base query
     if (type === 'movie') {
         collectionName = 'Movie';
         query = { tmdbId: { $nin: excludedIds } };
@@ -1048,7 +1078,6 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
         query = { _id: { $nin: excludedIds } };
     }
 
-    // Apply strategy-specific modifications
     switch (strategy) {
         case 'genre_based':
             if (type === 'movie') {
@@ -1081,7 +1110,7 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
                 query.vote_average = { $gte: 7.0 };
                 sortCriteria = { vote_average: -1 };
             } else if (type === 'music') {
-                sortCriteria = { popularity: -1 }; // Use popularity as proxy for rating
+                sortCriteria = { popularity: -1 };
             } else if (type === 'book') {
                 query.rating = { $gte: 4.0 };
                 sortCriteria = { rating: -1 };
@@ -1089,26 +1118,23 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
             break;
 
         case 'random':
-            // No additional filters, just random sampling
             break;
     }
 
     try {
         let results;
         if (strategy === 'random') {
-            // Use MongoDB's $sample for true randomization
             results = await db.collection(collectionName).aggregate([
                 { $match: query },
-                { $sample: { size: limit } }
+                { $sample: { size: limit * 2 } } // **Fetch more to account for duplicates**
             ]).toArray();
         } else {
-            // Add some randomness to skip items
-            const skip = Math.floor((seed % 10) * 2); // Skip 0-18 items randomly
+            const skip = Math.floor((seed % 10) * 2);
             results = await db.collection(collectionName)
                 .find(query)
                 .sort(sortCriteria)
                 .skip(skip)
-                .limit(limit)
+                .limit(limit * 2) // **Fetch more to account for duplicates**
                 .toArray();
         }
 
@@ -1118,19 +1144,47 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
         return [];
     }
 }
-// Helper function for weighted shuffling
+async function getRandomPopularItems(limit, seed) {
+    const recommendations = [];
+    
+    try {
+        const movies = await db.collection('Movie').aggregate([
+            { $match: { vote_average: { $gte: 6.0 }, popularity: { $gte: 10 } } },
+            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
+        ]).toArray();
+        
+        const music = await db.collection('Music').aggregate([
+            { $match: { popularity: { $gte: 20 } } },
+            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
+        ]).toArray();
+        
+        const books = await db.collection('books').aggregate([
+            { $match: { rating: { $gte: 3.5 } } },
+            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
+        ]).toArray();
+        
+        recommendations.push(
+            ...movies.map(item => ({ ...item, type: 'movie' })),
+            ...music.map(item => ({ ...item, type: 'music' })),
+            ...books.map(item => ({ ...item, type: 'book' }))
+        );
+        
+        // **Remove duplicates before shuffling**
+        const uniqueRecommendations = removeDuplicates(recommendations);
+        return weightedShuffle(uniqueRecommendations, seed).slice(0, limit);
+    } catch (error) {
+        console.error('Error getting random popular items:', error);
+        return [];
+    }
+}
 function weightedShuffle(array, seed) {
     const shuffled = [...array];
-    
-    // Use seed for reproducible but varied shuffling
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(((seed + i) * 9301 + 49297) % 233280 / 233280) * (i + 1);
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-    
     return shuffled;
 }
-// Helper function to get excluded IDs based on type
 function getExcludedIds(type, movieIds, musicIds, bookIds) {
     switch (type) {
         case 'movie':
@@ -1143,42 +1197,6 @@ function getExcludedIds(type, movieIds, musicIds, bookIds) {
             return [];
     }
 }
-// Helper function to get random popular items when no user preferences exist
-async function getRandomPopularItems(limit, seed) {
-    const recommendations = [];
-    
-    try {
-        // Get random movies
-        const movies = await db.collection('Movie').aggregate([
-            { $match: { vote_average: { $gte: 6.0 }, popularity: { $gte: 10 } } },
-            { $sample: { size: Math.ceil(limit / 3) } }
-        ]).toArray();
-        
-        // Get random music
-        const music = await db.collection('Music').aggregate([
-            { $match: { popularity: { $gte: 20 } } },
-            { $sample: { size: Math.ceil(limit / 3) } }
-        ]).toArray();
-        
-        // Get random books
-        const books = await db.collection('books').aggregate([
-            { $match: { rating: { $gte: 3.5 } } },
-            { $sample: { size: Math.ceil(limit / 3) } }
-        ]).toArray();
-        
-        recommendations.push(
-            ...movies.map(item => ({ ...item, type: 'movie' })),
-            ...music.map(item => ({ ...item, type: 'music' })),
-            ...books.map(item => ({ ...item, type: 'book' }))
-        );
-        
-        return weightedShuffle(recommendations, seed).slice(0, limit);
-    } catch (error) {
-        console.error('Error getting random popular items:', error);
-        return [];
-    }
-}
-
 
 
 // GET /api/movies/top/:limit - Get top movies by popularity
@@ -2231,6 +2249,19 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
 app.post('/api/reviews', async (req, res) => {
     const { entertainmentId, user, rating, text } = req.body;
     try {
+        // Check if user has already reviewed this entertainment item
+        const existingReview = await db.collection('reviews').findOne({
+            entertainmentId: new ObjectId(entertainmentId),
+            user: user
+        });
+        
+        if (existingReview) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'You already reviewed this entertainment' 
+            });
+        }
+        
         const review = {
             entertainmentId: new ObjectId(entertainmentId),
             user,
@@ -2260,9 +2291,6 @@ app.put('/api/reviews/:id', async (req, res) => {
             { returnDocument: 'after' }
         );
         
-        if (!result.value) {
-            return res.status(404).json({ success: false, message: 'Review not found' });
-        }
         
         res.json({ success: true, data: result.value });
     } catch (err) {
@@ -2288,28 +2316,314 @@ app.patch('/api/reviews/:id/report', async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 });
-app.post('/api/reviews/:id/comment', async (req, res) => {
+
+app.post('/api/reviews/:id/comments', async (req, res) => {
     const { user, comment } = req.body;
+    const { id } = req.params;
+    
     try {
+        console.log('💬 Attempting to add comment:', { id, user, comment });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+
+        
         const newComment = {
+            _id: new ObjectId(), // Add unique ID for the comment
             user,
             comment,
             createdAt: new Date()
         };
         
         const result = await db.collection('reviews').findOneAndUpdate(
-            { _id: new ObjectId(req.params.id) },
+            { _id: new ObjectId(id) },
             { $push: { comments: newComment } },
             { returnDocument: 'after' }
         );
         
-        if (!result.value) {
-            return res.status(404).json({ success: false, message: 'Review not found' });
-        }
-        
+        console.log('✅ Comment added successfully');
         res.json({ success: true, data: result.value });
     } catch (err) {
         console.error('❌ Error adding comment:', err);
-        res.status(400).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE endpoint for reviews
+app.delete('/api/reviews/:id', async (req, res) => {
+    const { id } = req.params;
+    const { user } = req.body;
+    
+    try {
+        console.log('🗑️ Attempting to delete review:', { id, user });
+        
+        // First, check if the review exists and belongs to the user
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (!review) {
+            return res.status(404).json({ 
+                success: false, 
+                message: 'Review not found' 
+            });
+        }
+        
+        // Check if the user owns this review
+        if (review.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only delete your own reviews' 
+            });
+        }
+        
+        // Delete the review
+        const result = await db.collection('reviews').deleteOne({ 
+            _id: new ObjectId(id) 
+        });
+        
+        if (result.deletedCount === 0) {
+        }
+        
+        console.log('✅ Review deleted successfully');
+        res.json({ success: true, message: 'Review deleted successfully' });
+    } catch (err) {
+        console.error('❌ Error deleting review:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// DELETE endpoint for comments
+app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
+    const { reviewId, commentId } = req.params;
+    const { user } = req.body;
+    
+    try {
+        console.log('🗑️ Attempting to delete comment:', { reviewId, commentId, user });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(reviewId) 
+        });
+
+        
+        // Find the comment in the review
+        const comment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
+        
+        
+        // Check if the user owns this comment
+        if (comment.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only delete your own comments' 
+            });
+        }
+        
+        // Remove the comment from the review
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { _id: new ObjectId(reviewId) },
+            { $pull: { comments: { _id: new ObjectId(commentId) } } },
+            { returnDocument: 'after' }
+        );
+        
+        
+        console.log('✅ Comment deleted successfully');
+        res.json({ success: true, message: 'Comment deleted successfully' });
+    } catch (err) {
+        console.error('❌ Error deleting comment:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// PUT endpoint for updating comments
+app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
+    const { reviewId, commentId } = req.params;
+    const { user, comment } = req.body;
+    
+    try {
+        console.log('✏️ Attempting to update comment:', { reviewId, commentId, user });
+        
+        // First, check if the review exists
+        const review = await db.collection('reviews').findOne({ 
+            _id: new ObjectId(reviewId) 
+        });
+        
+        
+        // Find the comment in the review
+        const existingComment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
+        
+
+        
+        // Check if the user owns this comment
+        if (existingComment.user !== user) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'You can only edit your own comments' 
+            });
+        }
+        
+        // Update the comment
+        const result = await db.collection('reviews').findOneAndUpdate(
+            { 
+                _id: new ObjectId(reviewId),
+                'comments._id': new ObjectId(commentId)
+            },
+            { 
+                $set: { 
+                    'comments.$.comment': comment,
+                    'comments.$.updatedAt': new Date()
+                } 
+            },
+            { returnDocument: 'after' }
+        );
+        
+        console.log('✅ Comment updated successfully');
+        res.json({ success: true, message: 'Comment updated successfully' });
+    } catch (err) {
+        console.error('❌ Error updating comment:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Reports endpoint for both reviews and comments
+app.post('/api/reports', async (req, res) => {
+    const { reviewId, commentId, user, reason } = req.body;
+    
+    try {
+        console.log('🚨 Attempting to submit report:', { reviewId, commentId, user, reason });
+        
+        // Validate required fields
+        if (!user || !reason) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'User and reason are required' 
+            });
+        }
+        
+        if (!reviewId && !commentId) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Either reviewId or commentId is required' 
+            });
+        }
+        
+        // Create report object
+        const report = {
+            _id: new ObjectId(),
+            user,
+            reason,
+            createdAt: new Date(),
+            status: 'pending' // pending, reviewed, resolved
+        };
+        
+        if (commentId) {
+            // Report for a comment
+            report.type = 'comment';
+            report.commentId = commentId;
+            report.reviewId = reviewId;
+            
+            // Verify the comment exists
+            const review = await db.collection('reviews').findOne({ 
+                _id: new ObjectId(reviewId),
+                'comments._id': new ObjectId(commentId)
+            });
+            
+            if (!review) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Comment not found' 
+                });
+            }
+            
+            // Add report to the comment
+            const result = await db.collection('reviews').findOneAndUpdate(
+                { 
+                    _id: new ObjectId(reviewId),
+                    'comments._id': new ObjectId(commentId)
+                },
+                { 
+                    $push: { 
+                        'comments.$.reports': report 
+                    } 
+                },
+                { returnDocument: 'after' }
+            );
+            
+            console.log('✅ Comment report submitted successfully');
+            res.json({ success: true, message: 'Comment report submitted successfully' });
+            
+        } else {
+            // Report for a review
+            report.type = 'review';
+            report.reviewId = reviewId;
+            
+            // Verify the review exists
+            const review = await db.collection('reviews').findOne({ 
+                _id: new ObjectId(reviewId)
+            });
+            
+            if (!review) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Review not found' 
+                });
+            }
+            
+            // Add report to the review
+            const result = await db.collection('reviews').findOneAndUpdate(
+                { _id: new ObjectId(reviewId) },
+                { $push: { reports: report } },
+                { returnDocument: 'after' }
+            );
+            
+            console.log('✅ Review report submitted successfully');
+            res.json({ success: true, message: 'Review report submitted successfully' });
+        }
+        
+    } catch (err) {
+        console.error('❌ Error submitting report:', err);
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Get reports for admin (optional endpoint for future admin panel)
+app.get('/api/reports', async (req, res) => {
+    try {
+        const reports = await db.collection('reviews').aggregate([
+            {
+                $unwind: {
+                    path: '$comments',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $project: {
+                    reviewId: '$_id',
+                    reviewUser: '$user',
+                    reviewText: '$text',
+                    commentId: '$comments._id',
+                    commentUser: '$comments.user',
+                    commentText: '$comments.comment',
+                    reviewReports: '$reports',
+                    commentReports: '$comments.reports'
+                }
+            },
+            {
+                $match: {
+                    $or: [
+                        { reviewReports: { $exists: true, $ne: [] } },
+                        { commentReports: { $exists: true, $ne: [] } }
+                    ]
+                }
+            }
+        ]).toArray();
+        
+        res.json({ success: true, data: reports });
+    } catch (err) {
+        console.error('❌ Error fetching reports:', err);
+        res.status(500).json({ success: false, message: err.message });
     }
 });
