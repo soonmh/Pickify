@@ -59,7 +59,28 @@ body {
 .review-summary h2 {
     margin-bottom: 10px;
 }
+.summary-container,
+.review-summary,
+.review-list,
+.review-form {
+    width: 800px !important;
+    margin: 20px auto !important;
+    padding: 30px !important;
+    background-color: #fff !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
 
+.review-summary {
+    width: 740px !important;
+    height: 185.15px !important;
+    margin: 20px auto !important;
+    padding: 30px !important;
+    background-color: #8F94FB !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+    overflow: hidden !important;
+}
 .review-summary .star-rating {
     color: #ffd700;
     font-size: 1.4em;
@@ -87,6 +108,38 @@ body {
     margin: 5px 0;
     color: #666;
 }
+
+/* TMDB Rating Display Styles */
+.tmdb-rating {
+    text-align: center;
+    margin: 10px 0;
+}
+
+.tmdb-rating-text {
+    display: block;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.tmdb-stars {
+    color: #ffd700;
+    font-size: 1.4em;
+    letter-spacing: 2px;
+}
+
+/* Rating breakdown styles */
+.rating-5, .rating-4, .rating-3, .rating-2, .rating-1 {
+    font-weight: bold;
+    color: #333;
+}
+
+.rating-5 { color: #28a745; }
+.rating-4 { color: #17a2b8; }
+.rating-3 { color: #ffc107; }
+.rating-2 { color: #fd7e14; }
+.rating-1 { color: #dc3545; }
 
 .review-list {
     max-width: 800px;
@@ -233,7 +286,7 @@ body {
 }
 
 .report-btn {
-    background-color: #f0ad4e; /* A common color for 'report' (e.g., orange/amber) */
+    background-color: #f0ad4e;
     color: white;
     border: none;
     padding: 5px 10px;
