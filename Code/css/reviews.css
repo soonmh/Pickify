@@ -240,18 +240,6 @@ body {
     background-color: #ec971f; /* A darker shade for hover effect */
 }
 
-.star-rating{
-    font-size:32px;
-    color:#ccc;
-    cursor:pointer;
-    margin-bottom:1rem;
-}
-
-.star-rating .star:hover,
-.star-rating .star.hovered,
-.star-rating .star.selected{
-    color:gold;
-}
 
 #footer-placeholder {
     margin-top: auto;
@@ -378,6 +366,18 @@ body {
     margin: 20px 0;
 }
 
+.star-rating{
+    font-size:32px;
+    color:#ccc;
+    cursor:pointer;
+    margin-bottom:1rem;
+}
+
+.star-rating .star:hover,
+.star-rating .star.hovered,
+.star-rating .star.selected{
+    color:gold;
+}
 
 .star-rating-bar input[type="radio"] {
     display: none !important;
@@ -410,7 +410,7 @@ body {
 }
 
 #submit-review {
-    background-color: #8F94FB; /* Primary color from footer */
+    background-color: #8F94FB; 
     color: white;
     border: none;
     padding: 10px 20px;
@@ -762,7 +762,7 @@ body {
     justify-content: flex-start !important;
     gap: 5px !important;
     margin-bottom: 15px !important;
-    flex-direction: row !important;
+    flex-direction: row-reverse !important;
 }
 
 .star-rating-bar input[type="radio"] {

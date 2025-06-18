@@ -261,7 +261,7 @@ function getDummyData() {
             image: "./assests/TheSilentPatient.png",
             author: "Alex Michaelides",
             year: 2019,
-            description:"A woman’s silence after murdering her husband hides a dark truth waiting to be uncovered."
+            description:"A woman's silence after murdering her husband hides a dark truth waiting to be uncovered."
         },
         {
             id: 16,
@@ -298,7 +298,7 @@ function getDummyData() {
             image: "./assests/Sapiens.png",
             author: "Yuval Noah Harari",
             year: 2011,
-            description:"A sweeping account of human evolution, culture, and our species’ impact on the world."
+            description:"A sweeping account of human evolution, culture, and our species' impact on the world."
         },
         {
             id: 19,
@@ -425,7 +425,8 @@ function getDummyData() {
         }
 
         return {
-            id: music.id,
+            id: music._id,
+            tmdbId: music.id,
             title: music.name,
             type: 'music',
             genre: music.genre || 'unknown',

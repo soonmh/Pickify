@@ -491,11 +491,11 @@ function updateListItem(data) {
             card.addEventListener('click', () => {
                     let detailUrl;
                     if (item.type === 'movie') {
-                        detailUrl = `review.html?tmdbId=${item.tmdbId}&type=movie`;
+                        detailUrl = `review.html?tmdbId=${item.itemId}&type=movie`;
                     } else if (item.type === 'music') {
-                        detailUrl = `review.html?tmdbId=${item.id}&type=music`;
+                        detailUrl = `review.html?tmdbId=${item.itemId}&type=music`;
                     } else if (item.type === 'book') {
-                        detailUrl = `review.html?tmdbId=${item.id}&type=book`;
+                        detailUrl = `review.html?tmdbId=${item.itemId}&type=book`;
                     }
                     
                     if (detailUrl) {

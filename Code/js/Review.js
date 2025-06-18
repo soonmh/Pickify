@@ -309,7 +309,7 @@ function createStarRatingHTML(currentRating = 0, isEditForm = false) {
     return `
         <div class="rating-container">
             <div class="star-rating-bar">
-                ${[1,2,3,4,5].map(num => `
+                ${[5,4,3,2,1].map(num => `
                     <input type="radio" id="star${num}${isEditForm ? '-edit' : ''}" name="rating" value="${num}" ${num === currentRating ? 'checked' : ''}>
                     <label for="star${num}${isEditForm ? '-edit' : ''}">★</label>
                 `).join('')}
@@ -382,6 +382,19 @@ async function saveEdit(reviewId) {
         return;
     }
 
+    // Get current user
+    let userData = sessionStorage.getItem('loggedInUser');
+    if (!userData) {
+        userData = localStorage.getItem('loggedInUser');
+    }
+    
+    if (!userData) {
+        alert('Please log in to edit your review');
+        return;
+    }
+
+    const currentUser = JSON.parse(userData).username || JSON.parse(userData).name;
+
     try {
         const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
             method: 'PUT',
@@ -405,6 +418,8 @@ async function saveEdit(reviewId) {
                 updateReviewStats(reviewsResult.data);
                 displayReviews(reviewsResult.data);
             }
+            
+            alert('Review updated successfully!');
         } else {
             alert(data.message || 'Failed to update review');
         }
