@@ -261,7 +261,7 @@ function getDummyData() {
             image: "./assests/TheSilentPatient.png",
             author: "Alex Michaelides",
             year: 2019,
-            description:"A woman's silence after murdering her husband hides a dark truth waiting to be uncovered."
+            description:"A woman’s silence after murdering her husband hides a dark truth waiting to be uncovered."
         },
         {
             id: 16,
@@ -298,7 +298,7 @@ function getDummyData() {
             image: "./assests/Sapiens.png",
             author: "Yuval Noah Harari",
             year: 2011,
-            description:"A sweeping account of human evolution, culture, and our species' impact on the world."
+            description:"A sweeping account of human evolution, culture, and our species’ impact on the world."
         },
         {
             id: 19,
@@ -425,8 +425,7 @@ function getDummyData() {
         }
 
         return {
-            id: music._id,
-            tmdbId: music.id,
+            id: music.id,
             title: music.name,
             type: 'music',
             genre: music.genre || 'unknown',
@@ -852,7 +851,7 @@ function getDummyData() {
                         
                             <div syle="position: relative;align-items: center;">
                             <div class = "collection-dropdown">
-                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onclick="dropdown('${item.id}','${item.type}','${item.title}')">
+                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onfocus="dropdown('${item.id}',1,'${item.type}','${item.title}')" onblur="dropdown('${item.id}',2,'${item.type}','${item.id}','${item.title}')" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                     <div class="collection-dropdown-menu" id="menu-${item.id}">
@@ -877,13 +876,13 @@ function getDummyData() {
         
         attachEventListeners();
     }
-    function dropdown(id, itemType,itemT) {
+    function dropdown(id,x, itemType,itemT) {
         const menu = document.getElementById(`menu-${id}`);
-        if (!menu.classList.contains('show')) {
+        if (x == 1) {
             loadmenu(id, itemType,itemT);
             menu.classList.add('show');
         } else {
-            menu.classList.remove('show');
+            // menu.classList.remove('show');
         }
     }
     function loadmenu(id, itemType,itemT) {
@@ -1068,7 +1067,7 @@ function showToast(message, type = 'info') {
                 max-height: 200px;
                 overflow-y: auto;
                 display: none;
-                z-index: 10;
+                z-index: 1001;
             }
             
             .collection-dropdown-menu.show {
@@ -1143,25 +1142,19 @@ function showToast(message, type = 'info') {
     }
     
     function navigateToContentPage(id) {
-        // Find the item by checking multiple possible ID fields
-        // We also use == to handle cases where one ID is a number and the other is a string.
-        const item = entertainmentData.find(item => item.id == id || item.tmdbId == id);
+        console.log(`Navigating to content page for ID: ${id}`);
+        
+        // Find the item in the entertainment data
+        const item = entertainmentData.find(item => item.id === parseInt(id));
         
         if (item) {
             console.log(`Found item: ${item.title}`);
-            
-            // Ensure the item has a 'type' property before navigating
-            if (!item.type) {
-                console.error("Navigation failed: The found item does not have a 'type' property.", item);
-                return; // Stop the function
-            }
-            
-            // Use the correct ID for the URL
-            const itemId = item.id || item.tmdbId;
-            window.location.href = `review.html?tmdbId=${itemId}&type=${item.type}`;
-    
+            // Store the item in localStorage for the review page
+            localStorage.setItem('currentItem', JSON.stringify(item));
+            // Navigate to review page with item details
+            window.location.href = `review.html?tmdbId=${item.id}&type=${item.type}`;
         } else {
-            console.error(`Item with ID ${id} not found in entertainmentData.`);
+            console.error(`Item with ID ${id} not found`);
         }
     }
     
@@ -1205,3 +1198,5 @@ function showToast(message, type = 'info') {
     initChart();
 
     addMedalStyles();
+
+    

@@ -9,27 +9,10 @@ function getCurrentUser() {
 
 // Get the correct API URL based on the current protocol
 function getApiUrl() {
-    return 'http://localhost:3000';
-}
-
-// Function to refresh reviews
-async function refreshReviews(entertainmentId) {
-    try {
-        const response = await fetch(`${getApiUrl()}/api/reviews/${entertainmentId}`);
-        const result = await response.json();
-        
-        if (result.success) {
-            // Update review stats and display
-            if (typeof updateReviewStats === 'function') {
-                updateReviewStats(result.data);
-            }
-            if (typeof displayReviews === 'function') {
-                displayReviews(result.data);
-            }
-        }
-    } catch (error) {
-        console.error('Error refreshing reviews:', error);
-    }
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const port = '5501';
+    return `${protocol}//${hostname}:${port}`;
 }
 
 window.addEventListener("DOMContentLoaded", () => {
