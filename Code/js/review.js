@@ -42,11 +42,16 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
         if (result.success) {
             console.log('Review submitted successfully');
             
-            // Immediately update the rating display with the new review
-            updateRatingWithNewReview(parseInt(rating));
-            
-            // Immediately update the rating breakdown with the new review
-            updateRatingBreakdownWithNewReview(parseInt(rating));
+            // Fetch updated rating statistics from database
+            const ratingStats = await fetchRatingStats(entertainmentId);
+            if (ratingStats) {
+                // Update rating display with database statistics
+                updateRatingDisplayWithDatabaseStats(ratingStats);
+            } else {
+                // Fallback to immediate local update if database fetch fails
+                updateRatingWithNewReview(parseInt(rating));
+                updateRatingBreakdownWithNewReview(parseInt(rating));
+            }
             
             // Clear the form
             const reviewText = document.getElementById('review-text');
@@ -74,13 +79,10 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
-                // Store current reviews globally for future updates
+
                 window.currentReviews = reviewsResult.data;
                 
-                // Update review statistics (this will override the immediate update with server data)
-                updateReviewStats(reviewsResult.data);
-                
-                // Display reviews with immediate profile picture update
+
                 displayReviewsWithImmediateProfilePic(reviewsResult.data, user, currentUserProfilePic);
             }
             
@@ -251,37 +253,31 @@ function populateEntertainmentDetails(review) {
         const durationEl = document.querySelector('.item-duration');
         const voteAverageEl = document.querySelector('.vote-average');
 
-        // Handle image URL
         let imageUrl = details.poster_path;
         if (imageUrl) {
             if (imageUrl.startsWith('/')) {
                 imageUrl = `${TMDB_IMAGE_BASE_URL}${imageUrl}`;
             }
         }
-
-        // Update DOM elements with data (with null checks)
         if (posterEl) posterEl.src = imageUrl || '';
         if (titleEl) {
             const year = details.year || (details.release_date ? details.release_date.split('-')[0] : 'Unknown Year');
+            const type = (details.type || "").charAt(0).toUpperCase() + (details.type || "").slice(1);
             let genreText = 'No Genre';
             if (details.genres && Array.isArray(details.genres)) {
                 genreText = details.genres.map(g => typeof g === 'object' ? g.name : g).join(', ');
             } else if (details.genre) {
                 genreText = details.genre;
             }
-            titleEl.innerHTML = `${details.title || 'Untitled'}<br><span class="subtitle">${year} | ${genreText}</span>`;
+            titleEl.innerHTML = `${details.title || 'Untitled'}<br><span class="subtitle" style="font-size: 0.7em; color: #666;">${year} | ${type} | ${genreText}</span>`;
         }
-        if (typeEl) typeEl.textContent = (details.type||"").charAt(0).toUpperCase() + (details.type || "").slice(1);
-        if (yearEl) yearEl.style.display = 'none';  // Hide the separate year element
-        if (genreEl) genreEl.style.display = 'none';  // Hide the separate genre element
+        
         if (descriptionEl) descriptionEl.textContent = details.description || details.overview || 'No description available';
 
-        // Show/hide and populate type-specific details
         [directorEl, durationEl].forEach(el => {
             if (el) el.style.display = 'none';
         });
 
-        // Show and populate movie-specific details
         if (details.type?.toLowerCase() === 'movie') {
             if (directorEl && details.director) {
                 directorEl.style.display = 'block';
@@ -304,23 +300,21 @@ function populateEntertainmentDetails(review) {
     }
 }
 
-// Function to update rating breakdown with a new review (for immediate updates)
 function updateRatingBreakdownWithNewReview(newRating) {
     console.log('🔍 updateRatingBreakdownWithNewReview called with rating:', newRating);
     
-    // Get current reviews from the DOM or global variable
+
     const currentReviews = window.currentReviews || [];
     console.log('🔍 Current reviews:', currentReviews);
     
-    // Add the new review temporarily for calculation
+
     const tempReviews = [...currentReviews, { rating: newRating }];
     console.log('🔍 Temp reviews with new rating:', tempReviews);
     
-    // Initialize rating counts
+
     const ratingCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
     let totalRating = 0;
 
-    // Count ratings from reviews
     tempReviews.forEach(review => {
         const rating = Math.round(parseFloat(review.rating));
         if (rating >= 1 && rating <= 5) {
@@ -335,7 +329,6 @@ function updateRatingBreakdownWithNewReview(newRating) {
     const totalReviews = tempReviews.length;
     console.log('🔍 Total reviews:', totalReviews);
 
-    // Update rating breakdown - only update the elements that actually exist
     for (let i = 1; i <= 5; i++) {
         const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
@@ -394,23 +387,31 @@ async function deleteReview(reviewId, user) {
         const result = await response.json();
         
         if (result.success) {
-            // Get current reviews and update rating display immediately
+            console.log('🗑️ Review deleted successfully, fetching updated stats...');
+            console.log('🗑️ Current entertainment ID:', currentEntertainmentId);
+            
+            // Get current reviews and update display
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
-                // Get the entertainment details from the global variable
-                const entertainmentDetails = window.currentEntertainmentDetails;
-                
-                if (entertainmentDetails) {
-                    // Update the main entertainment rating display with user reviews immediately
-                    updateEntertainmentRatingDisplay(reviewsResult.data, entertainmentDetails);
-                }
-                
                 // Store current reviews globally for future updates
                 window.currentReviews = reviewsResult.data;
                 
-                updateReviewStats(reviewsResult.data);
+                // Fetch updated rating statistics from database
+                const ratingStats = await fetchRatingStats(currentEntertainmentId);
+                console.log('🗑️ Rating stats after deletion:', ratingStats);
+                
+                if (ratingStats) {
+                    // Update rating display with database statistics
+                    updateRatingDisplayWithDatabaseStats(ratingStats);
+                    console.log('🗑️ Rating display updated with database stats');
+                } else {
+                    console.log('❌ Failed to fetch rating stats after deletion, using fallback');
+                    // Fallback: update using local calculation
+                    updateEntertainmentRatingDisplay(reviewsResult.data, window.currentEntertainmentDetails);
+                    updateReviewStats(reviewsResult.data);
+                }
                 
                 // Get current user's profile picture for immediate display
                 const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
@@ -545,23 +546,20 @@ async function saveEdit(reviewId) {
 
         const data = await response.json();
         if (data.success) {
-            // Get current reviews and update rating display immediately
+            // Fetch updated rating statistics from database
+            const ratingStats = await fetchRatingStats(currentEntertainmentId);
+            if (ratingStats) {
+                // Update rating display with database statistics
+                updateRatingDisplayWithDatabaseStats(ratingStats);
+            }
+            
+            // Get current reviews and update display
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
-                // Get the entertainment details from the global variable
-                const entertainmentDetails = window.currentEntertainmentDetails;
-                
-                if (entertainmentDetails) {
-                    // Update the main entertainment rating display with user reviews immediately
-                    updateEntertainmentRatingDisplay(reviewsResult.data, entertainmentDetails);
-                }
-                
                 // Store current reviews globally for future updates
                 window.currentReviews = reviewsResult.data;
-                
-                updateReviewStats(reviewsResult.data);
                 
                 // Get current user's profile picture for immediate display
                 const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
@@ -1292,6 +1290,73 @@ async function displayReviewsWithImmediateProfilePic(reviews, currentUser, curre
     }
 }
 
+// Function to fetch rating statistics from database
+async function fetchRatingStats(entertainmentId) {
+    try {
+        console.log('📊 Fetching rating stats from database for:', entertainmentId);
+        const url = `${API_BASE_URL}/reviews/${entertainmentId}/stats`;
+        console.log('📊 API URL:', url);
+        
+        const response = await fetch(url);
+        console.log('📊 Response status:', response.status);
+        
+        const result = await response.json();
+        console.log('📊 Response result:', result);
+        
+        if (result.success) {
+            console.log('📊 Rating stats from database:', result.data);
+            return result.data;
+        } else {
+            console.error('❌ Failed to fetch rating stats:', result.message);
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ Error fetching rating stats:', error);
+        return null;
+    }
+}
+
+// Function to update rating display with database statistics
+function updateRatingDisplayWithDatabaseStats(stats) {
+    if (!stats) return;
+    
+    const voteAverageEl = document.querySelector('.vote-average');
+    if (!voteAverageEl) return;
+
+    const { totalReviews, averageRating, ratingBreakdown } = stats;
+    
+    // Format the rating
+    const formattedAverage = averageRating.toFixed(1);
+    const fullStars = Math.round(averageRating);
+    const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
+    
+    // Create rating text
+    let ratingText;
+    if (totalReviews > 0) {
+        ratingText = `User Rating: ${formattedAverage}/5 (${totalReviews} reviews)`;
+    } else {
+        ratingText = '0 rated';
+    }
+
+    voteAverageEl.innerHTML = `
+        <div class="tmdb-rating">
+            <span class="tmdb-rating-text">${ratingText}</span>
+            <div class="tmdb-stars">${stars}</div>
+        </div>
+    `;
+    
+    // Update rating breakdown
+    for (let i = 1; i <= 5; i++) {
+        const ratingEl = document.querySelector(`.rating-${i}`);
+        if (ratingEl) {
+            const count = ratingBreakdown[i] || 0;
+            const percentage = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+            ratingEl.textContent = `${percentage}%`;
+            console.log(`📊 Updated rating-${i} to ${percentage}% (${count} reviews)`);
+        }
+    }
+}
+
 // Initialize page
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -1376,9 +1441,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Store current reviews globally for immediate updates
                 window.currentReviews = reviewsResult.data;
                 
-                // Update the main entertainment rating display with user reviews
-                updateEntertainmentRatingDisplay(reviewsResult.data, entertainmentData);
-                updateReviewStats(reviewsResult.data);
+                // Fetch and display rating statistics from database
+                const ratingStats = await fetchRatingStats(currentEntertainmentId);
+                if (ratingStats) {
+                    updateRatingDisplayWithDatabaseStats(ratingStats);
+                } else {
+                    // Fallback to local calculation if database fetch fails
+                    updateEntertainmentRatingDisplay(reviewsResult.data, entertainmentData);
+                    updateReviewStats(reviewsResult.data);
+                }
+                
                 displayReviews(reviewsResult.data);
                 
                 // Refresh profile pictures for current user after reviews are loaded
@@ -1389,9 +1461,17 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.warn('Failed to fetch reviews:', reviewsResult.message);
                 // Store empty reviews array globally
                 window.currentReviews = [];
-                // Update the main entertainment rating display with no reviews
-                updateEntertainmentRatingDisplay([], entertainmentData);
-                updateReviewStats([]);
+                
+                // Fetch rating statistics even if no reviews
+                const ratingStats = await fetchRatingStats(currentEntertainmentId);
+                if (ratingStats) {
+                    updateRatingDisplayWithDatabaseStats(ratingStats);
+                } else {
+                    // Fallback to local calculation
+                    updateEntertainmentRatingDisplay([], entertainmentData);
+                    updateReviewStats([]);
+                }
+                
                 displayReviews([]);
             }
         } else {
