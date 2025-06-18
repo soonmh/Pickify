@@ -42,7 +42,7 @@ body {
 
 .item-title{
     margin:0;
-    font-size:1.8rem;
+    font-size:2.0rem;
 }
 
 .item-description{
@@ -94,10 +94,10 @@ body {
 }
 
 .review-summary {
-    background-color: #8F94FB; /* A light, airy blue */
-    padding: 15px; /* Add some padding for better visual spacing */
-    border-radius: 8px; /* Slightly rounded corners */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+    background-color: #8F94FB; 
+    padding: 15px; 
+    border-radius: 8px; 
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .breakdown {
@@ -109,7 +109,6 @@ body {
     color: #666;
 }
 
-/* TMDB Rating Display Styles */
 .tmdb-rating {
     text-align: center;
     margin: 10px 0;
@@ -129,17 +128,16 @@ body {
     letter-spacing: 2px;
 }
 
-/* Rating breakdown styles */
 .rating-5, .rating-4, .rating-3, .rating-2, .rating-1 {
     font-weight: bold;
-    color: #333;
+    color: #000000;
 }
 
-.rating-5 { color: #28a745; }
-.rating-4 { color: #17a2b8; }
-.rating-3 { color: #ffc107; }
-.rating-2 { color: #fd7e14; }
-.rating-1 { color: #dc3545; }
+.rating-5 { color: #63a974; }
+.rating-4 { color: #649ea8; }
+.rating-3 { color: #fddd7b; }
+.rating-2 { color: #fbb47a; }
+.rating-1 { color: #d95f6b; }
 
 .review-list {
     max-width: 800px;
