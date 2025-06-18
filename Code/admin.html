@@ -10,16 +10,30 @@
     <link rel="stylesheet" href="./css/admin.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
 </head>
-<body data-page-type="main">
-    <div id="header-placeholder"></div>
+<body>
+    <header>
+        <div class="my-container">
+            <div class="logo">
+                <a href="/"><img src="./assests/Logopic.png" alt="Pickify Logo"></a>
+                <span class="website-name">Pickify</span>
+            </div>
+            <nav>
+                <ul>
+                </ul>
+            </nav>
+            <div class="auth-buttons">
+                <a href="#" id="header-username" class="username">Username</a>
+                <a href="landingpage.html" class="logout">Logout</a>
+            </div>
+        </div>
+    </header>
 
     <div class="layout">
-
         <aside class="sidebar">
             <div class="sidebar-header">
                 <h1 class="sidebar-title">Admin Panel</h1>
             </div>
-        
+
             <nav class="nav-links">
                 <a href="#user-section" class="admin-nav-link active">
                     <span class="icon"><i class="fas fa-users"></i></span> Users
@@ -43,7 +57,7 @@
                     <div class="user-list-header">
                         <h3>User List</h3>
                     </div>
-                    
+
                     <table class="user-table">
                         <thead>
                             <tr>
@@ -55,7 +69,6 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <!-- Example User Row 1 -->
                             <tr>
                                 <td>001</td>
                                 <td>JohnDoe</td>
@@ -63,7 +76,6 @@
                                 <td class="status-active">Active</td>
                                 <td><button class="action-btn deactivate-btn">Deactivate</button></td>
                             </tr>
-                            <!-- Example User Row 2 -->
                             <tr>
                                 <td>002</td>
                                 <td>JaneSmith</td>
@@ -71,7 +83,6 @@
                                 <td class="status-inactive">Inactive</td>
                                 <td><button class="action-btn activate-btn">Activate</button></td>
                             </tr>
-                            <!-- Example User Row 3 -->
                             <tr>
                                 <td>003</td>
                                 <td>AliceWonder</td>
@@ -79,19 +90,84 @@
                                 <td class="status-active">Active</td>
                                 <td><button class="action-btn deactivate-btn">Deactivate</button></td>
                             </tr>
-                            <!-- More user rows will be added here, likely dynamically -->
-                        </tbody>
+                            </tbody>
                     </table>
                 </div>
-                
+
             </div>
         </main>
-        
+
     </div>
 
-    <!-- <div id="footer-placeholder"></div> -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const usernameEl = document.getElementById('header-username');
 
-    <script src="./js/header-footer.js"></script>
-    <script src="./js/admin.js"></script>"
+            // Function to update username display and prevent clicks
+            function updateUsernameDisplay() {
+                const userData = localStorage.getItem('loggedInUser') || sessionStorage.getItem('loggedInUser');
+
+                if (usernameEl) {
+                    if (userData) {
+                        const user = JSON.parse(userData);
+                        usernameEl.textContent = user.name || user.nmail || "Profile";
+                        usernameEl.removeAttribute('href');
+                        usernameEl.style.cursor = 'default';
+                    } else {
+                        usernameEl.textContent = "Login";
+                        usernameEl.href = "signin.html"; 
+                        usernameEl.style.cursor = 'pointer';
+                    }
+                }
+            }
+
+            updateUsernameDisplay();
+
+            if (usernameEl) {
+                usernameEl.addEventListener('click', function(e) {
+                    const userData = localStorage.getItem('loggedInUser') || sessionStorage.getItem('loggedInUser');
+                    if (userData) {
+                        e.preventDefault();
+                    }
+                });
+            }
+
+            // ✅ Logout functionality
+            const logoutBtn = document.querySelector('.logout');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    fetch('http://localhost:3000/logout')
+                        .then(() => {
+                            sessionStorage.removeItem('loggedInUser');
+                            localStorage.removeItem('loggedInUser');
+                            window.location.href = 'landingpage.html'; // Redirect after logout
+                        })
+                        .catch(error => console.error('Error during logout:', error));
+                });
+            }
+
+            // Interval to re-check login status and update display
+            setInterval(() => {
+                updateUsernameDisplay(); // Call the function to handle updates
+                
+                // Re-ensure logout button's click handler is active
+                const logoutBtnInterval = document.querySelector('.logout');
+                if (logoutBtnInterval) {
+                    logoutBtnInterval.onclick = function (e) { // Using .onclick to replace previous handlers
+                        e.preventDefault();
+                        fetch('http://localhost:3000/logout')
+                            .then(() => {
+                                sessionStorage.removeItem('loggedInUser');
+                                localStorage.removeItem('loggedInUser');
+                                window.location.href = 'landingpage.html';
+                            })
+                            .catch(error => console.error('Error during logout:', error));
+                    };
+                }
+            }, 1000); // Updates every second
+        });
+    </script>
+    <script src="./js/admin.js"></script>
 </body>
 </html>

@@ -851,7 +851,7 @@ function getDummyData() {
                         
                             <div syle="position: relative;align-items: center;">
                             <div class = "collection-dropdown">
-                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onfocus="dropdown('${item.id}',1,'${item.type}','${item.title}')" onblur="dropdown('${item.id}',2,'${item.type}','${item.id}','${item.title}')" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
+                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
                                         <i class="fas fa-plus"></i>
                                     </button>
                                     <div class="collection-dropdown-menu" id="menu-${item.id}">
@@ -878,11 +878,11 @@ function getDummyData() {
     }
     function dropdown(id,x, itemType,itemT) {
         const menu = document.getElementById(`menu-${id}`);
-        if (x == 1) {
+        if (!(menu.classList.contains('show'))) {
             loadmenu(id, itemType,itemT);
             menu.classList.add('show');
         } else {
-            // menu.classList.remove('show');
+            menu.classList.remove('show');
         }
     }
     function loadmenu(id, itemType,itemT) {
@@ -1144,12 +1144,17 @@ function showToast(message, type = 'info') {
     function navigateToContentPage(id) {
         console.log(`Navigating to content page for ID: ${id}`);
         
-        // use Squid Game as example first (ID: 25)
-        if (id == 25) {
-            window.location.href = "review.html";
+        // Find the item in the entertainment data
+        const item = entertainmentData.find(item => item.id === parseInt(id) || item.id === id);
+        
+        if (item) {
+            console.log(`Found item: ${item.title}`);
+            // Store the item in localStorage for the review page
+            localStorage.setItem('currentItem', JSON.stringify(item));
+            // Navigate to review page with item details
+            window.location.href = `review.html?tmdbId=${item.id}&type=${item.type}`;
         } else {
-            alert(`Navigating to content page for: ${id}`);
-            // future implementation could use: window.location.href = `/content/${id}`;
+            console.error(`Item with ID ${id} not found`);
         }
     }
     
@@ -1193,3 +1198,5 @@ function showToast(message, type = 'info') {
     initChart();
 
     addMedalStyles();
+
+    

@@ -688,6 +688,7 @@ app.get('/userCollection', async (req, res) => {
                 enrichedItems.push({
                     type: entry.type,
                     objId: entry.objId,
+                    itemId : entry.itemId,
                     infomation: data
                 });
             }
@@ -1782,7 +1783,7 @@ app.get('/api/search', async (req, res) => {
                 
             // Transform music data
             const formattedMusic = music.map(track => ({
-                id: track._id,
+                id: track.id,
                 title: track.name,
                 type: 'music',
                 genre: track.genre || 'unknown',
@@ -2109,6 +2110,86 @@ app.get('/api/entertainment/movie/:id', async (req, res) => {
         res.status(500).json({
             success: false,
             error: 'Failed to fetch movie details'
+        });
+    }
+});
+app.get('/api/entertainment/music/:id', async (req, res) => {
+    try {
+        const musicId = req.params.id;
+        console.log(`🎬 Fetching music with ID: ${musicId}`);
+        const music = await db.collection('Music').findOne({ id: musicId });
+        
+        if (!music) {
+            return res.status(404).json({
+                success: false,
+                error: 'Music not found'
+            });
+        }
+        
+        // Format the music data
+        const formattedMusic = {
+            id: music._id,
+            tmdbId: music.id,
+            title: music.name,
+            poster_path: music.poster_url,
+            release_date: music.release,
+            vote_average: music.popularity,
+            genres: music.genre,
+            director: music.artists,
+            runtime: music.duration_second,
+            popularity: music.popularity
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: formattedMusic
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching music:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch music details'
+        });
+    }
+});
+app.get('/api/entertainment/book/:id', async (req, res) => {
+    try {
+        const bookId = req.params.id;
+        console.log(`🎬 Fetching book with ID: ${bookId}`);
+        const bookid = new ObjectId(bookId);
+        const book = await db.collection('books').findOne({ _id: bookid });
+        
+        if (!book) {
+            return res.status(404).json({
+                success: false,
+                error: 'Book not found'
+            });
+        }
+        
+        // Format the book data
+        const formattedBook = {
+            id: book._id,
+            title: book.title,
+            overview: book.description,
+            poster_path: book.image,
+            release_date: book.year,
+            vote_average: book.rating,
+            genres: book.genre,
+            director: book.author,
+            popularity: book.views
+        };
+        
+        res.status(200).json({
+            success: true,
+            data: formattedBook
+        });
+        
+    } catch (error) {
+        console.error('❌ Error fetching book:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Failed to fetch book details'
         });
     }
 });

@@ -520,7 +520,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!e.target.closest('.collection-dropdown')) {
                     console.log(`Clicked on ${mediaType} item: ${item.title}`);
                     // Navigate to review page with item details
-                    window.location.href = `review.html?tmdbId=${item.tmdbId}&type=${mediaType}`;
+                    
+                    window.location.href = `review.html?tmdbId=${item.id || item.tmdbId}&type=${mediaType}`;
                 }
             });
             

@@ -198,6 +198,7 @@
 }
 
 .chart-title-row {
+    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -393,6 +394,8 @@
     color: var(--accent-color);
 }
 
+
+
 /* Responsive styles */
 @media (max-width: 768px) {
     #chart-search {
@@ -447,4 +450,5 @@
         top: 10px;
         left: 10px;
     }
+  
 }
