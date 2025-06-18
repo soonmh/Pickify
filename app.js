@@ -856,8 +856,7 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
         
-
-        console.log('🎯 Fetching recommendations for user: ${userId}');
+        console.log(`🎯 Fetching recommendations for user: ${userId}`);
 
         // Validate userId
         let userObjectId;
@@ -867,106 +866,106 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
+        // Always generate a new random seed for fresh recommendations on every request
         const randomSeed = Date.now() + Math.floor(Math.random() * 100000);
+        console.log('🎲 New random seed for this request:', randomSeed);
 
-        console.log('🎲 Random seed:', randomSeed);
-
-        // 1. Fetch user's favorite collection
-        const userFavorites = await db.collection('userCollection')
-            .findOne({ userId: userObjectId, collectionName: 'Favourite' });
-
-        if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
-            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
-            return res.status(200).json({
-                success: true,
-                count: randomRecommendations.length,
-                data: randomRecommendations,
-                type: 'random_popular',
-                message: 'No favorite items found. Here are some popular recommendations!'
-            });
-        }
-
-        // 2. Separate item IDs by type
-        const movieIds = [];
-        const musicIds = [];
-        const bookIds = [];
-
-        userFavorites.item.forEach(item => {
-            if (item.type === 'movie' && typeof item.itemId === 'string') {
-                movieIds.push(item.itemId);
-            } else if (item.type === 'music' && typeof item.itemId === 'string') {
-                musicIds.push(item.itemId);
-            } else if (item.type === 'book' && item.itemId?.$oid) {
-                bookIds.push(new ObjectId(item.itemId.$oid));
-            }
-        });
-
-        // 3. Fetch item details from respective collections
-        const [movies, music, books] = await Promise.all([
-            movieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: movieIds.map(id => parseInt(id)) } }).toArray() : [],
-            musicIds.length > 0 ? db.collection('Music').find({ id: { $in: musicIds } }).toArray() : [],
-            bookIds.length > 0 ? db.collection('books').find({ _id: { $in: bookIds } }).toArray() : []
+        // 1. Fetch both Favourite and Watchlist collections
+        const [favoriteCollection, watchlistCollection] = await Promise.all([
+            db.collection('userCollection').findOne({ userId: userObjectId, collectionName: 'Favourite' }),
+            db.collection('userCollection').findOne({ userId: userObjectId, collectionName: 'Watchlist' })
         ]);
 
-        const moviesWithType = movies.map(item => ({ ...item, type: 'movie' }));
-        const musicWithType = music.map(item => ({ ...item, type: 'music' }));
-        const booksWithType = books.map(item => ({ ...item, type: 'book' }));
+        let preferenceSourceItems = [];
+        let allItemsToExclude = [];
+        let recommendationType = 'random_popular';
+        let message = 'Add items to your Favorites or Watchlist to get personalized recommendations!';
 
-        const allUserItems = [...moviesWithType, ...musicWithType, ...booksWithType];
+        // 2. Determine the source for recommendations
+        if (favoriteCollection && favoriteCollection.item && favoriteCollection.item.length > 0) {
+            // PRIMARY: Use Favorites for preferences
+            recommendationType = 'favorite_based';
+            preferenceSourceItems = favoriteCollection.item;
+            allItemsToExclude = [...favoriteCollection.item];
+            if (watchlistCollection && watchlistCollection.item) {
+                allItemsToExclude.push(...watchlistCollection.item);
+            }
+            message = `Recommendations based on your ${preferenceSourceItems.length} favorite items.`;
+            console.log(`🧠 Using ${preferenceSourceItems.length} FAVORITE items for preferences.`);
 
-        if (!allUserItems.length) {
+        } else if (watchlistCollection && watchlistCollection.item && watchlistCollection.item.length > 0) {
+            // FALLBACK: Use Watchlist for preferences
+            recommendationType = 'watchlist_based';
+            preferenceSourceItems = watchlistCollection.item;
+            allItemsToExclude = [...watchlistCollection.item];
+            message = `Recommendations based on your ${preferenceSourceItems.length} watchlist items.`;
+            console.log(`👀 Using ${preferenceSourceItems.length} WATCHLIST items as a fallback.`);
+        }
+
+        // 3. If both are empty, return random popular items
+        if (preferenceSourceItems.length === 0) {
+            console.log('🤷 No items in Favorites or Watchlist. Serving random popular items.');
             const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
             return res.status(200).json({
                 success: true,
                 count: randomRecommendations.length,
                 data: randomRecommendations,
-                type: 'random_popular',
-                message: 'No valid items found in your collections. Here are some popular recommendations!'
+                type: recommendationType,
+                message: message
             });
         }
 
-        // 4. Analyze user preferences with randomization
+        // 4. Separate item IDs for exclusion and preference analysis
+        const excludedMovieIds = new Set();
+        const excludedMusicIds = new Set();
+        const excludedBookIds = new Set();
+
+        allItemsToExclude.forEach(item => {
+            if (item.type === 'movie' && item.itemId) excludedMovieIds.add(parseInt(item.itemId));
+            else if (item.type === 'music' && item.itemId) excludedMusicIds.add(item.itemId.toString());
+            else if (item.type === 'book' && item.itemId) excludedBookIds.add(item.itemId.$oid ? new ObjectId(item.itemId.$oid) : item.itemId);
+        });
+
+        const prefMovieIds = preferenceSourceItems.filter(i => i.type === 'movie').map(i => parseInt(i.itemId));
+        const prefMusicIds = preferenceSourceItems.filter(i => i.type === 'music').map(i => i.itemId);
+        const prefBookIds = preferenceSourceItems.filter(i => i.type === 'book').map(i => i.itemId.$oid ? new ObjectId(i.itemId.$oid) : i.itemId);
+
+        // 5. Fetch details for preference items
+        const [movies, music, books] = await Promise.all([
+            prefMovieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: prefMovieIds } }).toArray() : [],
+            prefMusicIds.length > 0 ? db.collection('Music').find({ id: { $in: prefMusicIds } }).toArray() : [],
+            prefBookIds.length > 0 ? db.collection('books').find({ _id: { $in: prefBookIds } }).toArray() : []
+        ]);
+
+        const allPreferenceItemsDetails = [
+            ...movies.map(item => ({ ...item, type: 'movie' })),
+            ...music.map(item => ({ ...item, type: 'music' })),
+            ...books.map(item => ({ ...item, type: 'book' }))
+        ];
+
+        // 6. Analyze user preferences (The rest of the logic remains largely the same)
         const genreCounts = {};
         const typeCounts = { movie: 0, music: 0, book: 0 };
 
-        allUserItems.forEach(item => {
+        allPreferenceItemsDetails.forEach(item => {
             if (item.type === 'movie' && item.genres && Array.isArray(item.genres)) {
-                item.genres.forEach(genre => {
-                    genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
-                });
-            } else if (item.type === 'music' && item.genre) {
-                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
-            } else if (item.type === 'book' && item.genre) {
+                item.genres.forEach(genre => { genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1; });
+            } else if (item.genre) { // Music and Book
                 genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
             }
             typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
         });
 
-        const allGenres = Object.entries(genreCounts)
-            .filter(([_, count]) => count >= 1)
-            .sort((a, b) => b[1] - a[1]);
-
+        const allGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
         const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500;
         const numGenresToSelect = Math.max(1, Math.floor(allGenres.length * genreSelectionRatio));
         const preferredGenres = allGenres.slice(0, numGenresToSelect).map(([genre]) => genre);
 
-        if (Math.random() < 0.3) {
-            const randomGenres = ['Action', 'Comedy', 'Drama', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror'];
-            const randomGenre = randomGenres[Math.floor(Math.random() * randomGenres.length)];
-            if (!preferredGenres.includes(randomGenre)) {
-                preferredGenres.push(randomGenre);
-            }
-        }
-
-        const preferredTypes = Object.entries(typeCounts)
-            .filter(([_, count]) => count > 0)
-            .sort((a, b) => b[1] - a[1])
-            .map(([type]) => type);
+        const preferredTypes = Object.entries(typeCounts).filter(([_, count]) => count > 0).sort((a, b) => b[1] - a[1]).map(([type]) => type);
 
         console.log('🎭 Selected genres for this session:', preferredGenres);
-        console.log('📊 Preferred types:', preferredTypes);
-
-        // 5. Fetch recommendations with randomization
+        
+        // 7. Fetch recommendations, excluding all necessary items
         const recommendations = [];
         const recommendationStrategies = ['genre_based', 'popularity_based', 'rating_based', 'random'];
 
@@ -980,56 +979,32 @@ app.get('/api/recommendation/:userId', async (req, res) => {
                     type, 
                     strategy, 
                     preferredGenres, 
-                    getExcludedIds(type, movieIds, musicIds, bookIds),
+                    getExcludedIds(type, Array.from(excludedMovieIds), Array.from(excludedMusicIds), Array.from(excludedBookIds).map(id => new ObjectId(id))),
                     Math.ceil(itemsPerType / recommendationStrategies.length),
                     randomSeed + i
                 );
                 typeRecommendations.push(...strategyRecs);
             }
-
             recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
         }
 
-        // 6. **REMOVE DUPLICATES BEFORE SHUFFLING**
+        // 8. Refine and return the final list
         const uniqueRecommendations = removeDuplicates(recommendations);
-        console.log(`🔧 Removed duplicates: ${recommendations.length} -> ${uniqueRecommendations.length}`);
-
-        // 7. Advanced shuffling with weighted randomization
         const shuffled = weightedShuffle(uniqueRecommendations, randomSeed);
-
-        // 8. Add discovery items if needed (and remove duplicates again)
-        if (Math.random() < 0.1 && shuffled.length < limit) {
-            const discoveryItems = await getRandomPopularItems(
-                Math.min(2, limit - shuffled.length), 
-                randomSeed + 1000
-            );
-            // Remove duplicates between main recommendations and discovery items
-            const filteredDiscoveryItems = discoveryItems.filter(discoveryItem => 
-                !shuffled.some(existingItem => 
-                    getItemUniqueKey(discoveryItem) === getItemUniqueKey(existingItem)
-                )
-            );
-            shuffled.push(...filteredDiscoveryItems);
-        }
-
-        // 9. Final slice and duplicate check
         const finalRecommendations = shuffled.slice(0, limit);
-        const finalUnique = removeDuplicates(finalRecommendations);
 
-        console.log(`✅ Generated ${finalUnique.length} unique varied recommendations`);
+        console.log(`✅ Generated ${finalRecommendations.length} unique recommendations.`);
 
         return res.status(200).json({
             success: true,
-            count: finalUnique.length,
-            data: finalUnique,
-            type: 'personalized_varied',
+            count: finalRecommendations.length,
+            data: finalRecommendations,
+            type: recommendationType,
             userPreferences: {
-                totalItemsInCollections: allUserItems.length,
+                totalItemsInSource: allPreferenceItemsDetails.length,
                 selectedGenres: preferredGenres,
-                preferredTypes,
-                randomSeed: randomSeed
             },
-            message: `Varied recommendations based on your ${allUserItems.length} favorite items`
+            message: message
         });
 
     } catch (error) {
@@ -1040,6 +1015,7 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         });
     }
 });
+
 function getItemUniqueKey(item) {
     if (item.type === 'movie') {
         return `movie-${item.tmdbId}`;
