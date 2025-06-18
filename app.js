@@ -870,57 +870,36 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         const randomSeed = Date.now() + Math.floor(Math.random() * 100000);
         console.log('🎲 New random seed for this request:', randomSeed);
 
-        // 1. Fetch both Favourite and Watchlist collections
-        const [favoriteCollection, watchlistCollection] = await Promise.all([
-            db.collection('userCollection').findOne({ userId: userObjectId, collectionName: 'Favourite' }),
-            db.collection('userCollection').findOne({ userId: userObjectId, collectionName: 'Watchlist' })
-        ]);
+        // 1. Fetch ONLY the Favourite collection
+        const favoriteCollection = await db.collection('userCollection').findOne({ 
+            userId: userObjectId, 
+            collectionName: 'Favourite' 
+        });
 
-        let preferenceSourceItems = [];
-        let allItemsToExclude = [];
-        let recommendationType = 'random_popular';
-        let message = 'Add items to your Favorites or Watchlist to get personalized recommendations!';
-
-        // 2. Determine the source for recommendations
-        if (favoriteCollection && favoriteCollection.item && favoriteCollection.item.length > 0) {
-            // PRIMARY: Use Favorites for preferences
-            recommendationType = 'favorite_based';
-            preferenceSourceItems = favoriteCollection.item;
-            allItemsToExclude = [...favoriteCollection.item];
-            if (watchlistCollection && watchlistCollection.item) {
-                allItemsToExclude.push(...watchlistCollection.item);
-            }
-            message = `Recommendations based on your ${preferenceSourceItems.length} favorite items.`;
-            console.log(`🧠 Using ${preferenceSourceItems.length} FAVORITE items for preferences.`);
-
-        } else if (watchlistCollection && watchlistCollection.item && watchlistCollection.item.length > 0) {
-            // FALLBACK: Use Watchlist for preferences
-            recommendationType = 'watchlist_based';
-            preferenceSourceItems = watchlistCollection.item;
-            allItemsToExclude = [...watchlistCollection.item];
-            message = `Recommendations based on your ${preferenceSourceItems.length} watchlist items.`;
-            console.log(`👀 Using ${preferenceSourceItems.length} WATCHLIST items as a fallback.`);
-        }
-
-        // 3. If both are empty, return random popular items
-        if (preferenceSourceItems.length === 0) {
-            console.log('🤷 No items in Favorites or Watchlist. Serving random popular items.');
-            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
+        // 2. If Favourite collection is empty, return an empty array
+        if (!favoriteCollection || !favoriteCollection.item || favoriteCollection.item.length === 0) {
+            console.log('🤷 User has no favorite items. Sending empty response.');
             return res.status(200).json({
                 success: true,
-                count: randomRecommendations.length,
-                data: randomRecommendations,
-                type: recommendationType,
-                message: message
+                count: 0,
+                data: [], // This triggers the message on your frontend
+                type: 'no_favorites',
+                message: 'No favorite items found. Add items to get personalized recommendations.'
             });
         }
+
+        // 3. If favorites exist, use them for preferences and exclusion
+        const preferenceSourceItems = favoriteCollection.item;
+        const recommendationType = 'favorite_based';
+        const message = `Recommendations based on your ${preferenceSourceItems.length} favorite items.`;
+        console.log(`🧠 Using ${preferenceSourceItems.length} FAVORITE items for preferences.`);
 
         // 4. Separate item IDs for exclusion and preference analysis
         const excludedMovieIds = new Set();
         const excludedMusicIds = new Set();
         const excludedBookIds = new Set();
 
-        allItemsToExclude.forEach(item => {
+        preferenceSourceItems.forEach(item => {
             if (item.type === 'movie' && item.itemId) excludedMovieIds.add(parseInt(item.itemId));
             else if (item.type === 'music' && item.itemId) excludedMusicIds.add(item.itemId.toString());
             else if (item.type === 'book' && item.itemId) excludedBookIds.add(item.itemId.$oid ? new ObjectId(item.itemId.$oid) : item.itemId);
