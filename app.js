@@ -688,6 +688,7 @@ app.get('/userCollection', async (req, res) => {
                 enrichedItems.push({
                     type: entry.type,
                     objId: entry.objId,
+                    itemId : entry.itemId,
                     infomation: data
                 });
             }
@@ -1782,7 +1783,7 @@ app.get('/api/search', async (req, res) => {
                 
             // Transform music data
             const formattedMusic = music.map(track => ({
-                id: track._id,
+                id: track.id,
                 title: track.name,
                 type: 'music',
                 genre: track.genre || 'unknown',
