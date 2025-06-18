@@ -211,7 +211,7 @@ function addSideBarEvent(){
         await loadingScreenPage();
 
         let clickedText = link.textContent.trim();
-        currentCollectionName=clickedText;
+        // currentCollectionName=clickedText;
         let text = clickedText.toLowerCase().trim();
         updatePageUrl(text);
 
@@ -411,7 +411,12 @@ async function saveChangeFunction(nameTextAreaValue,descriptionTextAreaValue,lis
             alert('Collection edit successfully.');
             editListPage.style.display="none";
             await loadingScreenPage();
-            window.location.href = 'watchlist.html';
+            // window.location.href = 'watchlist.html';
+            buttonCreation();
+            addSideBarEvent();
+            updateContent(nameTextAreaValue);
+            // console.log(allCollectionName);
+            //Here
         } else {
             alert(result.message || 'Failed to edit the collection.');
         }
@@ -498,6 +503,7 @@ function countingWordEvent(){
 }
 
 async function updateContent(collectionName){
+    currentCollectionName=collectionName;
     if(userId&&collectionName){
         
         try {
