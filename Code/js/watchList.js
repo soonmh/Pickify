@@ -134,7 +134,20 @@ async function watchListHome(){
                 movieCard.appendChild(info);
                 movieGrid.appendChild(movieCard);
                 
-                
+                movieCard.addEventListener('click', () => {
+                    let reviewUrl;
+                    if (recommendation.type === 'movie') {
+                        reviewUrl = `review.html?tmdbId=${recommendationId}&type=movie`;
+                    } else if (recommendation.type === 'music') {
+                        reviewUrl = `review.html?tmdbId=${recommendationId}&type=music`;
+                    } else if (recommendation.type === 'book') {
+                        reviewUrl = `review.html?tmdbId=${recommendationId}&type=book`;
+                    }
+                    
+                    if (reviewUrl) {
+                        window.location.href = reviewUrl;
+                    }
+                });
             })
 
         } catch (error) {
