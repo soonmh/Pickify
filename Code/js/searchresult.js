@@ -319,14 +319,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Navigate to detail page based on content type
                 let detailUrl;
                 if (item.type === 'movie') {
-                    detailUrl = `/movie-details.html?id=${item.tmdbId || item.id}`;
+                    detailUrl = `review.html?tmdbId=${item.tmdbId}&type=movie`;
                 } else if (item.type === 'music') {
-                    detailUrl = `/music-details.html?id=${item.id}`;
+                    detailUrl = `review.html?tmdbId=${item.id}&type=music`;
                 } else if (item.type === 'book') {
-                    detailUrl = `/book-details.html?id=${item.id}`;
+                    detailUrl = `review.html?tmdbId=${item.id}&type=book`;
                 }
                 
                 if (detailUrl) {
+                    console.log('Navigating to:', detailUrl);
                     window.location.href = detailUrl;
                 }
             }
@@ -336,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function() {
         resultsContainer.appendChild(col);
     });
 }
+
+
     
     // Update results count
     function updateResultsCount() {
@@ -617,7 +620,7 @@ async function loadUserCollections() {
     }
     
     try {
-        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
+        const response = await fetch(`http://localhost:5000/collectionNameList?userId=${userId}`);
         if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
@@ -803,7 +806,7 @@ async function addToCollection(userId, collectionName, item) {
 
     } catch (error) {
         console.error('Error adding item to collection:', error);
-        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+        showToast(`❌ Item already exists in ${collectionName}`);
     }
 }
 

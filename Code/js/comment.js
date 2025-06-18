@@ -1,57 +1,89 @@
-const currentUser = {
-    name: "User testing",
-    profilePic: "./assests/profilepic3.png"
-};
+// Get current user from storage
+function getCurrentUser() {
+    const userData = sessionStorage.getItem('loggedInUser') || localStorage.getItem('loggedInUser');
+    if (userData) {
+        return JSON.parse(userData);
+    }
+    return null;
+}
+
+// Get the correct API URL based on the current protocol
+function getApiUrl() {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const port = '5501';
+    return `${protocol}//${hostname}:${port}`;
+}
 
 window.addEventListener("DOMContentLoaded", () => {
-
     document.querySelector(".review-list").addEventListener("click", (event) => {
         if (event.target.classList.contains("comment-btn")) {
+            const currentUser = getCurrentUser();
+            if (!currentUser) {
+                alert("Please log in to post a comment");
+                return;
+            }
+
+            const reviewElement = event.target.closest(".review");
+            console.log('Review element:', reviewElement);
+            console.log('Review element ID:', reviewElement.id);
+            
+            // Extract the MongoDB ID from the review element ID
+            const reviewId = reviewElement.id.replace('review-', '');
+            console.log('Extracted review ID:', reviewId);
+            
             const commentSection = event.target.closest(".comment-section");
             const input = commentSection.querySelector(".comment-input");
             const commentList = commentSection.querySelector(".comments");
             
-            console.log("Button clicked");
             const commentText = input.value.trim();
             if (commentText !== "") {
-                const comment = document.createElement("div");
-                comment.className = "comment";
+                // Create comment data
+                const commentData = {
+                    user: currentUser.username || currentUser.name,
+                    userAvatar: currentUser.profilePicture || "./assests/profilepic3.png",
+                    comment: commentText
+                };
 
-                const userInfo = document.createElement("div");
-                userInfo.className = "user-info";
+                const apiUrl = `${getApiUrl()}/api/reviews/${reviewId}/comment`;
+                console.log('Sending comment data:', commentData);
+                console.log('Review ID:', reviewId);
+                console.log('API URL:', apiUrl);
 
-                const profilePic = document.createElement("img");
-                profilePic.src = currentUser.profilePic;
-                profilePic.alt = "User Profile";
-                userInfo.appendChild(profilePic);
+                // Send comment to server
+                fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(commentData)
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Server response data:', data);
+                    if (!data.success) {
+                        throw new Error(data.message || 'Failed to add comment');
+                    }
 
-                const commentContent = document.createElement("div");
-                commentContent.className = "comment-content";
-
-                const username = document.createElement("strong");
-                username.textContent = currentUser.name;
-
-                const text = document.createElement("p");
-                text.className = "comment-text";
-                text.textContent = commentText;
-
-                const reportBtn=document.createElement("a");
-                reportBtn.className="report-btn edit-btn";
-                reportBtn.innerText="Report";
-                reportBtn.href="#";
-                const reportLi = document.createElement("ul");
-                reportLi.appendChild(reportBtn);
-                commentContent.appendChild(reportLi);
-                commentContent.appendChild(username);
-                commentContent.appendChild(text);
-                commentContent.appendChild(reportBtn);
-
-                comment.appendChild(userInfo);
-                comment.appendChild(commentContent);
-
-                commentList.appendChild(comment);
-                
-                input.value = "";
+                    // Get the entertainment ID from the URL
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const entertainmentId = urlParams.get('tmdbId');
+                    
+                    // Refresh all reviews to show updated profile pictures
+                    refreshReviews(entertainmentId);
+                    
+                    // Clear the input
+                    input.value = "";
+                })
+                .catch(error => {
+                    console.error('Error posting comment:', error)
+                });
             }
         }
     });

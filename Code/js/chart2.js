@@ -3,11 +3,77 @@ const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
 document.addEventListener('DOMContentLoaded', async function() {
     await loadEntertainmentData();
+    initializeCollectionDropdowns();
     
     initChart();
 });
 
 let entertainmentData = [];
+function getCurrentUserId() {
+    try {
+        // Check sessionStorage first (current session)
+        let userData = sessionStorage.getItem('loggedInUser');
+        
+        // If not in session, check localStorage (persistent login)
+        if (!userData) {
+            userData = localStorage.getItem('loggedInUser');
+        }
+        
+        if (userData) {
+            const user = JSON.parse(userData);
+            console.log('👤 Found user data:', user);
+            
+            // Your backend returns userId, but check for other possible ID fields
+            const userId = user.userId || user._id || user.id;
+            
+            if (userId) {
+                console.log(`✅ Found user ID: ${userId}`);
+                return userId;
+            } else {
+                console.log('⚠️ User data found but no userId field:', user);
+            }
+        }
+        
+        console.log('❌ No user data found in storage');
+        return null;
+    } catch (error) {
+        console.error('Error getting user ID:', error);
+        return null;
+    }
+}
+async function loadUserCollections() {
+    const userId = getCurrentUserId();
+    if (!userId) {
+        userCollections = [];
+        return;
+    }
+    
+    try {
+        const response = await fetch(`http://localhost:3000/collectionNameList?userId=${userId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const collectionNames = await response.json();
+        userCollections = collectionNames.map(name => ({
+            name: name,
+            _id: name.toLowerCase().replace(/\s+/g, '')
+        }));
+        console.log('✅ Loaded user collections:', userCollections);
+        console.log('📋 Collection names:', collectionNames);
+
+    } catch (error) {
+       console.error('❌ Error loading user collections:', error);
+        
+        // Fallback to default collections
+        userCollections = [
+            { name: 'Favourite', _id: 'favourite' },
+            { name: 'Watch Later', _id: 'watchlater' }
+            
+        ];
+        console.log('🔄 Using fallback collections');
+    }
+}
 
 function getDummyData() {
     return [
@@ -782,10 +848,19 @@ function getDummyData() {
                                 <i class="fas fa-star"></i>
                                 ${item.rating.toFixed(1)}
                             </div>
-                            <button class="chart-save" aria-label="Save to favorites">
-                                <i class="far fa-bookmark"></i>
-                            </button>
+                        
+                            <div syle="position: relative;align-items: center;">
+                            <div class = "collection-dropdown">
+                                    <button class="collection-dropdown-btn" title = "Add to Watchlist" onclick="dropdown('${item.id}',1,'${item.type}','${item.title}')">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <div class="collection-dropdown-menu" id="menu-${item.id}">
+                                        
+                                    </div>
+                                </div>
+                        </div>                          
                         </div>
+                    
                     </div>
                     <div class="chart-meta">
                         <span>${metaIcons} ${metaInfo}</span>
@@ -801,7 +876,233 @@ function getDummyData() {
         
         attachEventListeners();
     }
+    function dropdown(id,x, itemType,itemT) {
+        const menu = document.getElementById(`menu-${id}`);
+        if (!(menu.classList.contains('show'))) {
+            loadmenu(id, itemType,itemT);
+            menu.classList.add('show');
+        } else {
+            menu.classList.remove('show');
+        }
+    }
+    function loadmenu(id, itemType,itemT) {
+        userId = getCurrentUserId();
+        const menu = document.getElementById(`menu-${id}`);
+        menu.innerHTML = ''; // Clear existing items
+        userCollections.forEach(collection => {
+        const menuItem = document.createElement('div');
+        menuItem.className = 'collection-dropdown-item';
+        menuItem.innerHTML = `
+            <i class="fas fa-folder"></i> ${collection.name}
+        `;
+        
+        menuItem.addEventListener('click', (e) => {
+            e.stopPropagation();
+            addToCollection(userId, collection.name, id, itemType,itemT);
+            menu.classList.remove('show');
+        });
+        
+        menu.appendChild(menuItem);
+    });
+    }
+async function addToCollection(userId, collectionName, itemId, itemType,itemT) {
+    try {
+        // Show loading feedback
+        showToast(`Adding "${itemT}" to ${collectionName}...`, 'info');
+        
+        // Determine item type and ID
     
+        console.log('🔍 Item type:', itemType);
+        console.log('🔍 Item _id:', itemId);
+        
+        if (!itemId) {
+            throw new Error('Item ID not found');
+        }
+        if (itemType.endsWith('s')) {
+        itemType = itemType.slice(0, -1); // Remove trailing 's' from type
+        }
+        // Call your existing API function
+        const response = await fetch(
+            `http://localhost:3000/addToCollection?userId=${userId}&collectionName=${encodeURIComponent(collectionName)}&itemId=${encodeURIComponent(itemId)}&type=${encodeURIComponent(itemType)}`,
+            {
+                method: 'POST'
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`Server responded with status ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast(`✅ "${itemT}" added to ${collectionName}!`, 'success');
+        } else {
+            throw new Error(data.message || 'Unknown server error');
+        }
+
+    } catch (error) {
+        console.error('Error adding item to collection:', error);
+        showToast(`❌ Failed to add "${itemT}": Already in ${collectionName}`, 'error');
+    }
+}
+function showToast(message, type = 'info') {
+    // Remove existing toast
+    const existingToast = document.querySelector('.toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast-notification toast-${type}`;
+    toast.textContent = message;
+    
+    // Add toast styles if not already added
+    if (!document.querySelector('#toast-styles')) {
+        const toastStyles = document.createElement('style');
+        toastStyles.id = 'toast-styles';
+        toastStyles.textContent = `
+            .toast-notification {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 12px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+                animation-fill-mode: forwards;
+            }
+            
+            .toast-success {
+                background: #28a745;
+            }
+            
+            .toast-error {
+                background: #dc3545;
+            }
+            
+            .toast-info {
+                background: #17a2b8;
+            }
+            
+            @keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            @keyframes fadeOut {
+                to {
+                    opacity: 0;
+                    transform: translateX(100%);
+                }
+            }
+        `;
+        document.head.appendChild(toastStyles);
+    }
+    
+    // Add to document
+    document.body.appendChild(toast);
+    
+    // Remove after animation
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.remove();
+        }
+    }, 3000);
+}
+
+    function initializeCollectionDropdowns() {
+        // Add CSS for dropdown styling
+        addDropdownStyles();
+        
+        // Load user collections if user is logged in
+        loadUserCollections();
+    }
+    
+    function addDropdownStyles() {
+        const style = document.createElement('style');
+        style.textContent = `
+            .collection-dropdown {
+                position: adsolute;
+                z-index: 1000;
+            }
+            
+            .collection-dropdown-btn {
+                background: rgba(0, 0, 0, 0.7);
+                border: none;
+                border-radius: 50%;
+                width: 32px;
+                height: 32px;
+                color: white;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 1;
+            
+            }            
+            
+            .collection-dropdown-btn:hover {
+                background: rgba(0, 0, 0, 0.9);
+            }
+           
+            .collection-dropdown-menu {
+                position: absolute;
+                top: 100%;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                min-width: 180px;
+                max-height: 200px;
+                overflow-y: auto;
+                display: none;
+                z-index: 1001;
+            }
+            
+            .collection-dropdown-menu.show {
+                display: block;
+            }
+            
+            .collection-dropdown-item {
+                padding: 10px 15px;
+                cursor: pointer;
+                border-bottom: 1px solid #f0f0f0;
+                transition: background-color 0.2s ease;
+            }
+            
+            .collection-dropdown-item:hover {
+                background-color: #f8f9fa;
+            }
+            
+            .collection-dropdown-item:last-child {
+                border-bottom: none;
+            }
+            
+            .collection-dropdown-item.loading {
+                color: #666;
+                pointer-events: none;
+            }
+            
+            .collection-dropdown-item.no-collections {
+                color: #666;
+                text-align: center;
+                font-style: italic;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     function attachEventListeners() {
         const thumbnails = document.querySelectorAll('.chart-thumbnail');
         const titles = document.querySelectorAll('.chart-item-title');
@@ -843,12 +1144,17 @@ function getDummyData() {
     function navigateToContentPage(id) {
         console.log(`Navigating to content page for ID: ${id}`);
         
-        // use Squid Game as example first (ID: 25)
-        if (id == 25) {
-            window.location.href = "review.html";
+        // Find the item in the entertainment data
+        const item = entertainmentData.find(item => item.id === parseInt(id) || item.id === id);
+        
+        if (item) {
+            console.log(`Found item: ${item.title}`);
+            // Store the item in localStorage for the review page
+            localStorage.setItem('currentItem', JSON.stringify(item));
+            // Navigate to review page with item details
+            window.location.href = `review.html?tmdbId=${item.id}&type=${item.type}`;
         } else {
-            alert(`Navigating to content page for: ${id}`);
-            // future implementation could use: window.location.href = `/content/${id}`;
+            console.error(`Item with ID ${id} not found`);
         }
     }
     
@@ -892,3 +1198,5 @@ function getDummyData() {
     initChart();
 
     addMedalStyles();
+
+    

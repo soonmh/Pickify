@@ -208,36 +208,36 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     /**
- * Format music data from the API response
- */
-function formatMusicData(music) {
-    const convertedRating = music.popularity ? 
-        parseFloat((music.popularity / 20).toFixed(1)) : 0;
-    return {
-        type: 'music',
-        id: music.id,
-        title: music.name,
-        image: music.poster_url || './assets/default-music.png',
-        rating: convertedRating || 'N/A',
-        views: `${music.popularity}  `,
-        year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year'
-    };
-}
+     * Format music data from the API response
+     */
+    function formatMusicData(music) {
+        const convertedRating = music.popularity ? 
+            parseFloat((music.popularity / 20).toFixed(1)) : 0;
+        return {
+            type: 'music',
+            id: music.id,
+            title: music.title || music.name || 'Unknown Title',
+            image: music.poster_url || './assets/default-music.png',
+            rating: convertedRating || 'N/A',
+            views: `${music.popularity}  `,
+            year: music.release ? new Date(music.release).getFullYear() : 'Unknown Year'
+        };
+    }
 
-/**
- * Format book data from the API response
- */
-function formatBookData(book) {
-    return {
-        type: 'book',
-        id: book._id,
-        title: book.title,
-        image: book.image,
-        rating: book.rating || 'N/A',
-        views: formatViews(book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 1000000)),
-        year: book.year || 'Unknown Year'
-    };
-}
+    /**
+     * Format book data from the API response
+     */
+    function formatBookData(book) {
+        return {
+            type: 'book',
+            id: book._id,
+            title: book.title,
+            image: book.image,
+            rating: book.rating || 'N/A',
+            views: formatViews(book.popularity ? Math.round(book.popularity * 1000) : Math.floor(Math.random() * 1000000)),
+            year: book.year || 'Unknown Year'
+        };
+    }
 
     /**
      * Load fallback data if MongoDB is unavailable
@@ -247,42 +247,42 @@ function formatBookData(book) {
         
         // Your existing dummy data arrays
         const top10Movies = [
-            { id: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
-            { id: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
-            { id: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
-            { id: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
-            { id: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
-            { id: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
-            { id: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
-            { id: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
-            { id: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
-            { id: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
+            { tmdbId: 3, title: "The Dark Knight", image: "./assests/TheDarkKnight.png", rating: 4.9, views: "1.5M", type: "movie" },
+            { tmdbId: 4, title: "Interstellar", image: "./assests/Interstellar.png", rating: 4.7, views: "1.1M", type: "movie" },
+            { tmdbId: 2, title: "Inception", image: "./assests/Inception.png", rating: 4.7, views: "48.7K", type: "movie" },
+            { tmdbId: 5, title: "Fight Club", image: "./assests/FightClub.png", rating: 4.8, views: "800K", type: "movie" },
+            { tmdbId: 6, title: "Pulp Fiction", image: "./assests/PulpFiction.png", rating: 4.6, views: "900K", type: "movie" },
+            { tmdbId: 14, title: "The Matrix", image: "./assests/TheMatrix.png", rating: 4.8, views: "1.0M", type: "movie" },
+            { tmdbId: 15, title: "Forrest Gump", image: "./assests/ForrestGump.png", rating: 4.9, views: "1.3M", type: "movie" },
+            { tmdbId: 16, title: "The Shawshank Redemption", image: "./assests/ShawshankRedemption.png", rating: 4.9, views: "1.6M", type: "movie" },
+            { tmdbId: 17, title: "The Godfather", image: "./assests/TheGodfather.png", rating: 4.9, views: "1.7M", type: "movie" },
+            { tmdbId: 18, title: "Avengers: Endgame", image: "./assests/movieposter.png", rating: 4.7, views: "2.1M", type: "movie" },
         ];
 
         const top10Music = [
-            { id: 7, title: "Blinding Lights", image: "./assests/BlindingLights.png", rating: 4.9, views: "2.0M", type: "music" },
-            { id: 8, title: "Shape of You", image: "./assests/ShapeOfYou.png", rating: 4.8, views: "1.8M", type: "music" },
-            { id: 9, title: "Rolling in the Deep", image: "./assests/RollingInTheDeep.png", rating: 4.7, views: "1.5M", type: "music" },
-            { id: 10, title: "Bohemian Rhapsody", image: "./assests/BohemianRhapsody.png", rating: 4.9, views: "1.9M", type: "music" },
-            { id: 19, title: "Someone Like You", image: "./assests/SomeoneLikeYou.png", rating: 4.8, views: "1.6M", type: "music" },
-            { id: 20, title: "Let It Be", image: "./assests/LetItBe.png", rating: 4.9, views: "1.7M", type: "music" },
-            { id: 21, title: "Bad Guy", image: "./assests/badguy.png", rating: 4.6, views: "1.4M", type: "music" },
-            { id: 22, title: "Hotel California", image: "./assests/HotelCalifornia.png", rating: 4.9, views: "1.9M", type: "music" },
-            { id: 23, title: "Hey Jude", image: "./assests/HeyJude.png", rating: 4.9, views: "2.0M", type: "music" },
-            { id: 24, title: "Stairway to Heaven", image: "./assests/StairwayToHeaven.png", rating: 4.8, views: "1.8M", type: "music" },
+            { tmdbId: 7, title: "Blinding Lights", image: "./assests/BlindingLights.png", rating: 4.9, views: "2.0M", type: "music" },
+            { tmdbId: 8, title: "Shape of You", image: "./assests/ShapeOfYou.png", rating: 4.8, views: "1.8M", type: "music" },
+            { tmdbId: 9, title: "Rolling in the Deep", image: "./assests/RollingInTheDeep.png", rating: 4.7, views: "1.5M", type: "music" },
+            { tmdbId: 10, title: "Bohemian Rhapsody", image: "./assests/BohemianRhapsody.png", rating: 4.9, views: "1.9M", type: "music" },
+            { tmdbId: 19, title: "Someone Like You", image: "./assests/SomeoneLikeYou.png", rating: 4.8, views: "1.6M", type: "music" },
+            { tmdbId: 20, title: "Let It Be", image: "./assests/LetItBe.png", rating: 4.9, views: "1.7M", type: "music" },
+            { tmdbId: 21, title: "Bad Guy", image: "./assests/badguy.png", rating: 4.6, views: "1.4M", type: "music" },
+            { tmdbId: 22, title: "Hotel California", image: "./assests/HotelCalifornia.png", rating: 4.9, views: "1.9M", type: "music" },
+            { tmdbId: 23, title: "Hey Jude", image: "./assests/HeyJude.png", rating: 4.9, views: "2.0M", type: "music" },
+            { tmdbId: 24, title: "Stairway to Heaven", image: "./assests/StairwayToHeaven.png", rating: 4.8, views: "1.8M", type: "music" },
         ];
 
         const top10Books = [
-            { id: 1, title: "The Midnight Library", image: "./assests/MidnightLibrary.png", rating: 4.8, views: "12.4K", type: "book" },
-            { id: 11, title: "Atomic Habits", image: "./assests/AtomicHabits.png", rating: 4.8, views: "600K", type: "book" },
-            { id: 12, title: "The Alchemist", image: "./assests/TheAlchemist.png", rating: 4.9, views: "700K", type: "book" },
-            { id: 13, title: "1984", image: "./assests/1984.png", rating: 4.8, views: "650K", type: "book" },
-            { id: 25, title: "To Kill a Mockingbird", image: "./assests/ToKillAMockingbird.png", rating: 4.9, views: "800K", type: "book" },
-            { id: 26, title: "The Great Gatsby", image: "./assests/TheGreatGatsby.png", rating: 4.6, views: "550K", type: "book" },
-            { id: 27, title: "The Catcher in the Rye", image: "./assests/TheCatcherInTheRye.png", rating: 4.7, views: "500K", type: "book" },
-            { id: 28, title: "Sapiens", image: "./assests/Sapiens.png", rating: 4.8, views: "700K", type: "book" },
-            { id: 29, title: "Harry Potter and the Philosopher's Stone", image: "./assests/HarryPotter1.png", rating: 4.9, views: "1.0M", type: "book" },
-            { id: 30, title: "Pride and Prejudice", image: "./assests/PrideAndPrejudice .png", rating: 4.8, views: "750K", type: "book" },
+            { tmdbId: 1, title: "The Midnight Library", image: "./assests/MidnightLibrary.png", rating: 4.8, views: "12.4K", type: "book" },
+            { tmdbId: 11, title: "Atomic Habits", image: "./assests/AtomicHabits.png", rating: 4.8, views: "600K", type: "book" },
+            { tmdbId: 12, title: "The Alchemist", image: "./assests/TheAlchemist.png", rating: 4.9, views: "700K", type: "book" },
+            { tmdbId: 13, title: "1984", image: "./assests/1984.png", rating: 4.8, views: "650K", type: "book" },
+            { tmdbId: 25, title: "To Kill a Mockingbird", image: "./assests/ToKillAMockingbird.png", rating: 4.9, views: "800K", type: "book" },
+            { tmdbId: 26, title: "The Great Gatsby", image: "./assests/TheGreatGatsby.png", rating: 4.6, views: "550K", type: "book" },
+            { tmdbId: 27, title: "The Catcher in the Rye", image: "./assests/TheCatcherInTheRye.png", rating: 4.7, views: "500K", type: "book" },
+            { tmdbId: 28, title: "Sapiens", image: "./assests/Sapiens.png", rating: 4.8, views: "700K", type: "book" },
+            { tmdbId: 29, title: "Harry Potter and the Philosopher's Stone", image: "./assests/HarryPotter1.png", rating: 4.9, views: "1.0M", type: "book" },
+            { tmdbId: 30, title: "Pride and Prejudice", image: "./assests/PrideAndPrejudice .png", rating: 4.8, views: "750K", type: "book" },
         ];
 
         // Render fallback data
@@ -485,45 +485,48 @@ function formatBookData(book) {
      */
     function renderScrollingList(container, data, mediaType) {
         // Clear the container first
-    container.innerHTML = '';
+        container.innerHTML = '';
     
-    // Render each item in the data array
-    data.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'recommendation-card';
-        
-        // Create badge class based on position (special for top 3)
-        const positionNumber = index + 1;
-        const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
-        
-        // Add the badge HTML with position number and media type
-        const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
-        
-        card.innerHTML = `
-            ${badgeHTML}
-            <img src="${item.image}" alt="${item.title}">
-            <div class="result-body">
-                <h5 class="result-title">${item.title}</h5>
-                <div class="result-meta">
-                    <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
-                    <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
+        // Render each item in the data array
+        data.forEach((item, index) => {
+            const card = document.createElement('div');
+            card.className = 'recommendation-card';
+            
+            // Create badge class based on position (special for top 3)
+            const positionNumber = index + 1;
+            const badgeClass = positionNumber <= 3 ? `no${positionNumber}` : '';
+            
+            // Add the badge HTML with position number and media type
+            const badgeHTML = `<div class="numbered-badge ${badgeClass} ${mediaType}">No ${positionNumber}</div>`;
+            
+            card.innerHTML = `
+                ${badgeHTML}
+                <img src="${item.image}" alt="${item.title}">
+                <div class="result-body">
+                    <h5 class="result-title">${item.title}</h5>
+                    <div class="result-meta">
+                        <div class="result-rating"><i class="fas fa-star"></i> ${item.rating}</div>
+                        <div class="result-views"><i class="fas fa-eye"></i> ${item.views}</div>
+                    </div>
                 </div>
-            </div>
-        `;
-        
-        // Add collection dropdown
-        addCollectionDropdown(card, item);
-        
-        // Add click handler for the card (excluding dropdown area)
-        card.addEventListener('click', (e) => {
-            // Don't navigate if clicking on dropdown
-            if (!e.target.closest('.collection-dropdown')) {
-                console.log(`Clicked on ${mediaType} item: ${item.title}`);
-            }
+            `;
+            
+            // Add collection dropdown
+            addCollectionDropdown(card, item);
+            
+            // Add click handler for the card (excluding dropdown area)
+            card.addEventListener('click', (e) => {
+                // Don't navigate if clicking on dropdown
+                if (!e.target.closest('.collection-dropdown')) {
+                    console.log(`Clicked on ${mediaType} item: ${item.title}`);
+                    // Navigate to review page with item details
+                    
+                    window.location.href = `review.html?tmdbId=${item.id || item.tmdbId}&type=${mediaType}`;
+                }
+            });
+            
+            container.appendChild(card);
         });
-        
-        container.appendChild(card);
-    });
     }
 
     /**
@@ -688,7 +691,7 @@ function formatBookData(book) {
         recommendations.forEach(item => {
             const col = document.createElement('div');
             col.className = 'col';
-            col.setAttribute('data-id', item.id || item.tmdbId);
+            col.setAttribute('data-id', item.tmdbId || item.id);  // Use tmdbId first, then fall back to id
 
             // Format the item data consistently
             const formattedItem = formatRecommendationData(item);
@@ -769,9 +772,18 @@ function formatRecommendationData(item) {
         rating = formatRating(item.rating || item.vote_average || 0);
     }
     
+    // Determine the correct ID based on type
+    let id;
+    if (item.type === 'movie') {
+        id = item.tmdbId;
+    } else if (item.type === 'music' || item.type === 'book') {
+        id = item.id;
+    } else {
+        id = item.tmdbId || item.id || 'unknown-id';
+    }
     
     return {
-        id: item.id || item.tmdbId || 'unknown-id',
+        id: id,
         title: item.title || item.name || 'Unknown Title',
         type: item.type || (item.media_type === 'movie' ? 'movie' : item.media_type) || 'unknown',
         image: item.image || item.poster_url || (item.poster_path ? `${TMDB_IMAGE_BASE_URL}${item.poster_path}` : './assests/1984.png'),
@@ -1120,6 +1132,7 @@ async function addToCollection(userId, collectionName, item) {
         // Determine item type and ID
         const itemType = item.type;
         let itemId;
+        // itemId = item.tmdbId;
         if (itemType === 'movie') {
             itemId = item.tmdbId;
         } else if (itemType === 'music' || itemType === 'book') {
@@ -1156,7 +1169,7 @@ async function addToCollection(userId, collectionName, item) {
 
     } catch (error) {
         console.error('Error adding item to collection:', error);
-        showToast(`❌ Failed to add "${item.title}": ${error.message}`, 'error');
+        showToast(`❌ Item already exists in ${collectionName}`);
     }
 }
 
@@ -1283,3 +1296,13 @@ function showToast(message, type = 'info') {
 //         }
 //     }
 // }
+
+/**
+ * Handle click on recommendation items
+ * @param {string} id - The item ID
+ * @param {string} type - The item type (movie, music, book)
+ */
+function handleRecommendationClick(id, type) {
+    console.log(`Clicked on ${type} recommendation: ${id}`);
+    window.location.href = `review.html?tmdbId=${id}&type=${type}`;
+}
