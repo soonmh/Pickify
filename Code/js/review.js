@@ -9,9 +9,6 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
     try {
         console.log('Submitting review with data:', { entertainmentId, user, rating, text, userAvatar });
         
-        // Get the current user's actual profile picture URL
-        const actualUserAvatar = await getCurrentUserProfilePictureUrl();
-        
         const response = await fetch(`${API_BASE_URL}/reviews`, {
             method: 'POST',
             headers: {
@@ -22,7 +19,7 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
                 user,
                 rating: parseInt(rating),
                 text,
-                userAvatar: actualUserAvatar
+                userAvatar
             })
         });
 
@@ -173,7 +170,6 @@ function populateEntertainmentDetails(review) {
             if (details.type === 'book' || details.type === 'books') {
                 console.log('Processing as book');
                 voteAverage = parseFloat(details.rating || 0).toFixed(1);
-                console.log('details.rating',details.rating);
                 voteCount = Math.floor((details.views || 0) / 100);
                 console.log('Book rating:', { voteAverage, voteCount });
             
@@ -720,9 +716,6 @@ async function submitComment(reviewId, user, comment, userAvatar) {
 
         console.log('Submitting comment with data:', { reviewId, user, comment, userAvatar });
         
-        // Get the current user's actual profile picture URL
-        const actualUserAvatar = await getCurrentUserProfilePictureUrl();
-        
         const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments`, {
             method: 'POST',
             headers: {
@@ -731,7 +724,7 @@ async function submitComment(reviewId, user, comment, userAvatar) {
             body: JSON.stringify({
                 user,
                 comment,
-                userAvatar: actualUserAvatar
+                userAvatar
             })
         });
 
@@ -820,82 +813,6 @@ function updateReviewFormVisibility(reviews, currentUser) {
     }
 }
 
-// Function to get user ID from username
-async function getUserIdFromUsername(username) {
-    try {
-        const response = await fetch(`http://localhost:3000/user/getUserId?username=${encodeURIComponent(username)}`);
-        const result = await response.json();
-        
-        if (result.success && result.userId) {
-            return result.userId;
-        } else {
-            return null;
-        }
-    } catch (error) {
-        console.error('Error fetching user ID from username:', error);
-        return null;
-    }
-}
-
-// Function to get user's profile picture URL
-async function getUserProfilePictureUrl(userId) {
-    try {
-        const response = await fetch(`http://localhost:3000/user/getImage?userId=${userId}`);
-        const result = await response.json();
-        
-        if (result.success && result.profile) {
-            return `http://localhost:3000/image/profile_pictures/${result.profile}`;
-        } else {
-            return './assests/blank-profile-picture.webp';
-        }
-    } catch (error) {
-        console.error('Error fetching user profile picture:', error);
-        return './assests/blank-profile-picture.webp';
-    }
-}
-
-// Function to get profile picture URL from username
-async function getUserProfilePictureUrlFromUsername(username) {
-    try {
-        const userId = await getUserIdFromUsername(username);
-        if (userId) {
-            return await getUserProfilePictureUrl(userId);
-        } else {
-            return './assests/blank-profile-picture.webp';
-        }
-    } catch (error) {
-        console.error('Error getting profile picture from username:', error);
-        return './assests/blank-profile-picture.webp';
-    }
-}
-
-// Function to get current user's profile picture URL
-async function getCurrentUserProfilePictureUrl() {
-    try {
-        // Get current user
-        let userData = sessionStorage.getItem('loggedInUser');
-        if (!userData) {
-            userData = localStorage.getItem('loggedInUser');
-        }
-        
-        if (!userData) {
-            return './assests/blank-profile-picture.webp';
-        }
-
-        const user = JSON.parse(userData);
-        const userId = user.userId || user._id || user.id;
-        
-        if (!userId) {
-            return './assests/blank-profile-picture.webp';
-        }
-
-        return await getUserProfilePictureUrl(userId);
-    } catch (error) {
-        console.error('Error getting current user profile picture:', error);
-        return './assests/blank-profile-picture.webp';
-    }
-}
-
 function displayReviews(reviews) {
     const reviewList = document.querySelector('.review-list');
     reviewList.innerHTML = '';
@@ -911,19 +828,12 @@ function displayReviews(reviews) {
         userData = localStorage.getItem('loggedInUser');
     }
     const currentUser = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
+    const userAvatar = userData ? JSON.parse(userData).profilePicture || './assests/profilepic3.png' : './assests/profilepic3.png';
 
     // Update review form visibility based on whether user has already reviewed
     updateReviewFormVisibility(reviews, currentUser);
 
-    // Display reviews with async profile picture loading
-    displayReviewsWithProfilePictures(reviews, currentUser);
-}
-
-// Function to display reviews with profile pictures loaded asynchronously
-async function displayReviewsWithProfilePictures(reviews, currentUser) {
-    const reviewList = document.querySelector('.review-list');
-    
-    for (const review of reviews) {
+    reviews.forEach(review => {
         const reviewElement = document.createElement('div');
         reviewElement.className = 'review';
         reviewElement.id = `review-${review._id}`;
@@ -945,16 +855,10 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                 ` : ''}
             </div>`;
 
-        // Get the reviewer's profile picture URL - use stored URL if available, otherwise fetch dynamically
-        let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
-        if (!review.userAvatar || review.userAvatar === './assests/blank-profile-picture.webp') {
-            reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
-        }
-
         reviewElement.innerHTML = `
             <div class="review-content">
                 <div class="user-info">
-                    <img src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
+                    <img src="${review.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
                     <strong>${review.user}</strong>
                 </div>
                 <div class="review-header">
@@ -968,108 +872,38 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                 <p class="review-text">${review.text}</p>
                 <div class="comment-section">
                     <div class="comments">
-                        ${review.comments ? await Promise.all(review.comments.map(async comment => {
-                            // Get commenter's profile picture URL - use stored URL if available, otherwise fetch dynamically
-                            let commenterProfilePic = comment.userAvatar || './assests/blank-profile-picture.webp';
-                            if (!comment.userAvatar || comment.userAvatar === './assests/blank-profile-picture.webp') {
-                                commenterProfilePic = await getUserProfilePictureUrlFromUsername(comment.user);
-                            }
-                            
-                            return `
-                                <div class="comment" id="comment-${comment._id}">
-                                    <div class="user-info">
-                                        <img src="${commenterProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
-                                        <strong>${comment.user}</strong>
-                                    </div>
-                                    <div class="comment-content">
-                                        <p>${comment.comment}</p>
-                                        <div class="comment-actions">
-                                            ${currentUser === comment.user ? `
-                                                <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
-                                                <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
-                                            ` : ''}
-                                            ${currentUser !== comment.user ? `
-                                                <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
-                                            ` : ''}
-                                        </div>
+                        ${review.comments ? review.comments.map(comment => `
+                            <div class="comment" id="comment-${comment._id}">
+                                <div class="user-info">
+                                    <img src="${comment.userAvatar || './assests/profilepic3.png'}" alt="User Profile">
+                                    <strong>${comment.user}</strong>
+                                </div>
+                                <div class="comment-content">
+                                    <p>${comment.comment}</p>
+                                    <div class="comment-actions">
+                                        ${currentUser === comment.user ? `
+                                            <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
+                                            <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
+                                        ` : ''}
+                                        ${currentUser !== comment.user ? `
+                                            <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
+                                        ` : ''}
                                     </div>
                                 </div>
-                            `;
-                        })).then(comments => comments.join('')) : ''}
+                            </div>
+                        `).join('') : ''}
                     </div>
                     <div class="comment-input-section">
                         <input type="text" class="comment-input" placeholder="Write a comment...">
-                        <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUser}')">Post</button>
+                        <button class="comment-btn" onclick="submitComment('${review._id}', '${currentUser}', document.querySelector('#review-${review._id} .comment-input').value, '${userAvatar}')">Post</button>
                     </div>
                 </div>
             </div>
         `;
 
         reviewList.appendChild(reviewElement);
-    }
+    });
 }
-
-// Wrapper function to submit comment with current user's profile picture
-async function submitCommentWithProfilePic(reviewId, currentUser) {
-    const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
-    const commentText = commentInput ? commentInput.value : '';
-    await submitComment(reviewId, currentUser, commentText);
-}
-
-// Function to refresh profile pictures for current user's reviews and comments
-async function refreshCurrentUserProfilePictures() {
-    try {
-        // Get current user
-        let userData = sessionStorage.getItem('loggedInUser');
-        if (!userData) {
-            userData = localStorage.getItem('loggedInUser');
-        }
-        
-        if (!userData) {
-            return;
-        }
-
-        const user = JSON.parse(userData);
-        const currentUser = user.username || user.name;
-        const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
-
-        // Update profile pictures in all reviews by current user
-        const currentUserReviews = document.querySelectorAll(`[data-user="${currentUser}"]`);
-        currentUserReviews.forEach(reviewElement => {
-            const profileImg = reviewElement.querySelector('.user-info img');
-            if (profileImg) {
-                profileImg.src = currentUserProfilePic;
-            }
-        });
-
-        // Update profile pictures in all comments by current user
-        const currentUserComments = document.querySelectorAll('.comment');
-        currentUserComments.forEach(commentElement => {
-            const commentUser = commentElement.querySelector('strong');
-            if (commentUser && commentUser.textContent === currentUser) {
-                const profileImg = commentElement.querySelector('.user-info img');
-                if (profileImg) {
-                    profileImg.src = currentUserProfilePic;
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Error refreshing profile pictures:', error);
-    }
-}
-
-// Global function to be called when profile picture is updated
-window.refreshReviewProfilePictures = refreshCurrentUserProfilePictures;
-
-// Listen for storage changes (when user data is updated in other tabs/windows)
-window.addEventListener('storage', (event) => {
-    if (event.key === 'loggedInUser' || event.key === 'profilePictureUpdated') {
-        // Refresh profile pictures when user data changes
-        setTimeout(() => {
-            refreshCurrentUserProfilePictures();
-        }, 500);
-    }
-});
 
 // Initialize page
 document.addEventListener('DOMContentLoaded', async () => {
@@ -1153,11 +987,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (reviewsResult.success) {
                 updateReviewStats(reviewsResult.data);
                 displayReviews(reviewsResult.data);
-                
-                // Refresh profile pictures for current user after reviews are loaded
-                setTimeout(() => {
-                    refreshCurrentUserProfilePictures();
-                }, 1000);
             } else {
                 console.warn('Failed to fetch reviews:', reviewsResult.message);
                 updateReviewStats([]);
@@ -1175,11 +1004,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         errorMessage.textContent = `Failed to load entertainment details: ${error.message}. Please try refreshing the page.`;
         document.querySelector('.summary-container').prepend(errorMessage);
     }
-
-    // Set up periodic profile picture refresh (every 30 seconds)
-    setInterval(() => {
-        refreshCurrentUserProfilePictures();
-    }, 30000);
 
     // Add event listener for submit button
     const submitButton = document.getElementById('submit-review');
