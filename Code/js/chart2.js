@@ -1145,7 +1145,7 @@ function showToast(message, type = 'info') {
         console.log(`Navigating to content page for ID: ${id}`);
         
         // Find the item in the entertainment data
-        const item = entertainmentData.find(item => item.id === parseInt(id));
+        const item = entertainmentData.find(item => item.id === parseInt(id) || item.id === id);
         
         if (item) {
             console.log(`Found item: ${item.title}`);
