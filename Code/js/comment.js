@@ -11,7 +11,7 @@ function getCurrentUser() {
 function getApiUrl() {
     const protocol = window.location.protocol;
     const hostname = window.location.hostname;
-    const port = '5500';
+    const port = '5501';
     return `${protocol}//${hostname}:${port}`;
 }
 
