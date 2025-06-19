@@ -1,15 +1,12 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
 
-// Global variable to store entertainment ID for review submission
 let currentEntertainmentId = null;
 
-// Function to submit a review
 async function submitReview(entertainmentId, user, rating, text, userAvatar) {
     try {
         console.log('Submitting review with data:', { entertainmentId, user, rating, text, userAvatar });
         
-        // Get the current user's actual profile picture URL
         const actualUserAvatar = await getCurrentUserProfilePictureUrl();
         
         const response = await fetch(`${API_BASE_URL}/reviews`, {
@@ -26,55 +23,46 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
             })
         });
 
-        console.log('🚨 Response status:', response.status);
+        console.log('Response status:', response.status);
         
-        // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
-            console.error('❌ Non-JSON response received:', textResponse);
+            console.error('Non-JSON response received:', textResponse);
             throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
         }
         
         const result = await response.json();
-        console.log('🚨 Response result:', result);
+        console.log('Response result:', result);
         
         if (result.success) {
             console.log('Review submitted successfully');
             
-            // Fetch updated rating statistics from database
             const ratingStats = await fetchRatingStats(entertainmentId);
             if (ratingStats) {
-                // Update rating display with database statistics
                 updateRatingDisplayWithDatabaseStats(ratingStats);
             } else {
-                // Fallback to immediate local update if database fetch fails
                 updateRatingWithNewReview(parseInt(rating));
                 updateRatingBreakdownWithNewReview(parseInt(rating));
             }
-            
-            // Clear the form
+        
             const reviewText = document.getElementById('review-text');
             if (reviewText) {
                 reviewText.value = '';
             }
             
-            // Clear the star rating
             const starInputs = document.querySelectorAll('.star-rating-bar input');
             starInputs.forEach(input => {
                 input.checked = false;
             });
             
-            // Update the rating value display
             const ratingValue = document.querySelector('.rating-value');
             if (ratingValue) {
                 ratingValue.textContent = 'Select rating';
             }
             
-            // Get current user's profile picture for immediate display
             const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
             
-            // Get current reviews and add the new review immediately
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${entertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
@@ -86,19 +74,16 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
                 displayReviewsWithImmediateProfilePic(reviewsResult.data, user, currentUserProfilePic);
             }
             
-            alert('Review submitted successfully!');
         } else {
-            // Handle specific error for already reviewed
             if (result.message && result.message.includes('already reviewed')) {
                 alert('You already reviewed this entertainment');
-                // Optionally hide the review form or show a message
                 const reviewForm = document.querySelector('.review-form');
                 if (reviewForm) {
                     const existingMessage = reviewForm.querySelector('.already-reviewed-message');
                     if (!existingMessage) {
                         const message = document.createElement('div');
                         message.className = 'already-reviewed-message';
-                        message.style.cssText = 'color: #ff6b6b; text-align: center; padding: 10px; margin: 10px 0; background: #ffe6e6; border-radius: 5px;';
+                        message.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px;';
                         message.textContent = 'You already reviewed this entertainment';
                         reviewForm.insertBefore(message, reviewForm.firstChild);
                     }
@@ -113,12 +98,10 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
     }
 }
 
-// Function to update the main entertainment rating display with user reviews
 function updateEntertainmentRatingDisplay(reviews, entertainmentDetails) {
     const voteAverageEl = document.querySelector('.vote-average');
     if (!voteAverageEl) return;
 
-    // Calculate user review statistics
     let userVoteAverage = 0;
     let userVoteCount = 0;
     
@@ -134,56 +117,29 @@ function updateEntertainmentRatingDisplay(reviews, entertainmentDetails) {
         userVoteAverage = userVoteCount > 0 ? (totalRating / userVoteCount) : 0;
     }
 
-    // Get original entertainment rating
     let originalVoteAverage = 0;
     let originalVoteCount = 0;
     
-    if (entertainmentDetails) {
-        if (entertainmentDetails.type === 'book' || entertainmentDetails.type === 'books') {
-            originalVoteAverage = parseFloat(entertainmentDetails.vote_average || 0);
-            originalVoteCount = Math.floor((entertainmentDetails.popularity || 0) / 100);
-        } else if (entertainmentDetails.type === 'movie' || entertainmentDetails.type === 'movies') {
-            originalVoteAverage = entertainmentDetails.vote_average ? (entertainmentDetails.vote_average / 2) : 0;
-            originalVoteCount = Math.max(1, entertainmentDetails.vote_count ? Math.floor(entertainmentDetails.vote_count) : 
-                Math.floor((entertainmentDetails.popularity || 0) / 2));
-        } else if (entertainmentDetails.type === 'music') {
-            originalVoteAverage = entertainmentDetails.popularity ? 
-                parseFloat((entertainmentDetails.popularity / 20).toFixed(1)) : 0;
-            originalVoteCount = Math.floor(entertainmentDetails.popularity) || 0;
-        }
-    }
 
-    // Calculate combined rating (weighted average)
     let combinedVoteAverage = 0;
     let combinedVoteCount = 0;
     
     if (userVoteCount > 0) {
-        // If we have user reviews, use them as the primary rating
         combinedVoteAverage = userVoteAverage;
         combinedVoteCount = userVoteCount;
-    } else {
-        // If no user reviews, use the original rating
-        combinedVoteAverage = originalVoteAverage;
-        combinedVoteCount = originalVoteCount;
     }
 
-    // Format the rating
     const formattedVoteAverage = combinedVoteAverage.toFixed(1);
     const fullStars = Math.round(combinedVoteAverage);
     const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
     
-    // Create rating text
     let ratingText;
     if (userVoteCount > 0) {
         ratingText = `User Rating: ${formattedVoteAverage}/5 (${combinedVoteCount} reviews)`;
     } else {
         ratingText = `Average Rating: ${formattedVoteAverage}/5 (${combinedVoteCount} rated)`;
     }
-    
-    // If rating is 0, show "0 rated"
-    if (combinedVoteAverage === 0) {
-        ratingText = '0 rated';
-    }
+
 
     voteAverageEl.innerHTML = `
         <div class="tmdb-rating">
@@ -193,18 +149,14 @@ function updateEntertainmentRatingDisplay(reviews, entertainmentDetails) {
     `;
 }
 
-// Function to update rating display with a new review (for immediate updates)
 function updateRatingWithNewReview(newRating) {
     const voteAverageEl = document.querySelector('.vote-average');
     if (!voteAverageEl) return;
 
-    // Get current reviews from the DOM
     const currentReviews = window.currentReviews || [];
     
-    // Add the new review temporarily for calculation
     const tempReviews = [...currentReviews, { rating: newRating }];
     
-    // Calculate new average
     let totalRating = 0;
     let reviewCount = 0;
     
@@ -231,7 +183,6 @@ function updateRatingWithNewReview(newRating) {
     `;
 }
 
-// Function to populate entertainment details
 function populateEntertainmentDetails(review) {
     if (!review.entertainmentDetails) {
         console.error('No entertainment details provided');
@@ -242,7 +193,6 @@ function populateEntertainmentDetails(review) {
     console.log('Populating details:', details);
     
     try {
-        // Set basic details with null checks
         const posterEl = document.querySelector('.item-poster');
         const titleEl = document.querySelector('.item-title');
         const typeEl = document.querySelector('.item-type');
@@ -301,15 +251,6 @@ function populateEntertainmentDetails(review) {
 }
 
 function updateRatingBreakdownWithNewReview(newRating) {
-    console.log('🔍 updateRatingBreakdownWithNewReview called with rating:', newRating);
-    
-
-    const currentReviews = window.currentReviews || [];
-    console.log('🔍 Current reviews:', currentReviews);
-    
-
-    const tempReviews = [...currentReviews, { rating: newRating }];
-    console.log('🔍 Temp reviews with new rating:', tempReviews);
     
 
     const ratingCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
@@ -323,33 +264,26 @@ function updateRatingBreakdownWithNewReview(newRating) {
         }
     });
 
-    console.log('🔍 Rating counts:', ratingCounts);
-    console.log('🔍 Total rating:', totalRating);
-
     const totalReviews = tempReviews.length;
-    console.log('🔍 Total reviews:', totalReviews);
 
     for (let i = 1; i <= 5; i++) {
         const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
             const percentage = totalReviews > 0 ? Math.round((ratingCounts[i] / totalReviews) * 100) : 0;
             ratingEl.textContent = `${percentage}%`;
-            console.log(`🔍 Updated rating-${i} to ${percentage}%`);
+            console.log(`Updated rating-${i} to ${percentage}%`);
         } else {
-            console.log(`❌ Rating element .rating-${i} not found`);
+            console.log(`Rating element .rating-${i} not found`);
         }
     }
 }
 
-// Function to update review statistics
 function updateReviewStats(reviews) {
     console.log('Updating review stats with:', reviews);
     
-    // Initialize rating counts
     const ratingCounts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
     let totalRating = 0;
 
-    // Count ratings from reviews
     if (reviews && reviews.length > 0) {
         reviews.forEach(review => {
             const rating = Math.round(parseFloat(review.rating));
@@ -362,7 +296,6 @@ function updateReviewStats(reviews) {
 
     const totalReviews = reviews ? reviews.length : 0;
     
-    // Update rating breakdown - only update the elements that actually exist
     for (let i = 1; i <= 5; i++) {
         const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
@@ -373,7 +306,6 @@ function updateReviewStats(reviews) {
     }
 }
 
-// Function to delete a review
 async function deleteReview(reviewId, user) {
     try {
         const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
@@ -387,45 +319,36 @@ async function deleteReview(reviewId, user) {
         const result = await response.json();
         
         if (result.success) {
-            console.log('🗑️ Review deleted successfully, fetching updated stats...');
-            console.log('🗑️ Current entertainment ID:', currentEntertainmentId);
+            console.log('Review deleted successfully, fetching updated stats...');
+            console.log('Current entertainment ID:', currentEntertainmentId);
             
-            // Get current reviews and update display
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
-                // Store current reviews globally for future updates
                 window.currentReviews = reviewsResult.data;
                 
-                // Fetch updated rating statistics from database
                 const ratingStats = await fetchRatingStats(currentEntertainmentId);
                 console.log('🗑️ Rating stats after deletion:', ratingStats);
                 
                 if (ratingStats) {
-                    // Update rating display with database statistics
                     updateRatingDisplayWithDatabaseStats(ratingStats);
                     console.log('🗑️ Rating display updated with database stats');
                 } else {
                     console.log('❌ Failed to fetch rating stats after deletion, using fallback');
-                    // Fallback: update using local calculation
                     updateEntertainmentRatingDisplay(reviewsResult.data, window.currentEntertainmentDetails);
                     updateReviewStats(reviewsResult.data);
                 }
                 
-                // Get current user's profile picture for immediate display
                 const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
                 
-                // Display reviews with immediate profile picture update
                 displayReviewsWithImmediateProfilePic(reviewsResult.data, user, currentUserProfilePic);
                 
-                // Show the review form again since user can now submit a new review
                 const reviewForm = document.querySelector('.review-form');
                 if (reviewForm) {
                     reviewForm.style.display = 'block';
                 }
                 
-                // Remove any "already reviewed" messages
                 const existingMessages = document.querySelectorAll('.already-reviewed-message');
                 existingMessages.forEach(msg => msg.remove());
             }
@@ -440,7 +363,6 @@ async function deleteReview(reviewId, user) {
     }
 }
 
-// Function to create star rating HTML
 function createStarRatingHTML(currentRating = 0, isEditForm = false) {
     return `
         <div class="rating-container">
@@ -455,7 +377,6 @@ function createStarRatingHTML(currentRating = 0, isEditForm = false) {
     `;
 }
 
-// Function to show edit form
 function showEditForm(reviewId, currentRating, currentText) {
     console.log('Showing edit form for review:', { reviewId, currentRating, currentText });
     const reviewElement = document.getElementById(`review-${reviewId}`);
@@ -463,13 +384,7 @@ function showEditForm(reviewId, currentRating, currentText) {
         console.error('Review element not found:', reviewId);
         return;
     }
-    
-    const reviewContent = reviewElement.querySelector('.review-content');
-    const originalContent = reviewContent.innerHTML;
-
-    // Store the original content in a data attribute
-    reviewElement.dataset.originalContent = originalContent;
-
+    reviewElement.dataset.originalContent = reviewElement.innerHTML;
     const editForm = `
         <div class="edit-form">
             <div class="rating-input">
@@ -483,13 +398,9 @@ function showEditForm(reviewId, currentRating, currentText) {
             </div>
         </div>
     `;
-
-    reviewContent.innerHTML = editForm;
-
-    // Add event listeners for star rating
-    const starInputs = reviewContent.querySelectorAll('.star-rating-bar input');
-    const ratingValue = reviewContent.querySelector('.rating-value');
-    
+    reviewElement.innerHTML = editForm;
+    const starInputs = reviewElement.querySelectorAll('.star-rating-bar input');
+    const ratingValue = reviewElement.querySelector('.rating-value');
     starInputs.forEach(input => {
         input.addEventListener('change', () => {
             ratingValue.textContent = input.value + ' stars';
@@ -497,7 +408,6 @@ function showEditForm(reviewId, currentRating, currentText) {
     });
 }
 
-// Function to save edit
 async function saveEdit(reviewId) {
     const reviewEl = document.getElementById(`review-${reviewId}`);
     if (!reviewEl) {
@@ -518,7 +428,6 @@ async function saveEdit(reviewId) {
         return;
     }
 
-    // Get current user
     let userData = sessionStorage.getItem('loggedInUser');
     if (!userData) {
         userData = localStorage.getItem('loggedInUser');
@@ -546,25 +455,19 @@ async function saveEdit(reviewId) {
 
         const data = await response.json();
         if (data.success) {
-            // Fetch updated rating statistics from database
             const ratingStats = await fetchRatingStats(currentEntertainmentId);
             if (ratingStats) {
-                // Update rating display with database statistics
                 updateRatingDisplayWithDatabaseStats(ratingStats);
             }
             
-            // Get current reviews and update display
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
-                // Store current reviews globally for future updates
                 window.currentReviews = reviewsResult.data;
                 
-                // Get current user's profile picture for immediate display
                 const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
                 
-                // Display reviews with immediate profile picture update
                 displayReviewsWithImmediateProfilePic(reviewsResult.data, currentUser, currentUserProfilePic);
             }
             
@@ -578,33 +481,25 @@ async function saveEdit(reviewId) {
     }
 }
 
-// Function to cancel edit
 function cancelEdit(reviewId) {
     const reviewElement = document.getElementById(`review-${reviewId}`);
     if (!reviewElement) return;
-
-    const reviewContent = reviewElement.querySelector('.review-content');
     const originalContent = reviewElement.dataset.originalContent;
-    
     if (originalContent) {
-        reviewContent.innerHTML = originalContent;
+        reviewElement.innerHTML = originalContent;
     }
 }
 
-// Function to show report form
 function showReportForm(reviewId, commentId = null) {
     const contentType = commentId ? 'comment' : 'review';
     const defaultReason = 'Inappropriate content';
-    
-    // Automatically submit report with default reason
     submitReport(reviewId, commentId, defaultReason);
 }
 
-// Function to submit report
 async function submitReport(reviewId, commentId = null, reason) {
     try {
-        console.log('🚨 Submitting report:', { reviewId, commentId, reason });
-        console.log('🚨 API_BASE_URL:', API_BASE_URL);
+        console.log('Submitting report:', { reviewId, commentId, reason });
+        console.log('API_BASE_URL:', API_BASE_URL);
         
         // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
@@ -618,7 +513,7 @@ async function submitReport(reviewId, commentId = null, reason) {
         }
 
         const user = JSON.parse(userData).username || JSON.parse(userData).name;
-        console.log('🚨 Reporting user:', user);
+        console.log('Reporting user:', user);
 
         const requestBody = { 
             reviewId, 
@@ -626,8 +521,8 @@ async function submitReport(reviewId, commentId = null, reason) {
             user, 
             reason 
         };
-        console.log('🚨 Request body:', requestBody);
-        console.log('🚨 Full URL being called:', `${API_BASE_URL}/reports`);
+        console.log('Request body:', requestBody);
+        console.log('Full URL being called:', `${API_BASE_URL}/reports`);
 
         const response = await fetch(`${API_BASE_URL}/reports`, {
             method: 'POST',
@@ -637,18 +532,17 @@ async function submitReport(reviewId, commentId = null, reason) {
             body: JSON.stringify(requestBody)
         });
 
-        console.log('🚨 Response status:', response.status);
+        console.log('Response status:', response.status);
         
-        // Check if response is JSON
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
-            console.error('❌ Non-JSON response received:', textResponse);
+            console.error('Non-JSON response received:', textResponse);
             throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
         }
         
         const result = await response.json();
-        console.log('🚨 Response result:', result);
+        console.log('Response result:', result);
         
         if (result.success) {
             const contentType = commentId ? 'comment' : 'review';
@@ -657,17 +551,15 @@ async function submitReport(reviewId, commentId = null, reason) {
             throw new Error(result.message || 'Failed to submit report');
         }
     } catch (error) {
-        console.error('❌ Error submitting report:', error);
+        console.error('Error submitting report:', error);
         alert(error.message || 'Failed to submit report. Please try again.');
     }
 }
 
-// Function to delete comment
 async function deleteComment(reviewId, commentId) {
     try {
-        console.log('🗑️ Attempting to delete comment:', { reviewId, commentId });
+        console.log('Attempting to delete comment:', { reviewId, commentId });
         
-        // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
             userData = localStorage.getItem('loggedInUser');
@@ -694,15 +586,11 @@ async function deleteComment(reviewId, commentId) {
         console.log('Delete comment response:', result);
         
         if (result.success) {
-            // Immediately remove the comment from the UI
             const commentElement = document.querySelector(`#comment-${commentId}`);
             if (commentElement) {
                 commentElement.remove();
-                console.log('✅ Comment element removed from UI immediately');
                 alert('Comment deleted successfully!');
             } else {
-                console.warn('⚠️ Comment element not found in UI, refreshing all reviews');
-                // Fallback: refresh all reviews
                 const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
                 const reviewsResult = await reviewsResponse.json();
                 
@@ -721,31 +609,32 @@ async function deleteComment(reviewId, commentId) {
     }
 }
 
-// Function to edit comment
 function showEditCommentForm(reviewId, commentId, currentComment) {
     const commentElement = document.querySelector(`#comment-${commentId}`);
     if (!commentElement) return;
 
+    const userInfo = commentElement.querySelector('.user-info');
+    const commentTextP = userInfo.querySelector('.comment-text');
     const commentContent = commentElement.querySelector('.comment-content');
+    const originalText = commentTextP ? commentTextP.outerHTML : '';
     const originalContent = commentContent.innerHTML;
 
-    // Store the original content
+    commentElement.dataset.originalText = originalText;
     commentElement.dataset.originalContent = originalContent;
 
+    if (commentTextP) {
+        commentTextP.outerHTML = `<textarea class="edit-comment-text">${currentComment}</textarea>`;
+    }
+
     const editForm = `
-        <div class="edit-comment-form">
-            <textarea class="edit-comment-text">${currentComment}</textarea>
-            <div class="edit-comment-buttons">
-                <button onclick="saveCommentEdit('${reviewId}', '${commentId}')">Save</button>
-                <button onclick="cancelCommentEdit('${commentId}')">Cancel</button>
-            </div>
+        <div class="edit-comment-buttons">
+            <button onclick="saveCommentEdit('${reviewId}', '${commentId}')">Save</button>
+            <button onclick="cancelCommentEdit('${commentId}')">Cancel</button>
         </div>
     `;
-
     commentContent.innerHTML = editForm;
 }
 
-// Function to save edited comment
 async function saveCommentEdit(reviewId, commentId) {
     try {
         const commentElement = document.querySelector(`#comment-${commentId}`);
@@ -758,7 +647,6 @@ async function saveCommentEdit(reviewId, commentId) {
             return;
         }
 
-        // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
             userData = localStorage.getItem('loggedInUser');
@@ -782,7 +670,6 @@ async function saveCommentEdit(reviewId, commentId) {
         const result = await response.json();
         
         if (result.success) {
-            // Refresh the reviews
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
@@ -790,8 +677,7 @@ async function saveCommentEdit(reviewId, commentId) {
                 updateReviewStats(reviewsResult.data);
                 displayReviews(reviewsResult.data);
             }
-            
-            alert('Comment updated successfully!');
+        
         } else {
             throw new Error(result.message || 'Failed to update comment');
         }
@@ -801,14 +687,21 @@ async function saveCommentEdit(reviewId, commentId) {
     }
 }
 
-// Function to cancel comment edit
 function cancelCommentEdit(commentId) {
     const commentElement = document.querySelector(`#comment-${commentId}`);
     if (!commentElement) return;
 
+    const userInfo = commentElement.querySelector('.user-info');
     const commentContent = commentElement.querySelector('.comment-content');
+    const originalText = commentElement.dataset.originalText;
     const originalContent = commentElement.dataset.originalContent;
-    
+
+    if (originalText) {
+        const textarea = userInfo.querySelector('textarea.edit-comment-text');
+        if (textarea) {
+            textarea.outerHTML = originalText;
+        }
+    }
     if (originalContent) {
         commentContent.innerHTML = originalContent;
     }
@@ -828,7 +721,6 @@ async function submitComment(reviewId, user, comment, userAvatar) {
 
         console.log('Submitting comment with data:', { reviewId, user, comment, userAvatar });
         
-        // Get the current user's actual profile picture URL
         const actualUserAvatar = await getCurrentUserProfilePictureUrl();
         
         const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments`, {
@@ -849,13 +741,11 @@ async function submitComment(reviewId, user, comment, userAvatar) {
         if (result.success) {
             console.log('Comment submitted successfully');
             
-            // Clear the comment input
             const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
             if (commentInput) {
                 commentInput.value = '';
             }
             
-            // Refresh the reviews
             const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
@@ -872,13 +762,11 @@ async function submitComment(reviewId, user, comment, userAvatar) {
     }
 }
 
-// Function to check if user has already reviewed this entertainment item
 function hasUserReviewed(reviews, currentUser) {
     if (!reviews || !currentUser) return false;
     return reviews.some(review => review.user === currentUser);
 }
 
-// Function to update review form visibility based on user's review status
 function updateReviewFormVisibility(reviews, currentUser) {
     const reviewForm = document.querySelector('.review-form');
     if (!reviewForm) return;
@@ -887,10 +775,8 @@ function updateReviewFormVisibility(reviews, currentUser) {
     const existingMessage = reviewForm.querySelector('.already-reviewed-message');
     
     if (hasReviewed) {
-        // Hide the review form and show message
         reviewForm.style.display = 'none';
-        
-        // Add a prominent paragraph message below the review list
+
         const reviewList = document.querySelector('.review-list');
         if (reviewList) {
             const message = document.createElement('div');
@@ -903,24 +789,19 @@ function updateReviewFormVisibility(reviews, currentUser) {
                 </p>
             `;
             
-            // Remove any existing message first
             const existingMessage = reviewList.parentElement.querySelector('.already-reviewed-message');
             if (existingMessage) {
                 existingMessage.remove();
             }
             
-            // Insert the message after the review list
             reviewList.parentElement.insertBefore(message, reviewList.nextSibling);
         }
     } else {
-        // Show the review form and remove any existing messages
         reviewForm.style.display = 'block';
         
         if (existingMessage) {
             existingMessage.remove();
         }
-        
-        // Remove section message if it exists
         const existingSectionMessage = document.querySelector('.already-reviewed-message');
         if (existingSectionMessage) {
             existingSectionMessage.remove();
@@ -928,7 +809,6 @@ function updateReviewFormVisibility(reviews, currentUser) {
     }
 }
 
-// Function to get user ID from username
 async function getUserIdFromUsername(username) {
     try {
         const response = await fetch(`http://localhost:3000/user/getUserId?username=${encodeURIComponent(username)}`);
@@ -945,7 +825,6 @@ async function getUserIdFromUsername(username) {
     }
 }
 
-// Function to get user's profile picture URL
 async function getUserProfilePictureUrl(userId) {
     try {
         const response = await fetch(`http://localhost:3000/user/getImage?userId=${userId}`);
@@ -962,7 +841,6 @@ async function getUserProfilePictureUrl(userId) {
     }
 }
 
-// Function to get profile picture URL from username
 async function getUserProfilePictureUrlFromUsername(username) {
     try {
         const userId = await getUserIdFromUsername(username);
@@ -977,10 +855,9 @@ async function getUserProfilePictureUrlFromUsername(username) {
     }
 }
 
-// Function to get current user's profile picture URL
+
 async function getCurrentUserProfilePictureUrl() {
     try {
-        // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
             userData = localStorage.getItem('loggedInUser');
@@ -1013,39 +890,36 @@ function displayReviews(reviews) {
         return;
     }
 
-    // Get current user
     let userData = sessionStorage.getItem('loggedInUser');
     if (!userData) {
         userData = localStorage.getItem('loggedInUser');
     }
     const currentUser = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
 
-    // Update review form visibility based on whether user has already reviewed
     updateReviewFormVisibility(reviews, currentUser);
 
-    // Display reviews with async profile picture loading
     displayReviewsWithProfilePictures(reviews, currentUser);
 }
 
-// Function to display reviews with profile pictures loaded asynchronously
 async function displayReviewsWithProfilePictures(reviews, currentUser) {
     const reviewList = document.querySelector('.review-list');
     
     for (const review of reviews) {
         const reviewElement = document.createElement('div');
-        reviewElement.className = 'review';
+        reviewElement.className = 'review-card';
         reviewElement.id = `review-${review._id}`;
         reviewElement.dataset.user = review.user;
         reviewElement.dataset.reviewId = review._id;
 
-        // Escape special characters in the review text
-        const escapedText = review.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+        let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
+        if (!review.userAvatar || review.userAvatar === './assests/blank-profile-picture.webp') {
+            reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
+        }
 
-        // Add edit, delete, and report buttons
         const actionButtons = `
             <div class="review-actions">
                 ${currentUser === review.user ? `
-                    <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${escapedText}')">Edit</button>
+                    <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${review.text.replace(/'/g, "\\'")}')">Edit</button>
                     <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
                 ` : ''}
                 ${currentUser !== review.user ? `
@@ -1053,81 +927,65 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                 ` : ''}
             </div>`;
 
-        // Get the reviewer's profile picture URL - use stored URL if available, otherwise fetch dynamically
-        let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
-        if (!review.userAvatar || review.userAvatar === './assests/blank-profile-picture.webp') {
-            reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
+        let commentsHtml = '';
+        if (review.comments && review.comments.length > 0) {
+            commentsHtml = review.comments.map(comment => {
+                const commenterPic = comment.userAvatar || './assests/blank-profile-picture.webp';
+                return `
+                    <div class="comment" id="comment-${comment._id}">
+                        <div class="user-info">
+                            <img src="${commenterPic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
+                            <strong>${comment.user}</strong>
+                            <p class="comment-text">${comment.comment}</p>
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-actions">
+                                ${currentUser === comment.user ? `
+                                    <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
+                                    <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
+                                ` : ''}
+                                <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-
-        reviewElement.innerHTML = `
-            <div class="review-content">
-                <div class="user-info">
-                    <img src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
-                    <strong>${review.user}</strong>
-                </div>
-                <div class="review-header">
-                    <div class="star-rating-bar">
-                        ${[1,2,3,4,5].map(num => `
-                            <span class="star ${num <= review.rating ? 'filled' : ''}">★</span>
-                        `).join('')}
-                    </div>
-                    ${actionButtons}
-                </div>
-                <p class="review-text">${review.text}</p>
-                <div class="comment-section">
-                    <div class="comments">
-                        ${review.comments ? await Promise.all(review.comments.map(async comment => {
-                            // Get commenter's profile picture URL - use stored URL if available, otherwise fetch dynamically
-                            let commenterProfilePic = comment.userAvatar || './assests/blank-profile-picture.webp';
-                            if (!comment.userAvatar || comment.userAvatar === './assests/blank-profile-picture.webp') {
-                                commenterProfilePic = await getUserProfilePictureUrlFromUsername(comment.user);
-                            }
-                            
-                            return `
-                                <div class="comment" id="comment-${comment._id}">
-                                    <div class="user-info">
-                                        <img src="${commenterProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
-                                        <strong>${comment.user}</strong>
-                                    </div>
-                                    <div class="comment-content">
-                                        <p>${comment.comment}</p>
-                                        <div class="comment-actions">
-                                            ${currentUser === comment.user ? `
-                                                <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
-                                                <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
-                                            ` : ''}
-                                            ${currentUser !== comment.user ? `
-                                                <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        })).then(comments => comments.join('')) : ''}
-                    </div>
-                    <div class="comment-input-section">
-                        <input type="text" class="comment-input" placeholder="Write a comment...">
-                        <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUser}')">Post</button>
-                    </div>
+        const commentSection = `
+            <div class="comment-section">
+                <div class="comments">${commentsHtml}</div>
+                <div class="comment-input-section">
+                    <input type="text" class="comment-input" placeholder="Write a comment...">
+                    <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUser}')">Post</button>
                 </div>
             </div>
+        `;
+        reviewElement.innerHTML = `
+            <div class="review-header">
+                <img class="review-avatar" src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
+                <span class="review-user">${review.user}</span>
+                <div class="review-stars">
+                    ${[1,2,3,4,5].map(num => `<span class="star${num <= review.rating ? ' filled' : ''}">★</span>`).join('')}
+                </div>
+                <span class="review-date">${formatReviewDate(review.createdAt || review.date || Date.now())}</span>
+            </div>
+            <div class="review-text">${review.text}</div>
+            ${commentSection}
+            ${actionButtons}
         `;
 
         reviewList.appendChild(reviewElement);
     }
 }
 
-// Wrapper function to submit comment with current user's profile picture
 async function submitCommentWithProfilePic(reviewId, currentUser) {
     const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
     const commentText = commentInput ? commentInput.value : '';
     await submitComment(reviewId, currentUser, commentText);
 }
 
-// Function to refresh profile pictures for current user's reviews and comments
 async function refreshCurrentUserProfilePictures() {
     try {
-        // Get current user
         let userData = sessionStorage.getItem('loggedInUser');
         if (!userData) {
             userData = localStorage.getItem('loggedInUser');
@@ -1141,7 +999,6 @@ async function refreshCurrentUserProfilePictures() {
         const currentUser = user.username || user.name;
         const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
 
-        // Update profile pictures in all reviews by current user
         const currentUserReviews = document.querySelectorAll(`[data-user="${currentUser}"]`);
         currentUserReviews.forEach(reviewElement => {
             const profileImg = reviewElement.querySelector('.user-info img');
@@ -1150,7 +1007,6 @@ async function refreshCurrentUserProfilePictures() {
             }
         });
 
-        // Update profile pictures in all comments by current user
         const currentUserComments = document.querySelectorAll('.comment');
         currentUserComments.forEach(commentElement => {
             const commentUser = commentElement.querySelector('strong');
@@ -1166,20 +1022,16 @@ async function refreshCurrentUserProfilePictures() {
     }
 }
 
-// Global function to be called when profile picture is updated
 window.refreshReviewProfilePictures = refreshCurrentUserProfilePictures;
 
-// Listen for storage changes (when user data is updated in other tabs/windows)
 window.addEventListener('storage', (event) => {
     if (event.key === 'loggedInUser' || event.key === 'profilePictureUpdated') {
-        // Refresh profile pictures when user data changes
         setTimeout(() => {
             refreshCurrentUserProfilePictures();
         }, 500);
     }
 });
 
-// Function to display reviews with immediate profile picture updates
 async function displayReviewsWithImmediateProfilePic(reviews, currentUser, currentUserProfilePic) {
     const reviewList = document.querySelector('.review-list');
     reviewList.innerHTML = '';
@@ -1189,40 +1041,21 @@ async function displayReviewsWithImmediateProfilePic(reviews, currentUser, curre
         return;
     }
 
-    // Get current user from storage
     let userData = sessionStorage.getItem('loggedInUser');
     if (!userData) {
         userData = localStorage.getItem('loggedInUser');
     }
     const currentUserFromStorage = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
 
-    // Update review form visibility based on whether user has already reviewed
     updateReviewFormVisibility(reviews, currentUserFromStorage);
 
-    // Display reviews with profile pictures
     for (const review of reviews) {
         const reviewElement = document.createElement('div');
-        reviewElement.className = 'review';
+        reviewElement.className = 'review-card';
         reviewElement.id = `review-${review._id}`;
         reviewElement.dataset.user = review.user;
         reviewElement.dataset.reviewId = review._id;
 
-        // Escape special characters in the review text
-        const escapedText = review.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
-
-        // Add edit, delete, and report buttons
-        const actionButtons = `
-            <div class="review-actions">
-                ${currentUserFromStorage === review.user ? `
-                    <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${escapedText}')">Edit</button>
-                    <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
-                ` : ''}
-                ${currentUserFromStorage !== review.user ? `
-                    <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>
-                ` : ''}
-            </div>`;
-
-        // Get the reviewer's profile picture URL - use current user's profile pic if it's their review
         let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
         if (review.user === currentUserFromStorage && currentUserProfilePic) {
             reviewerProfilePic = currentUserProfilePic;
@@ -1230,93 +1063,94 @@ async function displayReviewsWithImmediateProfilePic(reviews, currentUser, curre
             reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
         }
 
-        reviewElement.innerHTML = `
-            <div class="review-content">
-                <div class="user-info">
-                    <img src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
-                    <strong>${review.user}</strong>
-                </div>
-                <div class="review-header">
-                    <div class="star-rating-bar">
-                        ${[1,2,3,4,5].map(num => `
-                            <span class="star ${num <= review.rating ? 'filled' : ''}">★</span>
-                        `).join('')}
+        const actionButtons = `
+            <div class="review-actions">
+                ${currentUserFromStorage === review.user ? `
+                    <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${review.text.replace(/'/g, "\\'")}')">Edit</button>
+                    <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
+                ` : ''}
+                ${currentUserFromStorage !== review.user ? `
+                    <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>
+                ` : ''}
+            </div>`;
+
+        let commentsHtml = '';
+        if (review.comments && review.comments.length > 0) {
+            commentsHtml = review.comments.map(comment => {
+                const commenterPic = comment.userAvatar || './assests/blank-profile-picture.webp';
+                return `
+                    <div class="comment" id="comment-${comment._id}">
+                        <div class="user-info">
+                            <img src="${commenterPic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
+                            <strong>${comment.user}</strong>
+                            <p class="comment-text">${comment.comment}</p>
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-actions">
+                                ${currentUserFromStorage === comment.user ? `
+                                    <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
+                                    <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
+                                ` : ''}
+                                <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
+                            </div>
+                        </div>
                     </div>
-                    ${actionButtons}
-                </div>
-                <p class="review-text">${review.text}</p>
-                <div class="comment-section">
-                    <div class="comments">
-                        ${review.comments ? await Promise.all(review.comments.map(async comment => {
-                            // Get commenter's profile picture URL - use current user's profile pic if it's their comment
-                            let commenterProfilePic = comment.userAvatar || './assests/blank-profile-picture.webp';
-                            if (comment.user === currentUserFromStorage && currentUserProfilePic) {
-                                commenterProfilePic = currentUserProfilePic;
-                            } else if (!comment.userAvatar || comment.userAvatar === './assests/blank-profile-picture.webp') {
-                                commenterProfilePic = await getUserProfilePictureUrlFromUsername(comment.user);
-                            }
-                            
-                            return `
-                                <div class="comment" id="comment-${comment._id}">
-                                    <div class="user-info">
-                                        <img src="${commenterProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
-                                        <strong>${comment.user}</strong>
-                                    </div>
-                                    <div class="comment-content">
-                                        <p>${comment.comment}</p>
-                                        <div class="comment-actions">
-                                            ${currentUserFromStorage === comment.user ? `
-                                                <button class="edit-comment-btn" onclick="showEditCommentForm('${review._id}', '${comment._id}', '${comment.comment.replace(/'/g, "\\'")}')">Edit</button>
-                                                <button class="delete-comment-btn" onclick="deleteComment('${review._id}', '${comment._id}')">Delete</button>
-                                            ` : ''}
-                                            ${currentUserFromStorage !== comment.user ? `
-                                                <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
-                                            ` : ''}
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        })).then(comments => comments.join('')) : ''}
-                    </div>
-                    <div class="comment-input-section">
-                        <input type="text" class="comment-input" placeholder="Write a comment...">
-                        <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUserFromStorage}')">Post</button>
-                    </div>
+                `;
+            }).join('');
+        }
+        const commentSection = `
+            <div class="comment-section">
+                <div class="comments">${commentsHtml}</div>
+                <div class="comment-input-section">
+                    <input type="text" class="comment-input" placeholder="Write a comment...">
+                    <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUserFromStorage}')">Post</button>
                 </div>
             </div>
+        `;
+        reviewElement.innerHTML = `
+            <div class="review-header">
+                <img class="review-avatar" src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
+                <span class="review-user">${review.user}</span>
+                <div class="review-stars">
+                    ${[1,2,3,4,5].map(num => `<span class="star${num <= review.rating ? ' filled' : ''}">★</span>`).join('')}
+                </div>
+                <span class="review-date">${formatReviewDate(review.createdAt || review.date || Date.now())}</span>
+            </div>
+            <div class="review-text">${review.text}</div>
+            ${commentSection}
+            ${actionButtons}
         `;
 
         reviewList.appendChild(reviewElement);
     }
 }
 
-// Function to fetch rating statistics from database
+
 async function fetchRatingStats(entertainmentId) {
     try {
-        console.log('📊 Fetching rating stats from database for:', entertainmentId);
+        console.log('Fetching rating stats from database for:', entertainmentId);
         const url = `${API_BASE_URL}/reviews/${entertainmentId}/stats`;
-        console.log('📊 API URL:', url);
+        console.log('API URL:', url);
         
         const response = await fetch(url);
-        console.log('📊 Response status:', response.status);
+        console.log('Response status:', response.status);
         
         const result = await response.json();
-        console.log('📊 Response result:', result);
+        console.log('Response result:', result);
         
         if (result.success) {
-            console.log('📊 Rating stats from database:', result.data);
+            console.log('Rating stats from database:', result.data);
             return result.data;
         } else {
-            console.error('❌ Failed to fetch rating stats:', result.message);
+            console.error('Failed to fetch rating stats:', result.message);
             return null;
         }
     } catch (error) {
-        console.error('❌ Error fetching rating stats:', error);
+        console.error('Error fetching rating stats:', error);
         return null;
     }
 }
 
-// Function to update rating display with database statistics
 function updateRatingDisplayWithDatabaseStats(stats) {
     if (!stats) return;
     
@@ -1324,13 +1158,11 @@ function updateRatingDisplayWithDatabaseStats(stats) {
     if (!voteAverageEl) return;
 
     const { totalReviews, averageRating, ratingBreakdown } = stats;
-    
-    // Format the rating
     const formattedAverage = averageRating.toFixed(1);
     const fullStars = Math.round(averageRating);
     const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
     
-    // Create rating text
+
     let ratingText;
     if (totalReviews > 0) {
         ratingText = `User Rating: ${formattedAverage}/5 (${totalReviews} reviews)`;
@@ -1345,7 +1177,6 @@ function updateRatingDisplayWithDatabaseStats(stats) {
         </div>
     `;
     
-    // Update rating breakdown
     for (let i = 1; i <= 5; i++) {
         const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
@@ -1357,7 +1188,11 @@ function updateRatingDisplayWithDatabaseStats(stats) {
     }
 }
 
-// Initialize page
+function formatReviewDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
     const urlParams = new URLSearchParams(window.location.search);
     console.log('Full URL:', window.location.href);
@@ -1374,13 +1209,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // Map the type to match server expectations
     type = type === 'movies' ? 'movie' : 
            type === 'books' ? 'book' : 
            type;
 
     try {
-        // First, fetch the entertainment details
         const apiUrl = `${API_BASE_URL}/entertainment/${type}/${tmdbId}`;
         console.log('Fetching entertainment details from:', apiUrl);
         
@@ -1409,27 +1242,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // Store the entertainment ID and details globally for review submission
         currentEntertainmentId = entertainmentData._id || entertainmentData.id;
-        window.currentEntertainmentDetails = entertainmentData; // Store globally
+        window.currentEntertainmentDetails = entertainmentData; 
         console.log('Set currentEntertainmentId to:', currentEntertainmentId);
         console.log('Entertainment data _id:', entertainmentData._id);
         console.log('Entertainment data id:', entertainmentData.id);
 
-        // Create a review object with the entertainment details
         const review = {
             entertainmentDetails: {
                 ...entertainmentData,
-                type: type  // Ensure type is set correctly
+                type: type  
             }
         };
 
         console.log('Review object with details:', review);
 
-        // Populate the entertainment details
         populateEntertainmentDetails(review);
 
-        // Then fetch the reviews using the entertainment's MongoDB _id
         if (currentEntertainmentId) {
             console.log('Fetching reviews for entertainment ID:', currentEntertainmentId);
             console.log('Type of currentEntertainmentId:', typeof currentEntertainmentId);
@@ -1438,36 +1267,30 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('Reviews response:', reviewsResult);
 
             if (reviewsResult.success) {
-                // Store current reviews globally for immediate updates
                 window.currentReviews = reviewsResult.data;
                 
-                // Fetch and display rating statistics from database
                 const ratingStats = await fetchRatingStats(currentEntertainmentId);
                 if (ratingStats) {
                     updateRatingDisplayWithDatabaseStats(ratingStats);
                 } else {
-                    // Fallback to local calculation if database fetch fails
                     updateEntertainmentRatingDisplay(reviewsResult.data, entertainmentData);
                     updateReviewStats(reviewsResult.data);
                 }
                 
                 displayReviews(reviewsResult.data);
                 
-                // Refresh profile pictures for current user after reviews are loaded
+    
                 setTimeout(() => {
                     refreshCurrentUserProfilePictures();
                 }, 1000);
             } else {
                 console.warn('Failed to fetch reviews:', reviewsResult.message);
-                // Store empty reviews array globally
                 window.currentReviews = [];
                 
-                // Fetch rating statistics even if no reviews
                 const ratingStats = await fetchRatingStats(currentEntertainmentId);
                 if (ratingStats) {
                     updateRatingDisplayWithDatabaseStats(ratingStats);
                 } else {
-                    // Fallback to local calculation
                     updateEntertainmentRatingDisplay([], entertainmentData);
                     updateReviewStats([]);
                 }
@@ -1476,9 +1299,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         } else {
             console.warn('No valid entertainment ID found for fetching reviews. Data:', entertainmentData);
-            // Store empty reviews array globally
             window.currentReviews = [];
-            // Update the main entertainment rating display with no reviews
             updateEntertainmentRatingDisplay([], entertainmentData);
             updateReviewStats([]);
             displayReviews([]);
@@ -1491,76 +1312,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.querySelector('.summary-container').prepend(errorMessage);
     }
 
-    // Set up periodic profile picture refresh (every 30 seconds)
     setInterval(() => {
         refreshCurrentUserProfilePictures();
     }, 30000);
 
-    // Add event listener for submit button
     const submitButton = document.getElementById('submit-review');
     if (submitButton) {
-        // Replace the rating select with star rating bar
-        const ratingInput = document.getElementById('rating');
-        if (ratingInput) {
-            const ratingContainer = ratingInput.parentElement;
-            ratingContainer.innerHTML = `
-                <label>Rating:</label>
-                ${createStarRatingHTML()}
-            `;
-
-            // Add event listeners for star rating
-            const starInputs = ratingContainer.querySelectorAll('.star-rating-bar input');
-            const ratingValue = ratingContainer.querySelector('.rating-value');
-            
-            starInputs.forEach(input => {
-                input.addEventListener('change', () => {
-                    ratingValue.textContent = input.value + ' stars';
-                });
-            });
-        }
-
-        submitButton.addEventListener('click', async () => {
-            console.log('Submit button clicked!');
-            
-            const rating = document.querySelector('.star-rating-bar input:checked')?.value;
+        submitButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const ratingInput = document.querySelector('.star-rating-bar input[type="radio"]:checked');
+            const rating = ratingInput ? ratingInput.value : null;
             const reviewText = document.getElementById('review-text').value.trim();
-            
-            console.log('Form values:', { rating, reviewText, currentEntertainmentId });
-            
-            // Validate input
             if (!rating) {
-                alert('Please select a rating');
+                alert('Please select a rating.');
                 return;
             }
-            
             if (!reviewText) {
-                alert('Please write a review');
+                alert('Please write your review.');
                 return;
             }
-            
-            if (!currentEntertainmentId) {
-                alert('Entertainment ID not found. Please refresh the page and try again.');
-                return;
-            }
-            
-            // Get current user from storage
             let userData = sessionStorage.getItem('loggedInUser');
             if (!userData) {
                 userData = localStorage.getItem('loggedInUser');
             }
-            
-            if (!userData) {
-                alert('Please log in to submit a review');
+            const user = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
+            if (!user) {
+                alert('You must be logged in to submit a review.');
                 return;
             }
-            
-            const user = JSON.parse(userData);
-            const currentUser = user.username || user.name;
-            const userAvatar = user.profilePicture || './assests/profilepic3.png';
-            
-            console.log('Submitting review as:', currentUser);
-            
-            await submitReview(currentEntertainmentId, currentUser, rating, reviewText, userAvatar);
+            await submitReview(currentEntertainmentId, user, rating, reviewText);
         });
     } else {
         console.error('Submit button not found!');

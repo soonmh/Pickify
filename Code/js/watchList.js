@@ -16,6 +16,7 @@ const requestLogin = document.getElementById('requestLogin');
 const nothingInside = document.getElementById("nothingInside");
 
 document.addEventListener("DOMContentLoaded", function(){
+    fromProfile();
     checkUserLogin();
     watchListHome();
     buttonCreation();
@@ -194,6 +195,36 @@ async function buttonCreation(){
             console.error('Error fetching collection movies:', error);
         }
     }
+}
+
+async function fromProfile() {
+        const params = new URLSearchParams(window.location.search);
+        const content = params.get("content");
+        console.log(content);
+        if (!content) return;
+
+        watchlistPage.style.display = "none";
+        addListPage.style.display = "none";
+        collectionPage.style.display = "none";
+        editListPage.style.display = "none";
+        requestLogin.style.display = "none";
+        nothingInside.style.display = "none";
+        await loadingScreenPage();
+
+        currentCollectionName=content.trim();
+        updatePageUrl(content.toLowerCase().trim());
+
+        console.log(isLoggedIn);
+        
+        if (userId) {
+            updateContent(content.trim());
+        } else {
+            loadingScreen.style.display = 'none';
+            requestLogin.style.display = 'block';
+            console.log("No user is logged in.");
+        }
+
+        console.log("Displaying collection:", clickedText);
 }
 
 function addSideBarEvent(){
