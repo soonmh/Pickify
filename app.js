@@ -848,15 +848,16 @@ app.post('/addToCollection', async (req, res) => {
     }
 });
 
-//Recommendation endpoint and helper functions
+
 
 // GET /api/recommendation/:userId - Get personalized recommendations
 app.get('/api/recommendation/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 10, 20);
-        
-        console.log(`🎯 Fetching recommendations for user: ${userId}`);
+        const refresh = req.query.refresh === 'true'; // Add refresh parameter
+
+        console.log(`🎯 Fetching recommendations for user: ${userId}, refresh: ${refresh}`);
 
         // Validate userId
         let userObjectId;
@@ -866,85 +867,113 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid user ID format' });
         }
 
-        // Always generate a new random seed for fresh recommendations on every request
-        const randomSeed = Date.now() + Math.floor(Math.random() * 100000);
-        console.log('🎲 New random seed for this request:', randomSeed);
+        // Create a session-based seed for randomization
+        const timeSeed = Math.floor(Date.now() / (1000 * 60 * 60)); // Changes every hour
+        const userSeed = userId.slice(-4); // Use last 4 chars of userId
+        const randomSeed = refresh ? Math.random() : parseInt(userSeed, 16) + timeSeed;
 
-        // 1. Fetch ONLY the Favourite collection
-        const favoriteCollection = await db.collection('userCollection').findOne({ 
-            userId: userObjectId, 
-            collectionName: 'Favourite' 
-        });
+        console.log('🎲 Random seed:', randomSeed);
 
-        // 2. If Favourite collection is empty, return an empty array
-        if (!favoriteCollection || !favoriteCollection.item || favoriteCollection.item.length === 0) {
-            console.log('🤷 User has no favorite items. Sending empty response.');
+        // 1. Fetch user's favorite collection
+        const userFavorites = await db.collection('userCollection')
+            .findOne({ userId: userObjectId, collectionName: 'Favourite' });
+
+        if (!userFavorites || !userFavorites.item || userFavorites.item.length === 0) {
+            // Return random popular items when no favorites
+            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
             return res.status(200).json({
                 success: true,
-                count: 0,
-                data: [], // This triggers the message on your frontend
-                type: 'no_favorites',
-                message: 'No favorite items found. Add items to get personalized recommendations.'
+                count: randomRecommendations.length,
+                data: randomRecommendations,
+                type: 'random_popular',
+                message: 'No favorite items found. Here are some popular recommendations!'
             });
         }
 
-        // 3. If favorites exist, use them for preferences and exclusion
-        const preferenceSourceItems = favoriteCollection.item;
-        const recommendationType = 'favorite_based';
-        const message = `Recommendations based on your ${preferenceSourceItems.length} favorite items.`;
-        console.log(`🧠 Using ${preferenceSourceItems.length} FAVORITE items for preferences.`);
+        // 2. Separate item IDs by type
+        const movieIds = [];
+        const musicIds = [];
+        const bookIds = [];
 
-        // 4. Separate item IDs for exclusion and preference analysis
-        const excludedMovieIds = new Set();
-        const excludedMusicIds = new Set();
-        const excludedBookIds = new Set();
-
-        preferenceSourceItems.forEach(item => {
-            if (item.type === 'movie' && item.itemId) excludedMovieIds.add(parseInt(item.itemId));
-            else if (item.type === 'music' && item.itemId) excludedMusicIds.add(item.itemId.toString());
-            else if (item.type === 'book' && item.itemId) excludedBookIds.add(item.itemId.$oid ? new ObjectId(item.itemId.$oid) : item.itemId);
+        userFavorites.item.forEach(item => {
+            if (item.type === 'movie' && typeof item.itemId === 'string') {
+                movieIds.push(item.itemId);
+            } else if (item.type === 'music' && typeof item.itemId === 'string') {
+                musicIds.push(item.itemId);
+            } else if (item.type === 'book' && item.itemId?.$oid) {
+                bookIds.push(new ObjectId(item.itemId.$oid));
+            }
         });
 
-        const prefMovieIds = preferenceSourceItems.filter(i => i.type === 'movie').map(i => parseInt(i.itemId));
-        const prefMusicIds = preferenceSourceItems.filter(i => i.type === 'music').map(i => i.itemId);
-        const prefBookIds = preferenceSourceItems.filter(i => i.type === 'book').map(i => i.itemId.$oid ? new ObjectId(i.itemId.$oid) : i.itemId);
-
-        // 5. Fetch details for preference items
+        // 3. Fetch item details from respective collections
         const [movies, music, books] = await Promise.all([
-            prefMovieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: prefMovieIds } }).toArray() : [],
-            prefMusicIds.length > 0 ? db.collection('Music').find({ id: { $in: prefMusicIds } }).toArray() : [],
-            prefBookIds.length > 0 ? db.collection('books').find({ _id: { $in: prefBookIds } }).toArray() : []
+            movieIds.length > 0 ? db.collection('Movie').find({ tmdbId: { $in: movieIds.map(id => parseInt(id)) } }).toArray() : [],
+            musicIds.length > 0 ? db.collection('Music').find({ id: { $in: musicIds } }).toArray() : [],
+            bookIds.length > 0 ? db.collection('books').find({ _id: { $in: bookIds } }).toArray() : []
         ]);
 
-        const allPreferenceItemsDetails = [
-            ...movies.map(item => ({ ...item, type: 'movie' })),
-            ...music.map(item => ({ ...item, type: 'music' })),
-            ...books.map(item => ({ ...item, type: 'book' }))
-        ];
+        const moviesWithType = movies.map(item => ({ ...item, type: 'movie' }));
+        const musicWithType = music.map(item => ({ ...item, type: 'music' }));
+        const booksWithType = books.map(item => ({ ...item, type: 'book' }));
 
-        // 6. Analyze user preferences (The rest of the logic remains largely the same)
+        const allUserItems = [...moviesWithType, ...musicWithType, ...booksWithType];
+
+        if (!allUserItems.length) {
+            const randomRecommendations = await getRandomPopularItems(limit, randomSeed);
+            return res.status(200).json({
+                success: true,
+                count: randomRecommendations.length,
+                data: randomRecommendations,
+                type: 'random_popular',
+                message: 'No valid items found in your collections. Here are some popular recommendations!'
+            });
+        }
+
+        // 4. Analyze user preferences with randomization
         const genreCounts = {};
         const typeCounts = { movie: 0, music: 0, book: 0 };
 
-        allPreferenceItemsDetails.forEach(item => {
+        allUserItems.forEach(item => {
             if (item.type === 'movie' && item.genres && Array.isArray(item.genres)) {
-                item.genres.forEach(genre => { genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1; });
-            } else if (item.genre) { // Music and Book
+                item.genres.forEach(genre => {
+                    genreCounts[genre.name] = (genreCounts[genre.name] || 0) + 1;
+                });
+            } else if (item.type === 'music' && item.genre) {
+                genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
+            } else if (item.type === 'book' && item.genre) {
                 genreCounts[item.genre] = (genreCounts[item.genre] || 0) + 1;
             }
             typeCounts[item.type] = (typeCounts[item.type] || 0) + 1;
         });
 
-        const allGenres = Object.entries(genreCounts).sort((a, b) => b[1] - a[1]);
-        const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500;
+        // Get preferred genres with some randomization
+        const allGenres = Object.entries(genreCounts)
+            .filter(([_, count]) => count >= 1)
+            .sort((a, b) => b[1] - a[1]);
+
+        // Randomly select 60-80% of top genres to add variety
+        const genreSelectionRatio = 0.6 + (randomSeed % 100) / 500; // 0.6 to 0.8
         const numGenresToSelect = Math.max(1, Math.floor(allGenres.length * genreSelectionRatio));
         const preferredGenres = allGenres.slice(0, numGenresToSelect).map(([genre]) => genre);
 
-        const preferredTypes = Object.entries(typeCounts).filter(([_, count]) => count > 0).sort((a, b) => b[1] - a[1]).map(([type]) => type);
+        // Add occasional random genres for discovery
+        if (Math.random() < 0.3) {
+            const randomGenres = ['Action', 'Comedy', 'Drama', 'Thriller', 'Romance', 'Sci-Fi', 'Fantasy', 'Horror'];
+            const randomGenre = randomGenres[Math.floor(Math.random() * randomGenres.length)];
+            if (!preferredGenres.includes(randomGenre)) {
+                preferredGenres.push(randomGenre);
+            }
+        }
+
+        const preferredTypes = Object.entries(typeCounts)
+            .filter(([_, count]) => count > 0)
+            .sort((a, b) => b[1] - a[1])
+            .map(([type]) => type);
 
         console.log('🎭 Selected genres for this session:', preferredGenres);
-        
-        // 7. Fetch recommendations, excluding all necessary items
+        console.log('📊 Preferred types:', preferredTypes);
+
+        // 5. Fetch recommendations with randomization
         const recommendations = [];
         const recommendationStrategies = ['genre_based', 'popularity_based', 'rating_based', 'random'];
 
@@ -952,38 +981,49 @@ app.get('/api/recommendation/:userId', async (req, res) => {
             const itemsPerType = Math.ceil(limit / preferredTypes.length);
             const typeRecommendations = [];
 
+            // Try different strategies for variety
             for (let i = 0; i < itemsPerType; i++) {
                 const strategy = recommendationStrategies[i % recommendationStrategies.length];
                 const strategyRecs = await getRecommendationsByStrategy(
                     type, 
                     strategy, 
                     preferredGenres, 
-                    getExcludedIds(type, Array.from(excludedMovieIds), Array.from(excludedMusicIds), Array.from(excludedBookIds).map(id => new ObjectId(id))),
+                    getExcludedIds(type, movieIds, musicIds, bookIds),
                     Math.ceil(itemsPerType / recommendationStrategies.length),
                     randomSeed + i
                 );
                 typeRecommendations.push(...strategyRecs);
             }
+
             recommendations.push(...typeRecommendations.map(item => ({ ...item, type })));
         }
 
-        // 8. Refine and return the final list
-        const uniqueRecommendations = removeDuplicates(recommendations);
-        const shuffled = weightedShuffle(uniqueRecommendations, randomSeed);
-        const finalRecommendations = shuffled.slice(0, limit);
+        // 6. Advanced shuffling with weighted randomization
+        const shuffled = weightedShuffle(recommendations, randomSeed).slice(0, limit);
 
-        console.log(`✅ Generated ${finalRecommendations.length} unique recommendations.`);
+        // 7. Add some completely random items for discovery (10% chance)
+        if (Math.random() < 0.1 && shuffled.length < limit) {
+            const discoveryItems = await getRandomPopularItems(
+                Math.min(2, limit - shuffled.length), 
+                randomSeed + 1000
+            );
+            shuffled.push(...discoveryItems);
+        }
+
+        console.log(`✅ Generated ${shuffled.length} varied recommendations`);
 
         return res.status(200).json({
             success: true,
-            count: finalRecommendations.length,
-            data: finalRecommendations,
-            type: recommendationType,
+            count: shuffled.length,
+            data: shuffled.slice(0, limit),
+            type: 'personalized_varied',
             userPreferences: {
-                totalItemsInSource: allPreferenceItemsDetails.length,
+                totalItemsInCollections: allUserItems.length,
                 selectedGenres: preferredGenres,
+                preferredTypes,
+                randomSeed: randomSeed
             },
-            message: message
+            message: `Varied recommendations based on your ${allUserItems.length} favorite items`
         });
 
     } catch (error) {
@@ -994,36 +1034,11 @@ app.get('/api/recommendation/:userId', async (req, res) => {
         });
     }
 });
-
-function getItemUniqueKey(item) {
-    if (item.type === 'movie') {
-        return `movie-${item.tmdbId}`;
-    } else if (item.type === 'music') {
-        return `music-${item.id}`;
-    } else if (item.type === 'book') {
-        return `book-${item._id}`;
-    }
-    return `unknown-${item.id || item._id || item.tmdbId}`;
-}
-function removeDuplicates(recommendations) {
-    const seen = new Set();
-    const unique = [];
-    
-    for (const item of recommendations) {
-        const key = getItemUniqueKey(item);
-        if (!seen.has(key)) {
-            seen.add(key);
-            unique.push(item);
-        } else {
-            console.log(`🔍 Duplicate found and removed: ${key}`);
-        }
-    }
-    
-    return unique;
-}
+// Helper function to get recommendations by different strategies
 async function getRecommendationsByStrategy(type, strategy, preferredGenres, excludedIds, limit, seed) {
     let collectionName, query, sortCriteria;
 
+    // Set collection and base query
     if (type === 'movie') {
         collectionName = 'Movie';
         query = { tmdbId: { $nin: excludedIds } };
@@ -1035,6 +1050,7 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
         query = { _id: { $nin: excludedIds } };
     }
 
+    // Apply strategy-specific modifications
     switch (strategy) {
         case 'genre_based':
             if (type === 'movie') {
@@ -1067,7 +1083,7 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
                 query.vote_average = { $gte: 7.0 };
                 sortCriteria = { vote_average: -1 };
             } else if (type === 'music') {
-                sortCriteria = { popularity: -1 };
+                sortCriteria = { popularity: -1 }; // Use popularity as proxy for rating
             } else if (type === 'book') {
                 query.rating = { $gte: 4.0 };
                 sortCriteria = { rating: -1 };
@@ -1075,23 +1091,26 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
             break;
 
         case 'random':
+            // No additional filters, just random sampling
             break;
     }
 
     try {
         let results;
         if (strategy === 'random') {
+            // Use MongoDB's $sample for true randomization
             results = await db.collection(collectionName).aggregate([
                 { $match: query },
-                { $sample: { size: limit * 2 } } // **Fetch more to account for duplicates**
+                { $sample: { size: limit } }
             ]).toArray();
         } else {
-            const skip = Math.floor((seed % 10) * 2);
+            // Add some randomness to skip items
+            const skip = Math.floor((seed % 10) * 2); // Skip 0-18 items randomly
             results = await db.collection(collectionName)
                 .find(query)
                 .sort(sortCriteria)
                 .skip(skip)
-                .limit(limit * 2) // **Fetch more to account for duplicates**
+                .limit(limit)
                 .toArray();
         }
 
@@ -1101,47 +1120,19 @@ async function getRecommendationsByStrategy(type, strategy, preferredGenres, exc
         return [];
     }
 }
-async function getRandomPopularItems(limit, seed) {
-    const recommendations = [];
-    
-    try {
-        const movies = await db.collection('Movie').aggregate([
-            { $match: { vote_average: { $gte: 6.0 }, popularity: { $gte: 10 } } },
-            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
-        ]).toArray();
-        
-        const music = await db.collection('Music').aggregate([
-            { $match: { popularity: { $gte: 20 } } },
-            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
-        ]).toArray();
-        
-        const books = await db.collection('books').aggregate([
-            { $match: { rating: { $gte: 3.5 } } },
-            { $sample: { size: Math.ceil(limit / 3) * 2 } } // **Fetch more**
-        ]).toArray();
-        
-        recommendations.push(
-            ...movies.map(item => ({ ...item, type: 'movie' })),
-            ...music.map(item => ({ ...item, type: 'music' })),
-            ...books.map(item => ({ ...item, type: 'book' }))
-        );
-        
-        // **Remove duplicates before shuffling**
-        const uniqueRecommendations = removeDuplicates(recommendations);
-        return weightedShuffle(uniqueRecommendations, seed).slice(0, limit);
-    } catch (error) {
-        console.error('Error getting random popular items:', error);
-        return [];
-    }
-}
+// Helper function for weighted shuffling
 function weightedShuffle(array, seed) {
     const shuffled = [...array];
+    
+    // Use seed for reproducible but varied shuffling
     for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(((seed + i) * 9301 + 49297) % 233280 / 233280) * (i + 1);
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
+    
     return shuffled;
 }
+// Helper function to get excluded IDs based on type
 function getExcludedIds(type, movieIds, musicIds, bookIds) {
     switch (type) {
         case 'movie':
@@ -1154,6 +1145,42 @@ function getExcludedIds(type, movieIds, musicIds, bookIds) {
             return [];
     }
 }
+// Helper function to get random popular items when no user preferences exist
+async function getRandomPopularItems(limit, seed) {
+    const recommendations = [];
+    
+    try {
+        // Get random movies
+        const movies = await db.collection('Movie').aggregate([
+            { $match: { vote_average: { $gte: 6.0 }, popularity: { $gte: 10 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        // Get random music
+        const music = await db.collection('Music').aggregate([
+            { $match: { popularity: { $gte: 20 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        // Get random books
+        const books = await db.collection('books').aggregate([
+            { $match: { rating: { $gte: 3.5 } } },
+            { $sample: { size: Math.ceil(limit / 3) } }
+        ]).toArray();
+        
+        recommendations.push(
+            ...movies.map(item => ({ ...item, type: 'movie' })),
+            ...music.map(item => ({ ...item, type: 'music' })),
+            ...books.map(item => ({ ...item, type: 'book' }))
+        );
+        
+        return weightedShuffle(recommendations, seed).slice(0, limit);
+    } catch (error) {
+        console.error('Error getting random popular items:', error);
+        return [];
+    }
+}
+
 
 
 // GET /api/movies/top/:limit - Get top movies by popularity
@@ -1390,6 +1417,33 @@ app.get('/user/getImage', async (req, res) => {
     }
 });
 
+// Endpoint to get user ID from username
+app.get('/user/getUserId', async (req, res) => {
+    const { username } = req.query;
+    
+    if (!username) {
+        return res.status(400).json({ success: false, error: 'Username parameter is required' });
+    }
+    
+    try {
+        const user = await db.collection('User').findOne({ 
+            name: new RegExp(`^${username}$`, 'i') // Case-insensitive match
+        });
+        
+        if (!user) {
+            return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        
+        res.status(200).json({ 
+            success: true, 
+            userId: user._id.toString() 
+        });
+    } catch (err) {
+        console.error('Error fetching user ID from username:', err);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+});
+
 app.get('/image/:bucketName/:fileId', async (req, res) => {
     try {
         const { bucketName, fileId: fileIdString } = req.params;
@@ -1564,29 +1618,6 @@ app.post('/user/getPassword', async (req, res) => {
     } catch (err) {
         console.error('Error in /user/getPassword:', err);
         res.status(500).json({success: false, error: 'Server error during password verification.'});
-    }
-});
-
-app.get('/user/checkPasswordNull', async (req, res) => {
-    const {userId} = req.query;
-    
-    try {
-        const id = new ObjectId(userId);
-        const user = await db.collection('User').findOne({_id: id});
-
-        if (!user) {
-            return res.status(404).json({ success: false, error: 'User not found', res: false});
-        }
-        if (user.password === null) {
-            res.status(200).json({success: true, res: true});
-        }
-        else {
-            res.status(200).json({success: true, res: false});
-        }
-
-    } catch (err) {
-        console.error('Error in /user/checkPasswordNull:', err);
-        res.status(500).json({success: false, error: 'Server error during password verification.', res: false});
     }
 });
 
@@ -1950,7 +1981,6 @@ app.get('/api/autocomplete', async (req, res) => {
             image: book.image || './assests/bookposter.png'
         }));
         
-        // Combine and limit results
         const allSuggestions = [...movieSuggestions, ...musicSuggestions, ...bookSuggestions]
             .sort((a, b) => a.title.localeCompare(b.title))
             .slice(0, limit);
@@ -2012,8 +2042,7 @@ app.get('/api/entertainment/movie/:id', async (req, res) => {
                 error: 'Movie not found'
             });
         }
-        
-        // Format the movie data
+
         const formattedMovie = {
             id: movie._id,
             tmdbId: movie.tmdbId,
@@ -2053,8 +2082,7 @@ app.get('/api/entertainment/music/:id', async (req, res) => {
                 error: 'Music not found'
             });
         }
-        
-        // Format the music data
+
         const formattedMusic = {
             id: music._id,
             tmdbId: music.id,
@@ -2094,8 +2122,6 @@ app.get('/api/entertainment/book/:id', async (req, res) => {
                 error: 'Book not found'
             });
         }
-        
-        // Format the book data
         const formattedBook = {
             id: book._id,
             title: book.title,
@@ -2126,7 +2152,6 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
     try {
         console.log('🔍 Fetching reviews for entertainmentId:', entertainmentId);
         
-        // Convert string ID to ObjectId for MongoDB queries
         let objectId;
         try {
             objectId = new ObjectId(entertainmentId);
@@ -2136,8 +2161,7 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
                 error: 'Invalid entertainment ID format'
             });
         }
-        
-        // Use native MongoDB driver instead of Mongoose
+    
         const reviews = await db.collection('reviews').find({ 
             entertainmentId: objectId 
         }).toArray();
@@ -2157,10 +2181,111 @@ app.get('/api/reviews/:entertainmentId', async (req, res) => {
         });
     }
 });
-app.post('/api/reviews', async (req, res) => {
-    const { entertainmentId, user, rating, text } = req.body;
+
+app.get('/api/reviews/:entertainmentId/stats', async (req, res) => {
+    const { entertainmentId } = req.params;
     try {
-        // Check if user has already reviewed this entertainment item
+        console.log('📊 Fetching rating stats for entertainmentId:', entertainmentId);
+        
+        let objectId;
+        try {
+            objectId = new ObjectId(entertainmentId);
+        } catch (error) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid entertainment ID format'
+            });
+        }
+        
+        const stats = await db.collection('reviews').aggregate([
+            { $match: { entertainmentId: objectId } },
+            {
+                $group: {
+                    _id: null,
+                    totalReviews: { $sum: 1 },
+                    averageRating: { $avg: '$rating' },
+                    totalRating: { $sum: '$rating' },
+                    ratingCounts: {
+                        $push: '$rating'
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 0,
+                    totalReviews: 1,
+                    averageRating: { $round: ['$averageRating', 1] },
+                    totalRating: 1,
+                    ratingBreakdown: {
+                        $reduce: {
+                            input: '$ratingCounts',
+                            initialValue: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+                            in: {
+                                $mergeObjects: [
+                                    '$$value',
+                                    {
+                                        $cond: {
+                                            if: { $eq: ['$$this', 1] },
+                                            then: { '1': { $add: [{ $ifNull: ['$$value.1', 0] }, 1] } },
+                                            else: {
+                                                $cond: {
+                                                    if: { $eq: ['$$this', 2] },
+                                                    then: { '2': { $add: [{ $ifNull: ['$$value.2', 0] }, 1] } },
+                                                    else: {
+                                                        $cond: {
+                                                            if: { $eq: ['$$this', 3] },
+                                                            then: { '3': { $add: [{ $ifNull: ['$$value.3', 0] }, 1] } },
+                                                            else: {
+                                                                $cond: {
+                                                                    if: { $eq: ['$$this', 4] },
+                                                                    then: { '4': { $add: [{ $ifNull: ['$$value.4', 0] }, 1] } },
+                                                                    else: { '5': { $add: [{ $ifNull: ['$$value.5', 0] }, 1] } }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ]).toArray();
+
+        if (stats.length === 0) {
+            return res.json({
+                success: true,
+                data: {
+                    totalReviews: 0,
+                    averageRating: 0,
+                    totalRating: 0,
+                    ratingBreakdown: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 }
+                }
+            });
+        }
+        
+        console.log(`✅ Rating stats calculated:`, stats[0]);
+        
+        return res.json({
+            success: true,
+            data: stats[0]
+        });
+        
+    } catch (err) {
+        console.error('❌ Error fetching rating stats:', err);
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+});
+app.post('/api/reviews', async (req, res) => {
+    const { entertainmentId, user, rating, text, userAvatar } = req.body;
+    try {
         const existingReview = await db.collection('reviews').findOne({
             entertainmentId: new ObjectId(entertainmentId),
             user: user
@@ -2178,6 +2303,7 @@ app.post('/api/reviews', async (req, res) => {
             user,
             rating,
             text,
+            userAvatar, 
             createdAt: new Date(),
             reported: false,
             comments: []
@@ -2193,6 +2319,7 @@ app.post('/api/reviews', async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 });
+
 app.put('/api/reviews/:id', async (req, res) => {
     const { rating, text } = req.body;
     try {
@@ -2209,6 +2336,7 @@ app.put('/api/reviews/:id', async (req, res) => {
         res.status(400).json({ success: false, message: err.message });
     }
 });
+
 app.patch('/api/reviews/:id/report', async (req, res) => {
     try {
         const result = await db.collection('reviews').findOneAndUpdate(
@@ -2229,23 +2357,19 @@ app.patch('/api/reviews/:id/report', async (req, res) => {
 });
 
 app.post('/api/reviews/:id/comments', async (req, res) => {
-    const { user, comment } = req.body;
+    const { user, comment, userAvatar } = req.body;
     const { id } = req.params;
     
     try {
         console.log('💬 Attempting to add comment:', { id, user, comment });
-        
-        // First, check if the review exists
         const review = await db.collection('reviews').findOne({ 
             _id: new ObjectId(id) 
-        });
-        
-
-        
+        });   
         const newComment = {
-            _id: new ObjectId(), // Add unique ID for the comment
+            _id: new ObjectId(),
             user,
             comment,
+            userAvatar, 
             createdAt: new Date()
         };
         
@@ -2263,15 +2387,12 @@ app.post('/api/reviews/:id/comments', async (req, res) => {
     }
 });
 
-// DELETE endpoint for reviews
 app.delete('/api/reviews/:id', async (req, res) => {
     const { id } = req.params;
     const { user } = req.body;
     
     try {
-        console.log('🗑️ Attempting to delete review:', { id, user });
-        
-        // First, check if the review exists and belongs to the user
+        console.log('Attempting to delete review:', { id, user });
         const review = await db.collection('reviews').findOne({ 
             _id: new ObjectId(id) 
         });
@@ -2282,32 +2403,26 @@ app.delete('/api/reviews/:id', async (req, res) => {
                 message: 'Review not found' 
             });
         }
-        
-        // Check if the user owns this review
         if (review.user !== user) {
             return res.status(403).json({ 
                 success: false, 
                 message: 'You can only delete your own reviews' 
             });
         }
-        
-        // Delete the review
         const result = await db.collection('reviews').deleteOne({ 
             _id: new ObjectId(id) 
         });
         
         if (result.deletedCount === 0) {
-        }
-        
-        console.log('✅ Review deleted successfully');
+        }      
+        console.log('Review deleted successfully');
         res.json({ success: true, message: 'Review deleted successfully' });
     } catch (err) {
-        console.error('❌ Error deleting review:', err);
+        console.error('Error deleting review:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// DELETE endpoint for comments
 app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     const { reviewId, commentId } = req.params;
     const { user } = req.body;
@@ -2315,17 +2430,14 @@ app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     try {
         console.log('🗑️ Attempting to delete comment:', { reviewId, commentId, user });
         
-        // First, check if the review exists
         const review = await db.collection('reviews').findOne({ 
             _id: new ObjectId(reviewId) 
         });
 
         
-        // Find the comment in the review
         const comment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
         
         
-        // Check if the user owns this comment
         if (comment.user !== user) {
             return res.status(403).json({ 
                 success: false, 
@@ -2333,7 +2445,6 @@ app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
             });
         }
         
-        // Remove the comment from the review
         const result = await db.collection('reviews').findOneAndUpdate(
             { _id: new ObjectId(reviewId) },
             { $pull: { comments: { _id: new ObjectId(commentId) } } },
@@ -2349,7 +2460,7 @@ app.delete('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     }
 });
 
-// PUT endpoint for updating comments
+
 app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     const { reviewId, commentId } = req.params;
     const { user, comment } = req.body;
@@ -2357,18 +2468,12 @@ app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     try {
         console.log('✏️ Attempting to update comment:', { reviewId, commentId, user });
         
-        // First, check if the review exists
         const review = await db.collection('reviews').findOne({ 
             _id: new ObjectId(reviewId) 
         });
         
-        
-        // Find the comment in the review
         const existingComment = review.comments ? review.comments.find(c => c._id.toString() === commentId) : null;
         
-
-        
-        // Check if the user owns this comment
         if (existingComment.user !== user) {
             return res.status(403).json({ 
                 success: false, 
@@ -2376,7 +2481,6 @@ app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
             });
         }
         
-        // Update the comment
         const result = await db.collection('reviews').findOneAndUpdate(
             { 
                 _id: new ObjectId(reviewId),
@@ -2399,14 +2503,12 @@ app.put('/api/reviews/:reviewId/comments/:commentId', async (req, res) => {
     }
 });
 
-// Reports endpoint for both reviews and comments
 app.post('/api/reports', async (req, res) => {
     const { reviewId, commentId, user, reason } = req.body;
     
     try {
         console.log('🚨 Attempting to submit report:', { reviewId, commentId, user, reason });
         
-        // Validate required fields
         if (!user || !reason) {
             return res.status(400).json({ 
                 success: false, 
@@ -2421,22 +2523,19 @@ app.post('/api/reports', async (req, res) => {
             });
         }
         
-        // Create report object
         const report = {
             _id: new ObjectId(),
             user,
             reason,
             createdAt: new Date(),
-            status: 'pending' // pending, reviewed, resolved
+            status: 'pending' 
         };
         
         if (commentId) {
-            // Report for a comment
             report.type = 'comment';
             report.commentId = commentId;
             report.reviewId = reviewId;
             
-            // Verify the comment exists
             const review = await db.collection('reviews').findOne({ 
                 _id: new ObjectId(reviewId),
                 'comments._id': new ObjectId(commentId)
@@ -2449,7 +2548,6 @@ app.post('/api/reports', async (req, res) => {
                 });
             }
             
-            // Add report to the comment
             const result = await db.collection('reviews').findOneAndUpdate(
                 { 
                     _id: new ObjectId(reviewId),
@@ -2467,11 +2565,9 @@ app.post('/api/reports', async (req, res) => {
             res.json({ success: true, message: 'Comment report submitted successfully' });
             
         } else {
-            // Report for a review
             report.type = 'review';
             report.reviewId = reviewId;
             
-            // Verify the review exists
             const review = await db.collection('reviews').findOne({ 
                 _id: new ObjectId(reviewId)
             });
@@ -2483,7 +2579,6 @@ app.post('/api/reports', async (req, res) => {
                 });
             }
             
-            // Add report to the review
             const result = await db.collection('reviews').findOneAndUpdate(
                 { _id: new ObjectId(reviewId) },
                 { $push: { reports: report } },
@@ -2500,7 +2595,6 @@ app.post('/api/reports', async (req, res) => {
     }
 });
 
-// Get reports for admin (optional endpoint for future admin panel)
 app.get('/api/reports', async (req, res) => {
     try {
         const reports = await db.collection('reviews').aggregate([
