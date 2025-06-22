@@ -190,7 +190,7 @@ body {
 }
 .review-stars {
     color: var(--star-color);
-    font-size: 2em;
+    font-size: 1.7em;
     margin-left: 8px;
     display: flex;
     align-items: center;
@@ -249,7 +249,6 @@ body {
 #submit-review:hover {
     background: var(--primary-dark);
 }
-
 
 @media (max-width: 900px) {
     .summary-container,
@@ -567,7 +566,6 @@ body {
     transition: color 0.2s ease !important;
 }
 
-
 .star-rating-bar input[type="radio"]:checked + label,
 .star-rating-bar input[type="radio"]:checked ~ input + label,
 .star-rating-bar label:hover,
@@ -761,6 +759,7 @@ body {
     border-radius: 4px !important;
 }
 
+
 .comment-input {
     width: 100% !important;
     padding: 8px !important;
@@ -768,7 +767,6 @@ body {
     border: 1px solid #ddd !important;
     border-radius: 4px !important;
 }
-
 
 .edit-form {
     width: 100% !important;
@@ -807,6 +805,7 @@ body {
     padding: 8px 16px !important;
 }
 
+
 .review-actions {
     width: 100% !important;
     display: flex !important;
@@ -821,6 +820,7 @@ body {
     gap: 10px !important;
     margin-top: 10px !important;
 }
+
 
 .edit-buttons {
     width: 100% !important;
@@ -861,12 +861,14 @@ body {
     flex: 1 !important;
 }
 
+
 .comment-content p {
     width: 100% !important;
     margin: 8px 0 !important;
     line-height: 1.5 !important;
     color: #555 !important;
 }
+
 
 .user-info {
     display: flex !important;
@@ -889,11 +891,14 @@ body {
     color: #333 !important;
 }
 
+
 .star-rating {
     color: #ccc !important;
     font-size: 1.4em !important;
     letter-spacing: 2px !important;
 }
+
+
 .no-reviews {
     text-align: center !important;
     color: #666 !important;
