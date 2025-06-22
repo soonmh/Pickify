@@ -5,75 +5,51 @@ let currentEntertainmentId = null;
 
 async function submitReview(entertainmentId, user, rating, text, userAvatar) {
     try {
-        console.log('Submitting review with data:', { entertainmentId, user, rating, text, userAvatar });
-        
-        const actualUserAvatar = await getCurrentUserProfilePictureUrl();
-        
-        const response = await fetch(${API_BASE_URL}/reviews, {
+        console.log('Submitting review with data:', { entertainmentId, user, rating, text, userAvatar });       
+        const actualUserAvatar = await getCurrentUserProfilePictureUrl();        
+        const response = await fetch(`${API_BASE_URL}/reviews`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
-            },
+                'Content-Type': 'application/json',},
             body: JSON.stringify({
                 entertainmentId,
                 user,
                 rating: parseInt(rating),
                 text,
                 userAvatar: actualUserAvatar
-            })
-        });
-
-        console.log('Response status:', response.status);
-        
+            })});
+        console.log('Response status:', response.status);       
         const contentType = response.headers.get('content-type');
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
             console.error('Non-JSON response received:', textResponse);
-            throw new Error(Server returned HTML instead of JSON. Status: ${response.status});
-        }
-        
+            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);        }        
         const result = await response.json();
-        console.log('Response result:', result);
-        
+        console.log('Response result:', result);        
         if (result.success) {
-            console.log('Review submitted successfully');
-            
+            console.log('Review submitted successfully');           
             const ratingStats = await fetchRatingStats(entertainmentId);
             if (ratingStats) {
                 updateRatingDisplayWithDatabaseStats(ratingStats);
             } else {
                 updateRatingWithNewReview(parseInt(rating));
                 updateRatingBreakdownWithNewReview(parseInt(rating));
-            }
-        
+            }        
             const reviewText = document.getElementById('review-text');
             if (reviewText) {
-                reviewText.value = '';
-            }
-            
+                reviewText.value = '';}            
             const starInputs = document.querySelectorAll('.star-rating-bar input');
             starInputs.forEach(input => {
-                input.checked = false;
-            });
-            
+                input.checked = false;});            
             const ratingValue = document.querySelector('.rating-value');
             if (ratingValue) {
-                ratingValue.textContent = 'Select rating';
-            }
-            
-            const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
-            
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${entertainmentId});
-            const reviewsResult = await reviewsResponse.json();
-            
+                ratingValue.textContent = 'Select rating';}           
+            const currentUserProfilePic = await getCurrentUserProfilePictureUrl();            
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${entertainmentId}`);
+            const reviewsResult = await reviewsResponse.json();            
             if (reviewsResult.success) {
-
                 window.currentReviews = reviewsResult.data;
-                
-
-                displayReviewsWithImmediateProfilePic(reviewsResult.data, user, currentUserProfilePic);
-            }
-            
+                displayReviewsWithImmediateProfilePic(reviewsResult.data, user, currentUserProfilePic);            }           
         } else {
             if (result.message && result.message.includes('already reviewed')) {
                 alert('You already reviewed this entertainment');
@@ -86,17 +62,14 @@ async function submitReview(entertainmentId, user, rating, text, userAvatar) {
                         message.style.cssText = 'text-align: center; padding: 10px; margin: 10px 0; border-radius: 5px;';
                         message.textContent = 'You already reviewed this entertainment';
                         reviewForm.insertBefore(message, reviewForm.firstChild);
-                    }
-                }
+                    }                }
             } else {
                 alert(result.message || 'Failed to submit review');
-            }
-        }
+            }        }
     } catch (error) {
         console.error('Error submitting review:', error);
         alert(error.message || 'Failed to submit review. Please try again.');
-    }
-}
+    }}
 
 function updateEntertainmentRatingDisplay(reviews, entertainmentDetails) {
     const voteAverageEl = document.querySelector('.vote-average');
@@ -135,9 +108,9 @@ function updateEntertainmentRatingDisplay(reviews, entertainmentDetails) {
     
     let ratingText;
     if (userVoteCount > 0) {
-        ratingText = User Rating:${formattedVoteAverage}/5 (${combinedVoteCount} reviews);
+        ratingText = `User Rating: ${formattedVoteAverage}/5 (${combinedVoteCount} reviews)`;
     } else {
-        ratingText = Average Rating: ${formattedVoteAverage}/5 (${combinedVoteCount} rated);
+        ratingText = `Average Rating: ${formattedVoteAverage}/5 (${combinedVoteCount} rated)`;
     }
 
 
@@ -173,7 +146,7 @@ function updateRatingWithNewReview(newRating) {
     const fullStars = Math.round(newAverage);
     const stars = '★'.repeat(fullStars) + '☆'.repeat(5 - fullStars);
     
-    const ratingText = User Rating: ${formattedAverage}/5 (${reviewCount} reviews);
+    const ratingText = `User Rating: ${formattedAverage}/5 (${reviewCount} reviews)`;
     
     voteAverageEl.innerHTML = `
         <div class="tmdb-rating">
@@ -206,7 +179,7 @@ function populateEntertainmentDetails(review) {
         let imageUrl = details.poster_path;
         if (imageUrl) {
             if (imageUrl.startsWith('/')) {
-                imageUrl = ${TMDB_IMAGE_BASE_URL}${imageUrl};
+                imageUrl = `${TMDB_IMAGE_BASE_URL}${imageUrl}`;
             }
         }
         if (posterEl) posterEl.src = imageUrl || '';
@@ -219,7 +192,7 @@ function populateEntertainmentDetails(review) {
             } else if (details.genre) {
                 genreText = details.genre;
             }
-            titleEl.innerHTML = ${details.title || 'Untitled'}<br><span class="subtitle" style="font-size: 0.7em; color: #666;">${year} | ${type} | ${genreText}</span>;
+            titleEl.innerHTML = `${details.title || 'Untitled'}<br><span class="subtitle" style="font-size: 0.7em; color: #666;">${year} | ${type} | ${genreText}</span>`;
         }
         
         if (descriptionEl) descriptionEl.textContent = details.description || details.overview || 'No description available';
@@ -231,11 +204,11 @@ function populateEntertainmentDetails(review) {
         if (details.type?.toLowerCase() === 'movie') {
             if (directorEl && details.director) {
                 directorEl.style.display = 'block';
-                directorEl.textContent = Director: ${details.director};
+                directorEl.textContent = `Director: ${details.director}`;
             }
             if (durationEl && (details.duration || details.runtime)) {
                 durationEl.style.display = 'block';
-                durationEl.textContent = Duration: ${details.duration || details.runtime} minutes;
+                durationEl.textContent = `Duration: ${details.duration || details.runtime} minutes`;
             }
         }
     } catch (error) {
@@ -267,13 +240,13 @@ function updateRatingBreakdownWithNewReview(newRating) {
     const totalReviews = tempReviews.length;
 
     for (let i = 1; i <= 5; i++) {
-        const ratingEl = document.querySelector(.rating-${i});
+        const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
             const percentage = totalReviews > 0 ? Math.round((ratingCounts[i] / totalReviews) * 100) : 0;
-            ratingEl.textContent = ${percentage}%;
-            console.log(Updated rating-${i} to ${percentage}%);
+            ratingEl.textContent = `${percentage}%`;
+            console.log(`Updated rating-${i} to ${percentage}%`);
         } else {
-            console.log(Rating element .rating-${i} not found);
+            console.log(`Rating element .rating-${i} not found`);
         }
     }
 }
@@ -297,18 +270,18 @@ function updateReviewStats(reviews) {
     const totalReviews = reviews ? reviews.length : 0;
     
     for (let i = 1; i <= 5; i++) {
-        const ratingEl = document.querySelector(.rating-${i});
+        const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
             const percentage = totalReviews > 0 ? Math.round((ratingCounts[i] / totalReviews) * 100) : 0;
-            ratingEl.textContent = ${percentage}%;
-            console.log(Updated rating-${i} to ${percentage}%);
+            ratingEl.textContent = `${percentage}%`;
+            console.log(`Updated rating-${i} to ${percentage}%`);
         }
     }
 }
 
 async function deleteReview(reviewId, user) {
     try {
-        const response = await fetch(${API_BASE_URL}/reviews/${reviewId}, {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -322,18 +295,18 @@ async function deleteReview(reviewId, user) {
             console.log('Review deleted successfully, fetching updated stats...');
             console.log('Current entertainment ID:', currentEntertainmentId);
             
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
                 window.currentReviews = reviewsResult.data;
                 
                 const ratingStats = await fetchRatingStats(currentEntertainmentId);
-                console.log('🗑 Rating stats after deletion:', ratingStats);
+                console.log('🗑️ Rating stats after deletion:', ratingStats);
                 
                 if (ratingStats) {
                     updateRatingDisplayWithDatabaseStats(ratingStats);
-                    console.log('🗑 Rating display updated with database stats');
+                    console.log('🗑️ Rating display updated with database stats');
                 } else {
                     console.log('❌ Failed to fetch rating stats after deletion, using fallback');
                     updateEntertainmentRatingDisplay(reviewsResult.data, window.currentEntertainmentDetails);
@@ -379,7 +352,7 @@ function createStarRatingHTML(currentRating = 0, isEditForm = false) {
 
 function showEditForm(reviewId, currentRating, currentText) {
     console.log('Showing edit form for review:', { reviewId, currentRating, currentText });
-    const reviewElement = document.getElementById(review-${reviewId});
+    const reviewElement = document.getElementById(`review-${reviewId}`);
     if (!reviewElement) {
         console.error('Review element not found:', reviewId);
         return;
@@ -409,7 +382,7 @@ function showEditForm(reviewId, currentRating, currentText) {
 }
 
 async function saveEdit(reviewId) {
-    const reviewEl = document.getElementById(review-${reviewId});
+    const reviewEl = document.getElementById(`review-${reviewId}`);
     if (!reviewEl) {
         console.error('Review element not found');
         return;
@@ -441,7 +414,7 @@ async function saveEdit(reviewId) {
     const currentUser = JSON.parse(userData).username || JSON.parse(userData).name;
 
     try {
-        const response = await fetch(${API_BASE_URL}/reviews/${reviewId}, {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -460,7 +433,7 @@ async function saveEdit(reviewId) {
                 updateRatingDisplayWithDatabaseStats(ratingStats);
             }
             
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
@@ -482,7 +455,7 @@ async function saveEdit(reviewId) {
 }
 
 function cancelEdit(reviewId) {
-    const reviewElement = document.getElementById(review-${reviewId});
+    const reviewElement = document.getElementById(`review-${reviewId}`);
     if (!reviewElement) return;
     const originalContent = reviewElement.dataset.originalContent;
     if (originalContent) {
@@ -522,9 +495,9 @@ async function submitReport(reviewId, commentId = null, reason) {
             reason 
         };
         console.log('Request body:', requestBody);
-        console.log('Full URL being called:', ${API_BASE_URL}/reports);
+        console.log('Full URL being called:', `${API_BASE_URL}/reports`);
 
-        const response = await fetch(${API_BASE_URL}/reports, {
+        const response = await fetch(`${API_BASE_URL}/reports`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -538,7 +511,7 @@ async function submitReport(reviewId, commentId = null, reason) {
         if (!contentType || !contentType.includes('application/json')) {
             const textResponse = await response.text();
             console.error('Non-JSON response received:', textResponse);
-            throw new Error(Server returned HTML instead of JSON. Status: ${response.status});
+            throw new Error(`Server returned HTML instead of JSON. Status: ${response.status}`);
         }
         
         const result = await response.json();
@@ -546,7 +519,7 @@ async function submitReport(reviewId, commentId = null, reason) {
         
         if (result.success) {
             const contentType = commentId ? 'comment' : 'review';
-            alert(${contentType.charAt(0).toUpperCase() + contentType.slice(1)} reported successfully. Thank you for helping keep our community safe.);
+            alert(`${contentType.charAt(0).toUpperCase() + contentType.slice(1)} reported successfully. Thank you for helping keep our community safe.`);
         } else {
             throw new Error(result.message || 'Failed to submit report');
         }
@@ -573,7 +546,7 @@ async function deleteComment(reviewId, commentId) {
         const user = JSON.parse(userData).username || JSON.parse(userData).name;
         console.log('Current user:', user);
 
-        const response = await fetch(${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}, {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}`, {
             method: 'DELETE',
             headers: {
                 'Content-Type': 'application/json',
@@ -586,12 +559,12 @@ async function deleteComment(reviewId, commentId) {
         console.log('Delete comment response:', result);
         
         if (result.success) {
-            const commentElement = document.querySelector(#comment-${commentId});
+            const commentElement = document.querySelector(`#comment-${commentId}`);
             if (commentElement) {
                 commentElement.remove();
                 alert('Comment deleted successfully!');
             } else {
-                const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+                const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
                 const reviewsResult = await reviewsResponse.json();
                 
                 if (reviewsResult.success) {
@@ -610,7 +583,7 @@ async function deleteComment(reviewId, commentId) {
 }
 
 function showEditCommentForm(reviewId, commentId, currentComment) {
-    const commentElement = document.querySelector(#comment-${commentId});
+    const commentElement = document.querySelector(`#comment-${commentId}`);
     if (!commentElement) return;
 
     const userInfo = commentElement.querySelector('.user-info');
@@ -623,7 +596,7 @@ function showEditCommentForm(reviewId, commentId, currentComment) {
     commentElement.dataset.originalContent = originalContent;
 
     if (commentTextP) {
-        commentTextP.outerHTML = <textarea class="edit-comment-text">${currentComment}</textarea>;
+        commentTextP.outerHTML = `<textarea class="edit-comment-text">${currentComment}</textarea>`;
     }
 
     const editForm = `
@@ -637,7 +610,7 @@ function showEditCommentForm(reviewId, commentId, currentComment) {
 
 async function saveCommentEdit(reviewId, commentId) {
     try {
-        const commentElement = document.querySelector(#comment-${commentId});
+        const commentElement = document.querySelector(`#comment-${commentId}`);
         if (!commentElement) return;
 
         const newComment = commentElement.querySelector('.edit-comment-text').value.trim();
@@ -659,7 +632,7 @@ async function saveCommentEdit(reviewId, commentId) {
 
         const user = JSON.parse(userData).username || JSON.parse(userData).name;
 
-        const response = await fetch(${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}, {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments/${commentId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -670,7 +643,7 @@ async function saveCommentEdit(reviewId, commentId) {
         const result = await response.json();
         
         if (result.success) {
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
@@ -688,7 +661,7 @@ async function saveCommentEdit(reviewId, commentId) {
 }
 
 function cancelCommentEdit(commentId) {
-    const commentElement = document.querySelector(#comment-${commentId});
+    const commentElement = document.querySelector(`#comment-${commentId}`);
     if (!commentElement) return;
 
     const userInfo = commentElement.querySelector('.user-info');
@@ -723,7 +696,7 @@ async function submitComment(reviewId, user, comment, userAvatar) {
         
         const actualUserAvatar = await getCurrentUserProfilePictureUrl();
         
-        const response = await fetch(${API_BASE_URL}/reviews/${reviewId}/comments, {
+        const response = await fetch(`${API_BASE_URL}/reviews/${reviewId}/comments`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -741,12 +714,12 @@ async function submitComment(reviewId, user, comment, userAvatar) {
         if (result.success) {
             console.log('Comment submitted successfully');
             
-            const commentInput = document.querySelector(#review-${reviewId} .comment-input);
+            const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
             if (commentInput) {
                 commentInput.value = '';
             }
             
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             
             if (reviewsResult.success) {
@@ -769,14 +742,11 @@ function hasUserReviewed(reviews, currentUser) {
 
 function updateReviewFormVisibility(reviews, currentUser) {
     const reviewForm = document.querySelector('.review-form');
-    if (!reviewForm) return;
-    
+    if (!reviewForm) return;   
     const hasReviewed = hasUserReviewed(reviews, currentUser);
     const existingMessage = reviewForm.querySelector('.already-reviewed-message');
-    
     if (hasReviewed) {
         reviewForm.style.display = 'none';
-
         const reviewList = document.querySelector('.review-list');
         if (reviewList) {
             const message = document.createElement('div');
@@ -787,8 +757,7 @@ function updateReviewFormVisibility(reviews, currentUser) {
                 <p style="margin: 0; color: #636e72;">
                     You have previously submitted a review for this entertainment item. 
                 </p>
-            `;
-            
+            `;            
             const existingMessage = reviewList.parentElement.querySelector('.already-reviewed-message');
             if (existingMessage) {
                 existingMessage.remove();
@@ -797,8 +766,7 @@ function updateReviewFormVisibility(reviews, currentUser) {
             reviewList.parentElement.insertBefore(message, reviewList.nextSibling);
         }
     } else {
-        reviewForm.style.display = 'block';
-        
+        reviewForm.style.display = 'block';       
         if (existingMessage) {
             existingMessage.remove();
         }
@@ -811,7 +779,7 @@ function updateReviewFormVisibility(reviews, currentUser) {
 
 async function getUserIdFromUsername(username) {
     try {
-        const response = await fetch(http://localhost:3000/user/getUserId?username=${encodeURIComponent(username)});
+        const response = await fetch(`http://localhost:3000/user/getUserId?username=${encodeURIComponent(username)}`);
         const result = await response.json();
         
         if (result.success && result.userId) {
@@ -827,11 +795,11 @@ async function getUserIdFromUsername(username) {
 
 async function getUserProfilePictureUrl(userId) {
     try {
-        const response = await fetch(http://localhost:3000/user/getImage?userId=${userId});
+        const response = await fetch(`http://localhost:3000/user/getImage?userId=${userId}`);
         const result = await response.json();
         
         if (result.success && result.profile) {
-            return http://localhost:3000/image/profile_pictures/${result.profile};
+            return `http://localhost:3000/image/profile_pictures/${result.profile}`;
         } else {
             return './assests/blank-profile-picture.webp';
         }
@@ -903,19 +871,16 @@ function displayReviews(reviews) {
 
 async function displayReviewsWithProfilePictures(reviews, currentUser) {
     const reviewList = document.querySelector('.review-list');
-    
-    for (const review of reviews) {
+        for (const review of reviews) {
         const reviewElement = document.createElement('div');
         reviewElement.className = 'review-card';
-        reviewElement.id = review-${review._id};
+        reviewElement.id = `review-${review._id}`;
         reviewElement.dataset.user = review.user;
         reviewElement.dataset.reviewId = review._id;
-
         let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
         if (!review.userAvatar || review.userAvatar === './assests/blank-profile-picture.webp') {
             reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
         }
-
         const actionButtons = `
             <div class="review-actions">
                 ${currentUser === review.user ? `
@@ -926,7 +891,6 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                     <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>
                 ` : ''}
             </div>`;
-
         let commentsHtml = '';
         if (review.comments && review.comments.length > 0) {
             commentsHtml = review.comments.map(comment => {
@@ -947,10 +911,8 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                                 <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
-        }
+                    </div>`;
+            }).join('');}
         const commentSection = `
             <div class="comment-section">
                 <div class="comments">${commentsHtml}</div>
@@ -958,14 +920,13 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
                     <input type="text" class="comment-input" placeholder="Write a comment...">
                     <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUser}')">Post</button>
                 </div>
-            </div>
-        `;
+            </div>`;
         reviewElement.innerHTML = `
             <div class="review-header">
                 <img class="review-avatar" src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
                 <span class="review-user">${review.user}</span>
                 <div class="review-stars">
-                    ${[1,2,3,4,5].map(num => <span class="star${num <= review.rating ? ' filled' : ''}">★</span>).join('')}
+                    ${[1,2,3,4,5].map(num => `<span class="star${num <= parseInt(review.rating) ? ' filled' : ''}">★</span>`).join('')}
                 </div>
                 <span class="review-date">${formatReviewDate(review.createdAt || review.date || Date.now())}</span>
             </div>
@@ -973,13 +934,11 @@ async function displayReviewsWithProfilePictures(reviews, currentUser) {
             ${commentSection}
             ${actionButtons}
         `;
-
         reviewList.appendChild(reviewElement);
-    }
-}
+    }}
 
 async function submitCommentWithProfilePic(reviewId, currentUser) {
-    const commentInput = document.querySelector(#review-${reviewId} .comment-input);
+    const commentInput = document.querySelector(`#review-${reviewId} .comment-input`);
     const commentText = commentInput ? commentInput.value : '';
     await submitComment(reviewId, currentUser, commentText);
 }
@@ -999,7 +958,7 @@ async function refreshCurrentUserProfilePictures() {
         const currentUser = user.username || user.name;
         const currentUserProfilePic = await getCurrentUserProfilePictureUrl();
 
-        const currentUserReviews = document.querySelectorAll([data-user="${currentUser}"]);
+        const currentUserReviews = document.querySelectorAll(`[data-user="${currentUser}"]`);
         currentUserReviews.forEach(reviewElement => {
             const profileImg = reviewElement.querySelector('.user-info img');
             if (profileImg) {
@@ -1035,45 +994,33 @@ window.addEventListener('storage', (event) => {
 async function displayReviewsWithImmediateProfilePic(reviews, currentUser, currentUserProfilePic) {
     const reviewList = document.querySelector('.review-list');
     reviewList.innerHTML = '';
-
     if (!reviews || reviews.length === 0) {
         reviewList.innerHTML = '<p class="no-reviews">No reviews yet. Be the first to write a review!</p>';
-        return;
-    }
-
+        return;}
     let userData = sessionStorage.getItem('loggedInUser');
     if (!userData) {
-        userData = localStorage.getItem('loggedInUser');
-    }
+        userData = localStorage.getItem('loggedInUser');}
     const currentUserFromStorage = userData ? JSON.parse(userData).username || JSON.parse(userData).name : null;
-
     updateReviewFormVisibility(reviews, currentUserFromStorage);
-
     for (const review of reviews) {
         const reviewElement = document.createElement('div');
         reviewElement.className = 'review-card';
-        reviewElement.id = review-${review._id};
+        reviewElement.id = `review-${review._id}`;
         reviewElement.dataset.user = review.user;
         reviewElement.dataset.reviewId = review._id;
-
         let reviewerProfilePic = review.userAvatar || './assests/blank-profile-picture.webp';
         if (review.user === currentUserFromStorage && currentUserProfilePic) {
             reviewerProfilePic = currentUserProfilePic;
         } else if (!review.userAvatar || review.userAvatar === './assests/blank-profile-picture.webp') {
-            reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);
-        }
-
+            reviewerProfilePic = await getUserProfilePictureUrlFromUsername(review.user);        }
         const actionButtons = `
             <div class="review-actions">
                 ${currentUserFromStorage === review.user ? `
                     <button class="edit-review-btn" onclick="showEditForm('${review._id}', ${review.rating}, '${review.text.replace(/'/g, "\\'")}')">Edit</button>
-                    <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>
-                ` : ''}
+                    <button class="delete-review-btn" onclick="deleteReview('${review._id}', '${review.user}')">Delete</button>` : ''}
                 ${currentUserFromStorage !== review.user ? `
-                    <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>
-                ` : ''}
+                    <button class="report-btn" onclick="showReportForm('${review._id}')">Report</button>` : ''}
             </div>`;
-
         let commentsHtml = '';
         if (review.comments && review.comments.length > 0) {
             commentsHtml = review.comments.map(comment => {
@@ -1094,10 +1041,8 @@ async function displayReviewsWithImmediateProfilePic(reviews, currentUser, curre
                                 <button class="report-comment-btn" onclick="showReportForm('${review._id}', '${comment._id}')">Report</button>
                             </div>
                         </div>
-                    </div>
-                `;
-            }).join('');
-        }
+                    </div>`;
+            }).join('');}
         const commentSection = `
             <div class="comment-section">
                 <div class="comments">${commentsHtml}</div>
@@ -1105,31 +1050,25 @@ async function displayReviewsWithImmediateProfilePic(reviews, currentUser, curre
                     <input type="text" class="comment-input" placeholder="Write a comment...">
                     <button class="comment-btn" onclick="submitCommentWithProfilePic('${review._id}', '${currentUserFromStorage}')">Post</button>
                 </div>
-            </div>
-        `;
+            </div>`;
         reviewElement.innerHTML = `
             <div class="review-header">
                 <img class="review-avatar" src="${reviewerProfilePic}" alt="User Profile" onerror="this.src='./assests/blank-profile-picture.webp'">
                 <span class="review-user">${review.user}</span>
                 <div class="review-stars">
-                    ${[1,2,3,4,5].map(num => <span class="star${num <= review.rating ? ' filled' : ''}">★</span>).join('')}
+                    ${[1,2,3,4,5].map(num => `<span class="star${num <= parseInt(review.rating) ? ' filled' : ''}">★</span>`).join('')}
                 </div>
                 <span class="review-date">${formatReviewDate(review.createdAt || review.date || Date.now())}</span>
             </div>
             <div class="review-text">${review.text}</div>
             ${commentSection}
-            ${actionButtons}
-        `;
-
-        reviewList.appendChild(reviewElement);
-    }
-}
-
+            ${actionButtons}`;
+        reviewList.appendChild(reviewElement);}}
 
 async function fetchRatingStats(entertainmentId) {
     try {
         console.log('Fetching rating stats from database for:', entertainmentId);
-        const url = ${API_BASE_URL}/reviews/${entertainmentId}/stats;
+        const url = `${API_BASE_URL}/reviews/${entertainmentId}/stats`;
         console.log('API URL:', url);
         
         const response = await fetch(url);
@@ -1165,7 +1104,7 @@ function updateRatingDisplayWithDatabaseStats(stats) {
 
     let ratingText;
     if (totalReviews > 0) {
-        ratingText = User Rating: ${formattedAverage}/5 (${totalReviews} reviews);
+        ratingText = `User Rating: ${formattedAverage}/5 (${totalReviews} reviews)`;
     } else {
         ratingText = '0 rated';
     }
@@ -1178,12 +1117,12 @@ function updateRatingDisplayWithDatabaseStats(stats) {
     `;
     
     for (let i = 1; i <= 5; i++) {
-        const ratingEl = document.querySelector(.rating-${i});
+        const ratingEl = document.querySelector(`.rating-${i}`);
         if (ratingEl) {
             const count = ratingBreakdown[i] || 0;
             const percentage = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
-            ratingEl.textContent = ${percentage}%;
-            console.log(📊 Updated rating-${i} to ${percentage}% (${count} reviews));
+            ratingEl.textContent = `${percentage}%`;
+            console.log(`📊 Updated rating-${i} to ${percentage}% (${count} reviews)`);
         }
     }
 }
@@ -1214,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', async () => {
            type;
 
     try {
-        const apiUrl = ${API_BASE_URL}/entertainment/${type}/${tmdbId};
+        const apiUrl = `${API_BASE_URL}/entertainment/${type}/${tmdbId}`;
         console.log('Fetching entertainment details from:', apiUrl);
         
         const entertainmentResponse = await fetch(apiUrl);
@@ -1223,7 +1162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!entertainmentResponse.ok) {
             const errorText = await entertainmentResponse.text();
             console.error('API Error Response:', errorText);
-            throw new Error(HTTP error! status: ${entertainmentResponse.status}, message: ${errorText});
+            throw new Error(`HTTP error! status: ${entertainmentResponse.status}, message: ${errorText}`);
         }
         
         const entertainmentResult = await entertainmentResponse.json();
@@ -1262,7 +1201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (currentEntertainmentId) {
             console.log('Fetching reviews for entertainment ID:', currentEntertainmentId);
             console.log('Type of currentEntertainmentId:', typeof currentEntertainmentId);
-            const reviewsResponse = await fetch(${API_BASE_URL}/reviews/${currentEntertainmentId});
+            const reviewsResponse = await fetch(`${API_BASE_URL}/reviews/${currentEntertainmentId}`);
             const reviewsResult = await reviewsResponse.json();
             console.log('Reviews response:', reviewsResult);
 
@@ -1308,7 +1247,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error:', error);
         const errorMessage = document.createElement('div');
         errorMessage.className = 'error-message';
-        errorMessage.textContent = Failed to load entertainment details: ${error.message}. Please try refreshing the page.;
+        errorMessage.textContent = `Failed to load entertainment details: ${error.message}. Please try refreshing the page.`;
         document.querySelector('.summary-container').prepend(errorMessage);
     }
 
